@@ -107,7 +107,6 @@
 
     #admin-login-box, #register-box { display: none; }
 
-    /* 메인 상단 헤더 */
     #header {
       height: 56px;
       background: #1c2541;
@@ -131,18 +130,20 @@
     #map-wrapper { flex: 1; height: 100%; position: relative; background: #070d1d; }
     #map { width: 100%; height: 100%; background: #070d1d; z-index: 10; }
 
-    /* 핀 대신 표시되는 원형 사진 마커 */
+    /* 동적 크기 조절 사진 마커 */
     .photo-pin-container {
       position: relative;
-      width: 52px;
-      height: 52px;
+      width: 100%;
+      height: 100%;
       border-radius: 50%;
-      border: 3px solid #00b4d8;
-      box-shadow: 0 0 12px rgba(0, 180, 216, 0.8), 0 4px 8px rgba(0,0,0,0.6);
+      border: 2px solid #00b4d8;
+      box-shadow: 0 0 10px rgba(0, 180, 216, 0.8), 0 3px 6px rgba(0,0,0,0.5);
       background: #1c2541;
       cursor: pointer;
       overflow: hidden;
-      transform: translate3d(0, 0, 0);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .photo-pin-img {
       width: 100%;
@@ -157,7 +158,7 @@
       width: 100%;
       background: rgba(11, 19, 43, 0.85);
       color: #fff;
-      font-size: 9px;
+      font-size: 8px;
       text-align: center;
       font-weight: bold;
       padding: 1px 0;
@@ -166,7 +167,7 @@
       text-overflow: ellipsis;
     }
 
-    /* 팝업 스타일 */
+    /* 팝업 창 */
     .leaflet-popup-content-wrapper {
       background: #1c2541;
       color: #fff;
@@ -181,13 +182,13 @@
     .popup-img { width: 100%; max-height: 180px; object-fit: cover; border-radius: 8px; margin: 8px 0; border: 1px solid #334155; }
     .btn-delete-pin {
       width: 100%;
-      padding: 7px;
-      margin-top: 8px;
-      background: #dc2626;
+      padding: 8px;
+      margin-top: 10px;
+      background: #ef4444;
       border: none;
       border-radius: 6px;
       color: #fff;
-      font-size: 12px;
+      font-size: 13px;
       font-weight: bold;
       cursor: pointer;
     }
@@ -285,7 +286,7 @@
   <div class="form-group"><label>실례가</label><input type="text" id="price"></div>
   
   <div class="form-group">
-    <label>현장 사진 첨부 (촬영 시 핀 대신 사진 표시)</label>
+    <label>현장 사진 첨부</label>
     <input type="file" id="instPhoto" accept="image/*" capture="environment">
     <div class="photo-preview" id="photoPreviewBox">
       <span id="photoPreviewText" style="font-size: 12px; color: #94a3b8;">촬영 또는 사진 선택</span>
@@ -307,7 +308,8 @@
 
   let currentFloor = 1;
   let currentCoord = { x: 0, y: 0 };
-  let currentMarkers = [];
+  let currentInstruments = [];
+  let currentMarkerObjects = [];
   let mapInstance = null;
   let selectedPhotoBlob = null;
 
@@ -444,7 +446,7 @@
     }
   });
 
-  // 사진 압축 및 리사이징 (태블릿 고용량 사진 빠른 업로드 보장)
+  // 사진 압축
   function compressImage(file, maxWidth = 1000, quality = 0.75) {
     return new Promise((resolve) => {
       const img = new Image();
@@ -466,7 +468,6 @@
     });
   }
 
-  // 사진 첨부 시 압축 처리
   document.getElementById('instPhoto').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -481,7 +482,7 @@
     }
   });
 
-  // 지도 인스턴스 생성
+  // 지도 인스턴스
   const planeSize = 3000;
   const bounds = [[0, 0], [planeSize, planeSize]];
   let floorLayer = null;
@@ -511,6 +512,11 @@
       document.getElementById('photoPreviewImg').style.display = 'none';
       document.getElementById('photoPreviewText').style.display = 'block';
       document.getElementById('modal').style.display = 'block';
+    });
+
+    // 지도 줌 레벨 변경 시 마커 크기 동적 갱신
+    mapInstance.on('zoomend', () => {
+      renderMarkers();
     });
   }
 
@@ -552,49 +558,68 @@
     if (floorLayer) mapInstance.removeLayer(floorLayer);
     floorLayer = L.imageOverlay(drawGrid(f), bounds).addTo(mapInstance);
     mapInstance.fitBounds(bounds);
-    loadInstruments(f);
+    fetchInstruments(f);
   }
 
   document.querySelectorAll('.floor-btn').forEach(btn => {
     btn.addEventListener('click', () => switchFloor(parseInt(btn.dataset.floor)));
   });
 
-  // 계측기 삭제
+  // 전역 계측기 삭제 함수
   window.deleteInstrument = async function(id) {
-    if (!confirm('이 계측기를 지도에서 삭제하시겠습니까?')) return;
-    const { error } = await supabaseClient.from('instruments').delete().eq('id', id);
+    if (!confirm('이 계측기를 영구 삭제하시겠습니까?')) return;
+    mapInstance.closePopup();
+    
+    const { error } = await supabaseClient
+      .from('instruments')
+      .delete()
+      .eq('id', id);
+
     if (error) {
-      alert('삭제 실패: ' + error.message);
+      alert('삭제 실패: ' + error.message + '\n(Supabase SQL에서 DELETE 권한을 확인해주세요)');
     } else {
-      loadInstruments(currentFloor);
+      alert('삭제되었습니다.');
+      fetchInstruments(currentFloor);
     }
   };
 
-  // 계측기 마커/사진 로드
-  async function loadInstruments(floor) {
-    currentMarkers.forEach(m => mapInstance.removeLayer(m));
-    currentMarkers = [];
-    const { data } = await supabaseClient.from('instruments').select('*').eq('floor', floor);
-    if (!data) return;
+  // 데이터 로드
+  async function fetchInstruments(floor) {
+    const { data, error } = await supabaseClient.from('instruments').select('*').eq('floor', floor);
+    if (error) {
+      console.error(error);
+      return;
+    }
+    currentInstruments = data || [];
+    renderMarkers();
+  }
 
-    data.forEach(item => {
+  // 줌 레벨에 비례하여 마커 렌더링
+  function renderMarkers() {
+    currentMarkerObjects.forEach(m => mapInstance.removeLayer(m));
+    currentMarkerObjects = [];
+
+    const zoom = mapInstance.getZoom();
+    // 줌 레벨(-4 ~ +4)에 따라 핀 크기를 지름 24px ~ 90px 범위로 자동 조절
+    const calculatedSize = Math.max(24, Math.min(90, Math.round(50 + zoom * 8)));
+    const badgeDisplay = calculatedSize < 35 ? 'none' : 'block';
+
+    currentInstruments.forEach(item => {
       let marker;
       if (item.photo_url && item.photo_url.trim() !== '') {
-        // 사진이 있는 경우: 현장 사진이 들어간 원형 핀
         const photoIcon = L.divIcon({
           className: 'leaflet-photo-icon',
           html: `
-            <div class="photo-pin-container">
-              <img src="${item.photo_url}" class="photo-pin-img" onerror="this.src='';">
-              <div class="photo-pin-badge">${item.tag_no}</div>
+            <div class="photo-pin-container" style="width:${calculatedSize}px; height:${calculatedSize}px;">
+              <img src="${item.photo_url}" class="photo-pin-img">
+              <div class="photo-pin-badge" style="display:${badgeDisplay}; font-size:${Math.max(8, calculatedSize * 0.18)}px;">${item.tag_no}</div>
             </div>
           `,
-          iconSize: [52, 52],
-          iconAnchor: [26, 26]
+          iconSize: [calculatedSize, calculatedSize],
+          iconAnchor: [calculatedSize / 2, calculatedSize / 2]
         });
         marker = L.marker([item.y_coord, item.x_coord], { icon: photoIcon }).addTo(mapInstance);
       } else {
-        // 사진이 없는 경우: 기본 마커
         marker = L.marker([item.y_coord, item.x_coord]).addTo(mapInstance);
       }
 
@@ -610,7 +635,7 @@
         </div>
       `;
       marker.bindPopup(popupContent);
-      currentMarkers.push(marker);
+      currentMarkerObjects.push(marker);
     });
   }
 
@@ -618,7 +643,7 @@
     document.getElementById('modal').style.display = 'none';
   });
 
-  // 계측기 저장 (사진 업로드 및 상태 알림 포함)
+  // 등록 저장
   document.getElementById('btnSaveInst').addEventListener('click', async () => {
     const saveBtn = document.getElementById('btnSaveInst');
     const tagNo = document.getElementById('tagNo').value.trim();
@@ -635,9 +660,7 @@
         contentType: 'image/jpeg',
         upsert: true
       });
-      if (uploadErr) {
-        alert('사진 업로드 실패: ' + uploadErr.message);
-      } else {
+      if (!uploadErr) {
         const { data: publicUrlData } = supabaseClient.storage.from('instrument-photos').getPublicUrl(fileName);
         photoUrl = publicUrlData.publicUrl;
       }
@@ -664,7 +687,7 @@
     }
 
     document.getElementById('modal').style.display = 'none';
-    loadInstruments(currentFloor);
+    fetchInstruments(currentFloor);
   });
 
   if (sessionStorage.getItem('jeju_admin_auth') === 'true') {
