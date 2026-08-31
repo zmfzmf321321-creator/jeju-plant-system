@@ -11,7 +11,6 @@
     * { box-sizing: border-box; }
     body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0b132b; color: #fff; overflow: hidden; }
 
-    /* 인증 화면 최상위 고정 레이어 */
     #auth-overlay {
       position: fixed;
       top: 0; left: 0; width: 100vw; height: 100vh;
@@ -20,7 +19,6 @@
       align-items: center;
       justify-content: center;
       z-index: 99999;
-      pointer-events: auto;
     }
     .auth-box {
       background: #1c2541;
@@ -30,8 +28,6 @@
       width: 90%;
       max-width: 340px;
       text-align: center;
-      position: relative;
-      z-index: 100000;
     }
     .auth-title { font-size: 20px; font-weight: bold; margin-bottom: 6px; color: #48cae4; }
     .auth-desc { font-size: 13px; color: #94a3b8; margin-bottom: 20px; line-height: 1.4; }
@@ -46,10 +42,6 @@
       font-size: 15px;
       margin-bottom: 12px;
       outline: none;
-      -webkit-user-select: text;
-      user-select: text;
-      position: relative;
-      z-index: 100001;
     }
     .auth-input:focus { border-color: #00b4d8; }
 
@@ -64,8 +56,22 @@
       font-weight: bold;
       cursor: pointer;
       margin-top: 6px;
-      position: relative;
-      z-index: 100001;
+    }
+    .btn-biometric {
+      width: 100%;
+      padding: 12px;
+      background: #10b981;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
     }
     .auth-divider {
       display: flex;
@@ -89,8 +95,6 @@
       font-size: 13px;
       font-weight: bold;
       cursor: pointer;
-      position: relative;
-      z-index: 100001;
     }
     .auth-toggle-link {
       margin-top: 14px;
@@ -98,14 +102,12 @@
       color: #94a3b8;
       cursor: pointer;
       text-decoration: underline;
-      position: relative;
-      z-index: 100001;
     }
     .auth-status-error { color: #ef4444; font-size: 12px; margin-top: 10px; display: none; }
 
-    #admin-login-box, #register-box, #waiting-approval-box { display: none; }
+    #admin-login-box, #register-box { display: none; }
 
-    /* 메인 앱 UI */
+    /* 메인 앱 */
     #header {
       height: 56px;
       background: #1c2541;
@@ -117,7 +119,9 @@
     }
     #header .brand { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
     #header .floor-tag { background: #48cae4; color: #0b132b; padding: 3px 8px; border-radius: 20px; font-size: 12px; font-weight: bold; }
-    .btn-logout { background: transparent; border: 1px solid #64748b; color: #cbd5e1; padding: 4px 10px; border-radius: 6px; cursor: pointer; }
+    .header-btns { display: flex; gap: 8px; align-items: center; }
+    .btn-bio-reg { background: #065f46; border: 1px solid #10b981; color: #a7f3d0; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; }
+    .btn-logout { background: transparent; border: 1px solid #64748b; color: #cbd5e1; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
 
     #container { display: flex; height: calc(100vh - 56px); width: 100vw; position: relative; }
     #floor-selector { width: 76px; background: #111a33; border-right: 1px solid #1c2541; display: flex; flex-direction: column; gap: 6px; padding: 8px 6px; z-index: 500; overflow-y: auto; }
@@ -127,31 +131,37 @@
     #map-wrapper { flex: 1; height: 100%; position: relative; background: #070d1d; }
     #map { width: 100%; height: 100%; background: #070d1d; z-index: 10; }
 
-    .custom-photo-marker { border: 2px solid #00b4d8; border-radius: 50%; background-size: cover; background-position: center; position: relative; }
-    .marker-badge { position: absolute; top: -16px; left: 50%; transform: translateX(-50%); background: rgba(11, 19, 43, 0.9); color: #48cae4; font-size: 10px; font-weight: bold; padding: 1px 5px; border-radius: 4px; white-space: nowrap; }
-
-    #modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #ffffff; padding: 20px; border-radius: 12px; z-index: 2000; width: 88%; max-width: 360px; color: #333; }
+    #modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #ffffff; padding: 20px; border-radius: 12px; z-index: 2000; width: 88%; max-width: 360px; color: #333; max-height: 90vh; overflow-y: auto; }
     #modal h3 { margin: 0 0 12px 0; font-size: 16px; }
     .form-group { margin-bottom: 10px; }
-    .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; }
-    .form-group input { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; }
+    .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #334155; }
+    .form-group input { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
     .btn-wrap { display: flex; gap: 8px; margin-top: 14px; }
     .btn-wrap button { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
     .btn-save { background: #0077b6; color: #fff; }
     .btn-cancel { background: #e2e8f0; color: #475569; }
+    .photo-preview { width: 100%; height: 120px; background: #f1f5f9; border: 1px dashed #94a3b8; border-radius: 6px; display: flex; align-items: center; justify-content: center; margin-top: 6px; overflow: hidden; }
+    .photo-preview img { width: 100%; height: 100%; object-fit: cover; display: none; }
   </style>
 </head>
 <body>
 
 <div id="auth-overlay">
-  <!-- 1. 팀원 일반 로그인 -->
+  <!-- 1. 로그인 창 -->
   <div id="login-box" class="auth-box">
     <div class="auth-title">🔐 시스템 로그인</div>
     <div class="auth-desc">보일러 계측기 관리 시스템</div>
+    
+    <button class="btn-biometric" id="btnBioLogin">👆 태블릿 생체/지문 즉시 로그인</button>
+    <div id="bioLoginMsg" class="auth-status-error"></div>
+    
+    <div class="auth-divider"><span>또는 사번 로그인</span></div>
+    
     <input type="text" id="loginEmail" class="auth-input" placeholder="사번(이메일 형태: emp@jeju.com)">
     <input type="password" id="loginPassword" class="auth-input" placeholder="비밀번호">
     <button class="auth-btn" id="btnMemberLogin">팀원 로그인</button>
     <div id="loginMsg" class="auth-status-error"></div>
+    
     <div class="auth-toggle-link" id="linkToRegister">신규 팀원 계정 등록(신청)</div>
     <div class="auth-divider"><span>또는</span></div>
     <button class="btn-admin-pass" id="btnGoAdmin">👑 관리자 비밀번호로 즉시 입장</button>
@@ -178,18 +188,6 @@
     <div id="regMsg" class="auth-status-error"></div>
     <div class="auth-toggle-link" id="linkBackLogin2">로그인 화면으로 돌아가기</div>
   </div>
-
-  <!-- 4. 승인 대기 안내 -->
-  <div id="waiting-approval-box" class="auth-box">
-    <div style="font-size: 36px; margin-bottom: 10px;">⏳</div>
-    <div class="auth-title" style="color: #f59e0b;">승인 대기 중</div>
-    <div class="auth-desc">
-      <b id="waitingUserName" style="color: #fff;"></b> 님의 계정이 등록되었습니다.<br><br>
-      현재 <b>관리자 승인 대기</b> 상태입니다.
-    </div>
-    <button class="auth-btn" id="btnRefreshApproval" style="background: #3b82f6; color: #fff;">새로고침</button>
-    <button class="auth-btn" id="btnLogoutFromWaiting" style="background: #334155; color: #cbd5e1; margin-top: 8px;">로그아웃</button>
-  </div>
 </div>
 
 <div id="header">
@@ -197,8 +195,9 @@
     <span>🏢 보일러 계측제어 맵</span>
     <span class="floor-tag" id="current-floor-badge">1F (Boiler)</span>
   </div>
-  <div style="display: flex; gap: 10px; align-items: center;">
+  <div class="header-btns">
     <span id="headerUserName" style="color: #48cae4; font-weight: bold; font-size: 13px;"></span>
+    <button class="btn-bio-reg" id="btnRegisterBio">👆 기기 지문 등록</button>
     <button class="btn-logout" id="btnLogout">로그아웃</button>
   </div>
 </div>
@@ -219,6 +218,7 @@
   </div>
 </div>
 
+<!-- 계측기 등록 모달 -->
 <div id="modal">
   <h3>계측기 등록 (<span id="modal-floor-text">1F</span>)</h3>
   <div class="form-group"><label>Tag No.</label><input type="text" id="tagNo" placeholder="예: 20-PT-101"></div>
@@ -226,6 +226,16 @@
   <div class="form-group"><label>모델명</label><input type="text" id="model"></div>
   <div class="form-group"><label>측정범위 / 신호</label><input type="text" id="range"></div>
   <div class="form-group"><label>실례가</label><input type="text" id="price"></div>
+  
+  <div class="form-group">
+    <label>현장 사진 첨부</label>
+    <input type="file" id="instPhoto" accept="image/*" capture="environment">
+    <div class="photo-preview" id="photoPreviewBox">
+      <span id="photoPreviewText" style="font-size: 12px; color: #94a3b8;">촬영 또는 사진 선택</span>
+      <img id="photoPreviewImg" src="" alt="미리보기">
+    </div>
+  </div>
+
   <div class="btn-wrap">
     <button class="btn-save" id="btnSaveInst">저장</button>
     <button class="btn-cancel" id="btnCancelInst">취소</button>
@@ -242,8 +252,9 @@
   let currentCoord = { x: 0, y: 0 };
   let currentMarkers = [];
   let mapInstance = null;
+  let selectedPhotoFile = null;
 
-  // 화면 전환 이벤트 바인딩 (인라인 대신 명시적 addEventListener 적용)
+  // 화면 전환 이벤트
   document.getElementById('btnGoAdmin').addEventListener('click', () => {
     document.getElementById('login-box').style.display = 'none';
     document.getElementById('admin-login-box').style.display = 'block';
@@ -286,7 +297,125 @@
     switchFloor(1);
   }
 
-  // Leaflet 지도 초기화
+  // --- WebAuthn 생체인식/지문 로직 ---
+  document.getElementById('btnRegisterBio').addEventListener('click', async () => {
+    if (!window.PublicKeyCredential) {
+      alert('이 기기는 생체인식/지문 센서를 지원하지 않습니다.');
+      return;
+    }
+    try {
+      const challenge = new Uint8Array(32);
+      window.crypto.getRandomValues(challenge);
+      const userId = new Uint8Array(16);
+      window.crypto.getRandomValues(userId);
+
+      const credential = await navigator.credentials.create({
+        publicKey: {
+          challenge: challenge,
+          rp: { name: "보일러 계측제어 관리", id: window.location.hostname },
+          user: {
+            id: userId,
+            name: "admin@jeju.com",
+            displayName: document.getElementById('headerUserName').innerText || "관리자"
+          },
+          pubKeyCredParams: [{ alg: -7, type: "public-key" }, { alg: -257, type: "public-key" }],
+          authenticatorSelection: {
+            authenticatorAttachment: "platform",
+            userVerification: "required"
+          },
+          timeout: 60000
+        }
+      });
+
+      if (credential) {
+        localStorage.setItem('jeju_bio_registered', 'true');
+        localStorage.setItem('jeju_bio_user', document.getElementById('headerUserName').innerText || "👑 관리자");
+        alert('태블릿 지문 등록이 완료되었습니다! 다음부터는 지문 버튼으로 즉시 로그인할 수 있습니다.');
+      }
+    } catch (err) {
+      alert('지문 등록이 취소되었거나 오류가 발생했습니다: ' + err.message);
+    }
+  });
+
+  document.getElementById('btnBioLogin').addEventListener('click', async () => {
+    const isBio = localStorage.getItem('jeju_bio_registered');
+    if (!isBio) {
+      const msg = document.getElementById('bioLoginMsg');
+      msg.innerText = '⚠️ 등록된 지문이 없습니다. 먼저 관리자로 로그인 후 [지문 등록]을 진행해 주세요.';
+      msg.style.display = 'block';
+      return;
+    }
+    try {
+      const challenge = new Uint8Array(32);
+      window.crypto.getRandomValues(challenge);
+      const assertion = await navigator.credentials.get({
+        publicKey: {
+          challenge: challenge,
+          rpId: window.location.hostname,
+          userVerification: "required",
+          timeout: 60000
+        }
+      });
+      if (assertion) {
+        sessionStorage.setItem('jeju_admin_auth', 'true');
+        const user = localStorage.getItem('jeju_bio_user') || '👑 지문 인증 사용자';
+        unlock(user);
+      }
+    } catch (err) {
+      const msg = document.getElementById('bioLoginMsg');
+      msg.innerText = '⚠️ 지문 인증 실패: ' + err.message;
+      msg.style.display = 'block';
+    }
+  });
+
+  // 팀원 가입 및 로그인
+  document.getElementById('btnRegisterSubmit').addEventListener('click', async () => {
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const pass = document.getElementById('regPassword').value;
+    const msg = document.getElementById('regMsg');
+    if (!name || !email || !pass) { msg.innerText = '모든 항목을 입력해주세요.'; msg.style.display = 'block'; return; }
+
+    const { error } = await supabaseClient.auth.signUp({
+      email: email, password: pass,
+      options: { data: { full_name: name, approved: false } }
+    });
+    if (error) { msg.innerText = error.message; msg.style.display = 'block'; }
+    else { alert('가입 신청이 완료되었습니다. 관리자 승인 후 접속 가능합니다.'); location.reload(); }
+  });
+
+  document.getElementById('btnMemberLogin').addEventListener('click', async () => {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass = document.getElementById('loginPassword').value;
+    const msg = document.getElementById('loginMsg');
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email: email, password: pass });
+    if (error) { msg.innerText = '아이디 또는 비밀번호가 올바르지 않습니다.'; msg.style.display = 'block'; return; }
+
+    const isApproved = data.user.user_metadata?.approved;
+    if (!isApproved) {
+      alert('관리자 승인 대기 중입니다. 관리자 승인 후 로그인해 주세요.');
+      await supabaseClient.auth.signOut();
+    } else {
+      unlock(data.user.user_metadata?.full_name || '팀원');
+    }
+  });
+
+  // 사진 촬영 미리보기
+  document.getElementById('instPhoto').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      selectedPhotoFile = file;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        document.getElementById('photoPreviewImg').src = ev.target.result;
+        document.getElementById('photoPreviewImg').style.display = 'block';
+        document.getElementById('photoPreviewText').style.display = 'none';
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  // Leaflet 지도 세팅
   const planeSize = 3000;
   const bounds = [[0, 0], [planeSize, planeSize]];
   let floorLayer = null;
@@ -306,6 +435,10 @@
       if (e.latlng.lat < 0 || e.latlng.lat > planeSize || e.latlng.lng < 0 || e.latlng.lng > planeSize) return;
       currentCoord.y = Math.round(e.latlng.lat);
       currentCoord.x = Math.round(e.latlng.lng);
+      selectedPhotoFile = null;
+      document.getElementById('instPhoto').value = '';
+      document.getElementById('photoPreviewImg').style.display = 'none';
+      document.getElementById('photoPreviewText').style.display = 'block';
       document.getElementById('modal').style.display = 'block';
     });
   }
@@ -362,7 +495,11 @@
     if (!data) return;
     data.forEach(item => {
       const m = L.marker([item.y_coord, item.x_coord]).addTo(mapInstance);
-      m.bindPopup(`<b>${item.tag_no}</b><br>${item.name}<br>${item.model || ''}`);
+      let popupContent = `<b>${item.tag_no}</b><br>${item.name}<br>${item.model || ''}<br>${item.signal_range || ''}`;
+      if (item.photo_url) {
+        popupContent += `<br><img src="${item.photo_url}" style="width:100%; max-width:180px; border-radius:4px; margin-top:6px;">`;
+      }
+      m.bindPopup(popupContent);
       currentMarkers.push(m);
     });
   }
@@ -376,12 +513,27 @@
     const name = document.getElementById('name').value.trim();
     if (!tagNo || !name) { alert('Tag No와 기기명은 필수입니다.'); return; }
 
+    let photoUrl = null;
+    if (selectedPhotoFile) {
+      const fileExt = selectedPhotoFile.name.split('.').pop();
+      const fileName = `${Date.now()}_${tagNo}.${fileExt}`;
+      const { data: uploadData } = await supabaseClient.storage.from('instrument-photos').upload(fileName, selectedPhotoFile);
+      if (uploadData) {
+        const { data: publicUrlData } = supabaseClient.storage.from('instrument-photos').getPublicUrl(fileName);
+        photoUrl = publicUrlData.publicUrl;
+      }
+    }
+
     await supabaseClient.from('instruments').insert([{
-      floor: currentFloor, tag_no: tagNo, name: name,
+      floor: currentFloor,
+      tag_no: tagNo,
+      name: name,
       model: document.getElementById('model').value.trim(),
       signal_range: document.getElementById('range').value.trim(),
       price: document.getElementById('price').value.trim(),
-      x_coord: currentCoord.x, y_coord: currentCoord.y
+      photo_url: photoUrl,
+      x_coord: currentCoord.x,
+      y_coord: currentCoord.y
     }]);
 
     document.getElementById('modal').style.display = 'none';
