@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>보일러 계측기 관리 시스템</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0b132b; color: #fff; overflow: hidden; }
+
+    /* 인증 화면 최상위 고정 레이어 */
+    #auth-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: #0b132b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+      pointer-events: auto;
+    }
+    .auth-box {
+      background: #1c2541;
+      padding: 28px 24px;
+      border-radius: 16px;
+      border: 1px solid #3a506b;
+      width: 90%;
+      max-width: 340px;
+      text-align: center;
+      position: relative;
+      z-index: 100000;
+    }
+    .auth-title { font-size: 20px; font-weight: bold; margin-bottom: 6px; color: #48cae4; }
+    .auth-desc { font-size: 13px; color: #94a3b8; margin-bottom: 20px; line-height: 1.4; }
+
+    .auth-input {
+      width: 100%;
+      padding: 12px;
+      background: #0b132b;
+      border: 1px solid #3a506b;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 15px;
+      margin-bottom: 12px;
+      outline: none;
+      -webkit-user-select: text;
+      user-select: text;
+      position: relative;
+      z-index: 100001;
+    }
+    .auth-input:focus { border-color: #00b4d8; }
+
+    .auth-btn {
+      width: 100%;
+      padding: 12px;
+      background: #00b4d8;
+      color: #0b132b;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 6px;
+      position: relative;
+      z-index: 100001;
+    }
+    .auth-divider {
+      display: flex;
+      align-items: center;
+      margin: 16px 0;
+      color: #64748b;
+      font-size: 12px;
+    }
+    .auth-divider::before, .auth-divider::after {
+      content: ''; flex: 1; border-bottom: 1px solid #334155;
+    }
+    .auth-divider span { padding: 0 10px; }
+
+    .btn-admin-pass {
+      width: 100%;
+      padding: 11px;
+      background: #111a33;
+      border: 1px solid #3b82f6;
+      color: #93c5fd;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      position: relative;
+      z-index: 100001;
+    }
+    .auth-toggle-link {
+      margin-top: 14px;
+      font-size: 13px;
+      color: #94a3b8;
+      cursor: pointer;
+      text-decoration: underline;
+      position: relative;
+      z-index: 100001;
+    }
+    .auth-status-error { color: #ef4444; font-size: 12px; margin-top: 10px; display: none; }
+
+    #admin-login-box, #register-box, #waiting-approval-box { display: none; }
+
+    /* 메인 앱 UI */
+    #header {
+      height: 56px;
+      background: #1c2541;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      border-bottom: 2px solid #3a506b;
+    }
+    #header .brand { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    #header .floor-tag { background: #48cae4; color: #0b132b; padding: 3px 8px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+    .btn-logout { background: transparent; border: 1px solid #64748b; color: #cbd5e1; padding: 4px 10px; border-radius: 6px; cursor: pointer; }
+
+    #container { display: flex; height: calc(100vh - 56px); width: 100vw; position: relative; }
+    #floor-selector { width: 76px; background: #111a33; border-right: 1px solid #1c2541; display: flex; flex-direction: column; gap: 6px; padding: 8px 6px; z-index: 500; overflow-y: auto; }
+    .floor-btn { width: 100%; height: 46px; background: #1c2541; color: #94a3b8; border: 1px solid #3a506b; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; }
+    .floor-btn.active { background: #00b4d8; color: #0b132b; border-color: #90e0ef; }
+
+    #map-wrapper { flex: 1; height: 100%; position: relative; background: #070d1d; }
+    #map { width: 100%; height: 100%; background: #070d1d; z-index: 10; }
+
+    .custom-photo-marker { border: 2px solid #00b4d8; border-radius: 50%; background-size: cover; background-position: center; position: relative; }
+    .marker-badge { position: absolute; top: -16px; left: 50%; transform: translateX(-50%); background: rgba(11, 19, 43, 0.9); color: #48cae4; font-size: 10px; font-weight: bold; padding: 1px 5px; border-radius: 4px; white-space: nowrap; }
+
+    #modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #ffffff; padding: 20px; border-radius: 12px; z-index: 2000; width: 88%; max-width: 360px; color: #333; }
+    #modal h3 { margin: 0 0 12px 0; font-size: 16px; }
+    .form-group { margin-bottom: 10px; }
+    .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; }
+    .form-group input { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; }
+    .btn-wrap { display: flex; gap: 8px; margin-top: 14px; }
+    .btn-wrap button { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    .btn-save { background: #0077b6; color: #fff; }
+    .btn-cancel { background: #e2e8f0; color: #475569; }
+  </style>
+</head>
+<body>
+
+<div id="auth-overlay">
+  <!-- 1. 팀원 일반 로그인 -->
+  <div id="login-box" class="auth-box">
+    <div class="auth-title">🔐 시스템 로그인</div>
+    <div class="auth-desc">보일러 계측기 관리 시스템</div>
+    <input type="text" id="loginEmail" class="auth-input" placeholder="사번(이메일 형태: emp@jeju.com)">
+    <input type="password" id="loginPassword" class="auth-input" placeholder="비밀번호">
+    <button class="auth-btn" id="btnMemberLogin">팀원 로그인</button>
+    <div id="loginMsg" class="auth-status-error"></div>
+    <div class="auth-toggle-link" id="linkToRegister">신규 팀원 계정 등록(신청)</div>
+    <div class="auth-divider"><span>또는</span></div>
+    <button class="btn-admin-pass" id="btnGoAdmin">👑 관리자 비밀번호로 즉시 입장</button>
+  </div>
+
+  <!-- 2. 관리자 마스터 모드 -->
+  <div id="admin-login-box" class="auth-box">
+    <div class="auth-title" style="color: #38bdf8;">👑 관리자 마스터 모드</div>
+    <div class="auth-desc">마스터 비밀번호를 입력하세요.</div>
+    <input type="password" id="adminPassInput" class="auth-input" placeholder="마스터 비밀번호">
+    <button class="auth-btn" style="background: #38bdf8;" id="btnAdminSubmit">관리자 즉시 접속</button>
+    <div id="adminErrorMsg" class="auth-status-error">⚠️ 비밀번호가 일치하지 않습니다.</div>
+    <div class="auth-toggle-link" id="linkBackLogin">일반 로그인으로 돌아가기</div>
+  </div>
+
+  <!-- 3. 회원가입 신청 -->
+  <div id="register-box" class="auth-box">
+    <div class="auth-title">📝 신규 팀원 등록</div>
+    <div class="auth-desc">신청 후 관리자의 승인이 필요합니다.</div>
+    <input type="text" id="regName" class="auth-input" placeholder="이름 (예: 홍길동)">
+    <input type="text" id="regEmail" class="auth-input" placeholder="사번(이메일 형태)">
+    <input type="password" id="regPassword" class="auth-input" placeholder="비밀번호 (6자리 이상)">
+    <button class="auth-btn" id="btnRegisterSubmit">가입 신청</button>
+    <div id="regMsg" class="auth-status-error"></div>
+    <div class="auth-toggle-link" id="linkBackLogin2">로그인 화면으로 돌아가기</div>
+  </div>
+
+  <!-- 4. 승인 대기 안내 -->
+  <div id="waiting-approval-box" class="auth-box">
+    <div style="font-size: 36px; margin-bottom: 10px;">⏳</div>
+    <div class="auth-title" style="color: #f59e0b;">승인 대기 중</div>
+    <div class="auth-desc">
+      <b id="waitingUserName" style="color: #fff;"></b> 님의 계정이 등록되었습니다.<br><br>
+      현재 <b>관리자 승인 대기</b> 상태입니다.
+    </div>
+    <button class="auth-btn" id="btnRefreshApproval" style="background: #3b82f6; color: #fff;">새로고침</button>
+    <button class="auth-btn" id="btnLogoutFromWaiting" style="background: #334155; color: #cbd5e1; margin-top: 8px;">로그아웃</button>
+  </div>
+</div>
+
+<div id="header">
+  <div class="brand">
+    <span>🏢 보일러 계측제어 맵</span>
+    <span class="floor-tag" id="current-floor-badge">1F (Boiler)</span>
+  </div>
+  <div style="display: flex; gap: 10px; align-items: center;">
+    <span id="headerUserName" style="color: #48cae4; font-weight: bold; font-size: 13px;"></span>
+    <button class="btn-logout" id="btnLogout">로그아웃</button>
+  </div>
+</div>
+
+<div id="container">
+  <div id="floor-selector">
+    <button class="floor-btn" data-floor="8">8F</button>
+    <button class="floor-btn" data-floor="7">7F</button>
+    <button class="floor-btn" data-floor="6">6F</button>
+    <button class="floor-btn" data-floor="5">5F</button>
+    <button class="floor-btn" data-floor="4">4F</button>
+    <button class="floor-btn" data-floor="3">3F</button>
+    <button class="floor-btn" data-floor="2">2F</button>
+    <button class="floor-btn active" data-floor="1">1F</button>
+  </div>
+  <div id="map-wrapper">
+    <div id="map"></div>
+  </div>
+</div>
+
+<div id="modal">
+  <h3>계측기 등록 (<span id="modal-floor-text">1F</span>)</h3>
+  <div class="form-group"><label>Tag No.</label><input type="text" id="tagNo" placeholder="예: 20-PT-101"></div>
+  <div class="form-group"><label>기기명</label><input type="text" id="name" placeholder="예: 보일러 급수 압력"></div>
+  <div class="form-group"><label>모델명</label><input type="text" id="model"></div>
+  <div class="form-group"><label>측정범위 / 신호</label><input type="text" id="range"></div>
+  <div class="form-group"><label>실례가</label><input type="text" id="price"></div>
+  <div class="btn-wrap">
+    <button class="btn-save" id="btnSaveInst">저장</button>
+    <button class="btn-cancel" id="btnCancelInst">취소</button>
+  </div>
+</div>
+
+<script>
+  const ADMIN_MASTER_PASS = 'dydy423156!!##';
+  const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_p3OXbhWhj04w_eFGMpu83w_ZbybQ_t_';
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  let currentFloor = 1;
+  let currentCoord = { x: 0, y: 0 };
+  let currentMarkers = [];
+  let mapInstance = null;
+
+  // 화면 전환 이벤트 바인딩 (인라인 대신 명시적 addEventListener 적용)
+  document.getElementById('btnGoAdmin').addEventListener('click', () => {
+    document.getElementById('login-box').style.display = 'none';
+    document.getElementById('admin-login-box').style.display = 'block';
+  });
+
+  document.getElementById('linkBackLogin').addEventListener('click', () => {
+    document.getElementById('admin-login-box').style.display = 'none';
+    document.getElementById('login-box').style.display = 'block';
+  });
+
+  document.getElementById('linkToRegister').addEventListener('click', () => {
+    document.getElementById('login-box').style.display = 'none';
+    document.getElementById('register-box').style.display = 'block';
+  });
+
+  document.getElementById('linkBackLogin2').addEventListener('click', () => {
+    document.getElementById('register-box').style.display = 'none';
+    document.getElementById('login-box').style.display = 'block';
+  });
+
+  document.getElementById('btnAdminSubmit').addEventListener('click', () => {
+    const val = document.getElementById('adminPassInput').value.trim();
+    if (val === ADMIN_MASTER_PASS) {
+      sessionStorage.setItem('jeju_admin_auth', 'true');
+      unlock('👑 최고관리자');
+    } else {
+      document.getElementById('adminErrorMsg').style.display = 'block';
+    }
+  });
+
+  document.getElementById('btnLogout').addEventListener('click', () => {
+    sessionStorage.removeItem('jeju_admin_auth');
+    supabaseClient.auth.signOut().then(() => location.reload());
+  });
+
+  function unlock(name) {
+    document.getElementById('auth-overlay').style.display = 'none';
+    document.getElementById('headerUserName').innerText = name;
+    initMapOnce();
+    switchFloor(1);
+  }
+
+  // Leaflet 지도 초기화
+  const planeSize = 3000;
+  const bounds = [[0, 0], [planeSize, planeSize]];
+  let floorLayer = null;
+
+  function initMapOnce() {
+    if (mapInstance) return;
+    mapInstance = L.map('map', {
+      crs: L.CRS.Simple,
+      minZoom: -4,
+      maxZoom: 4,
+      zoomSnap: 0.1,
+      zoomDelta: 0.5,
+      attributionControl: false
+    });
+
+    mapInstance.on('click', (e) => {
+      if (e.latlng.lat < 0 || e.latlng.lat > planeSize || e.latlng.lng < 0 || e.latlng.lng > planeSize) return;
+      currentCoord.y = Math.round(e.latlng.lat);
+      currentCoord.x = Math.round(e.latlng.lng);
+      document.getElementById('modal').style.display = 'block';
+    });
+  }
+
+  function drawGrid(floor) {
+    const canvas = document.createElement('canvas');
+    canvas.width = planeSize;
+    canvas.height = planeSize;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#0a1128';
+    ctx.fillRect(0, 0, planeSize, planeSize);
+    ctx.strokeStyle = '#162347';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= planeSize; i += 50) {
+      ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, planeSize); ctx.moveTo(0, i); ctx.lineTo(planeSize, i); ctx.stroke();
+    }
+    ctx.strokeStyle = '#22386d';
+    ctx.lineWidth = 2.5;
+    for (let i = 0; i <= planeSize; i += 250) {
+      ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, planeSize); ctx.moveTo(0, i); ctx.lineTo(planeSize, i); ctx.stroke();
+    }
+    ctx.strokeStyle = '#00b4d8';
+    ctx.lineWidth = 8;
+    ctx.strokeRect(10, 10, planeSize - 20, planeSize - 20);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+    ctx.font = 'bold 500px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(`${floor}F`, planeSize / 2, planeSize / 2);
+    return canvas.toDataURL();
+  }
+
+  function switchFloor(f) {
+    currentFloor = f;
+    document.getElementById('current-floor-badge').innerText = `${f}F (Boiler)`;
+    document.getElementById('modal-floor-text').innerText = `${f}F`;
+    document.querySelectorAll('.floor-btn').forEach(b => {
+      b.classList.toggle('active', parseInt(b.dataset.floor) === f);
+    });
+
+    if (floorLayer) mapInstance.removeLayer(floorLayer);
+    floorLayer = L.imageOverlay(drawGrid(f), bounds).addTo(mapInstance);
+    mapInstance.fitBounds(bounds);
+    loadInstruments(f);
+  }
+
+  document.querySelectorAll('.floor-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchFloor(parseInt(btn.dataset.floor)));
+  });
+
+  async function loadInstruments(floor) {
+    currentMarkers.forEach(m => mapInstance.removeLayer(m));
+    currentMarkers = [];
+    const { data } = await supabaseClient.from('instruments').select('*').eq('floor', floor);
+    if (!data) return;
+    data.forEach(item => {
+      const m = L.marker([item.y_coord, item.x_coord]).addTo(mapInstance);
+      m.bindPopup(`<b>${item.tag_no}</b><br>${item.name}<br>${item.model || ''}`);
+      currentMarkers.push(m);
+    });
+  }
+
+  document.getElementById('btnCancelInst').addEventListener('click', () => {
+    document.getElementById('modal').style.display = 'none';
+  });
+
+  document.getElementById('btnSaveInst').addEventListener('click', async () => {
+    const tagNo = document.getElementById('tagNo').value.trim();
+    const name = document.getElementById('name').value.trim();
+    if (!tagNo || !name) { alert('Tag No와 기기명은 필수입니다.'); return; }
+
+    await supabaseClient.from('instruments').insert([{
+      floor: currentFloor, tag_no: tagNo, name: name,
+      model: document.getElementById('model').value.trim(),
+      signal_range: document.getElementById('range').value.trim(),
+      price: document.getElementById('price').value.trim(),
+      x_coord: currentCoord.x, y_coord: currentCoord.y
+    }]);
+
+    document.getElementById('modal').style.display = 'none';
+    loadInstruments(currentFloor);
+  });
+
+  if (sessionStorage.getItem('jeju_admin_auth') === 'true') {
+    unlock('👑 최고관리자');
+  }
+</script>
+</body>
+</html>
