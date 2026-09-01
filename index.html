@@ -304,9 +304,10 @@
   const SUPABASE_KEY = 'sb_publishable_p3OXbhWhj04w_eFGMpu83w_ZbybQ_t_';
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // 1층 도면 파일 매핑 (GitHub에 올린 파일명)
+  // GitHub에 업로드된 1층(png), 2층(jpg) 도면 파일 경로 매핑
   const FLOOR_IMAGES = {
-    1: './floor1_drawing.jpg'
+    1: './floor1.png',
+    2: './floor2.jpg'
   };
 
   let currentFloor = 1;
