@@ -134,7 +134,7 @@
       border-radius: 12px; 
       font-size: 11px; 
       font-weight: bold; 
-      max-width: 130px; 
+      max-width: 150px; 
       white-space: nowrap; 
       overflow: hidden; 
       text-overflow: ellipsis; 
@@ -821,9 +821,13 @@
     }
   };
 
+  // 구역별(location_key) + 층별(floor) 엄격 분리 조회
   async function fetchInstruments() {
+    const curLocationKey = `${currentMain}_${currentSub}`;
+    
     const { data, error } = await supabaseClient.from('instruments')
       .select('*')
+      .eq('location_key', curLocationKey)
       .eq('floor', currentFloor);
       
     if (error) return;
@@ -831,6 +835,7 @@
     renderMarkers();
   }
 
+  // 2배 확대된 핀 렌더링
   function renderMarkers() {
     currentMarkerObjects.forEach(m => mapInstance.removeLayer(m));
     currentMarkerObjects = [];
@@ -878,6 +883,7 @@
     document.getElementById('modal').style.display = 'none';
   });
 
+  // 저장 시 현재 선택된 호기/설비 키(location_key) 함께 저장
   document.getElementById('btnSaveInst').addEventListener('click', async () => {
     const saveBtn = document.getElementById('btnSaveInst');
     const tagNo = document.getElementById('tagNo').value.trim();
@@ -900,7 +906,10 @@
       }
     }
 
+    const curLocationKey = `${currentMain}_${currentSub}`;
+
     const { error: insertErr } = await supabaseClient.from('instruments').insert([{
+      location_key: curLocationKey,
       floor: currentFloor,
       tag_no: tagNo,
       name: name,
