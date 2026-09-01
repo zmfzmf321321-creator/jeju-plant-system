@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>보일러 계측기 관리 시스템</title>
+  <title>발전소 계측제어 설비 맵</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -108,35 +108,96 @@
     #admin-login-box, #register-box { display: none; }
 
     #header {
-      height: 56px;
+      height: 52px;
       background: #1c2541;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 16px;
+      padding: 0 14px;
       border-bottom: 2px solid #3a506b;
     }
-    #header .brand { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-    #header .floor-tag { background: #48cae4; color: #0b132b; padding: 3px 8px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+    #header .brand { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    #header .location-tag { background: #48cae4; color: #0b132b; padding: 3px 8px; border-radius: 20px; font-size: 12px; font-weight: bold; }
     .header-btns { display: flex; gap: 8px; align-items: center; }
-    .btn-bio-reg { background: #065f46; border: 1px solid #10b981; color: #a7f3d0; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; }
-    .btn-logout { background: transparent; border: 1px solid #64748b; color: #cbd5e1; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+    .btn-bio-reg { background: #065f46; border: 1px solid #10b981; color: #a7f3d0; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
+    .btn-logout { background: transparent; border: 1px solid #64748b; color: #cbd5e1; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; }
 
-    #container { display: flex; height: calc(100vh - 56px); width: 100vw; position: relative; }
-    #floor-selector { width: 76px; background: #111a33; border-right: 1px solid #1c2541; display: flex; flex-direction: column; gap: 6px; padding: 8px 6px; z-index: 500; overflow-y: auto; }
-    .floor-btn { width: 100%; height: 46px; background: #1c2541; color: #94a3b8; border: 1px solid #3a506b; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; }
-    .floor-btn.active { background: #00b4d8; color: #0b132b; border-color: #90e0ef; }
-
-    #map-wrapper { flex: 1; height: 100%; position: relative; background: #0f172a; }
+    /* 지도 및 하단 컨트롤러 레이아웃 */
+    #main-container {
+      position: relative;
+      width: 100vw;
+      height: calc(100vh - 52px);
+      display: flex;
+      flex-direction: column;
+    }
+    #map-wrapper {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      position: relative;
+      background: #0f172a;
+    }
     #map { width: 100%; height: 100%; background: #0f172a; z-index: 10; }
 
+    /* 하단 선택 바 (Bottom Control Bar) */
+    #bottom-control-bar {
+      height: 64px;
+      background: #111a33;
+      border-top: 2px solid #3a506b;
+      display: flex;
+      align-items: center;
+      padding: 0 10px;
+      gap: 8px;
+      z-index: 500;
+      box-shadow: 0 -4px 16px rgba(0,0,0,0.5);
+    }
+    .select-dropdown {
+      background: #1c2541;
+      color: #48cae4;
+      border: 1px solid #3a506b;
+      padding: 8px 6px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: bold;
+      outline: none;
+      max-width: 120px;
+    }
+    .floor-btn-group {
+      display: flex;
+      gap: 5px;
+      overflow-x: auto;
+      flex: 1;
+      padding-bottom: 2px;
+      scrollbar-width: none;
+    }
+    .floor-btn-group::-webkit-scrollbar { display: none; }
+    .floor-chip-btn {
+      flex-shrink: 0;
+      height: 38px;
+      min-width: 44px;
+      padding: 0 10px;
+      background: #1c2541;
+      color: #94a3b8;
+      border: 1px solid #3a506b;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .floor-chip-btn.active {
+      background: #00b4d8;
+      color: #0b132b;
+      border-color: #90e0ef;
+    }
+
+    /* 2배 커진 사진 핀 스타일 */
     .photo-pin-container {
       position: relative;
       width: 100%;
       height: 100%;
       border-radius: 50%;
-      border: 2px solid #00b4d8;
-      box-shadow: 0 0 10px rgba(0, 180, 216, 0.8), 0 3px 6px rgba(0,0,0,0.6);
+      border: 3px solid #00b4d8;
+      box-shadow: 0 0 16px rgba(0, 180, 216, 0.9), 0 4px 10px rgba(0,0,0,0.7);
       background: #1c2541;
       cursor: pointer;
       overflow: hidden;
@@ -155,12 +216,12 @@
       bottom: 0;
       left: 0;
       width: 100%;
-      background: rgba(11, 19, 43, 0.9);
+      background: rgba(11, 19, 43, 0.92);
       color: #fff;
-      font-size: 8px;
+      font-size: 11px;
       text-align: center;
       font-weight: bold;
-      padding: 1px 0;
+      padding: 2px 0;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -174,10 +235,10 @@
       box-shadow: 0 8px 24px rgba(0,0,0,0.6);
     }
     .leaflet-popup-tip { background: #1c2541; }
-    .popup-card { font-size: 13px; line-height: 1.5; min-width: 180px; }
+    .popup-card { font-size: 13px; line-height: 1.5; min-width: 190px; }
     .popup-card b { font-size: 15px; color: #48cae4; display: block; margin-bottom: 4px; }
     .popup-card .field-tag { color: #94a3b8; font-size: 11px; margin-right: 4px; }
-    .popup-img { width: 100%; max-height: 180px; object-fit: cover; border-radius: 8px; margin: 8px 0; border: 1px solid #334155; }
+    .popup-img { width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin: 8px 0; border: 1px solid #334155; }
     .btn-delete-pin {
       width: 100%;
       padding: 8px;
@@ -209,7 +270,7 @@
 <div id="auth-overlay">
   <div id="login-box" class="auth-box">
     <div class="auth-title">🔐 시스템 로그인</div>
-    <div class="auth-desc">보일러 계측기 관리 시스템</div>
+    <div class="auth-desc">발전소 계측제어 설비 관리 시스템</div>
     
     <button class="btn-biometric" id="btnBioLogin">👆 기기 생체/지문 즉시 로그인</button>
     <div id="bioLoginMsg" class="auth-status-error"></div>
@@ -249,34 +310,44 @@
 
 <div id="header">
   <div class="brand">
-    <span>🏢 보일러 계측제어 맵</span>
-    <span class="floor-tag" id="current-floor-badge">1F (EL.6800)</span>
+    <span>⚡ 계측제어 설비 맵</span>
+    <span class="location-tag" id="current-location-badge">기력 2호기 > 보일러 > 1F</span>
   </div>
   <div class="header-btns">
-    <span id="headerUserName" style="color: #48cae4; font-weight: bold; font-size: 13px;"></span>
+    <span id="headerUserName" style="color: #48cae4; font-weight: bold; font-size: 12px;"></span>
     <button class="btn-bio-reg" id="btnRegisterBio">👆 기기 지문 등록</button>
     <button class="btn-logout" id="btnLogout">로그아웃</button>
   </div>
 </div>
 
-<div id="container">
-  <div id="floor-selector">
-    <button class="floor-btn" data-floor="8">8F</button>
-    <button class="floor-btn" data-floor="7">7F</button>
-    <button class="floor-btn" data-floor="6">6F</button>
-    <button class="floor-btn" data-floor="5">5F</button>
-    <button class="floor-btn" data-floor="4">4F</button>
-    <button class="floor-btn" data-floor="3">3F</button>
-    <button class="floor-btn" data-floor="2">2F</button>
-    <button class="floor-btn active" data-floor="1">1F</button>
-  </div>
+<div id="main-container">
   <div id="map-wrapper">
     <div id="map"></div>
+  </div>
+
+  <!-- 하단 카테고리 / 층수 선택 바 -->
+  <div id="bottom-control-bar">
+    <select id="main-cat-select" class="select-dropdown">
+      <option value="thermal2">기력 2호기</option>
+      <option value="thermal3">기력 3호기</option>
+      <option value="thermal_common">기력 공통</option>
+      <option value="diesel1">내연 1호기</option>
+      <option value="diesel2">내연 2호기</option>
+      <option value="diesel_common">내연 공통</option>
+    </select>
+
+    <select id="sub-cat-select" class="select-dropdown">
+      <!-- 자바스크립트로 동적 생성 -->
+    </select>
+
+    <div class="floor-btn-group" id="floor-btn-group">
+      <!-- 층수 버튼 동적 생성 -->
+    </div>
   </div>
 </div>
 
 <div id="modal">
-  <h3>계측기 등록 (<span id="modal-floor-text">1F</span>)</h3>
+  <h3>계측기 등록 (<span id="modal-location-text">1F</span>)</h3>
   <div class="form-group"><label>Tag No.</label><input type="text" id="tagNo" placeholder="예: 20-PT-101"></div>
   <div class="form-group"><label>기기명</label><input type="text" id="name" placeholder="예: 보일러 급수 압력"></div>
   <div class="form-group"><label>모델명</label><input type="text" id="model"></div>
@@ -304,13 +375,53 @@
   const SUPABASE_KEY = 'sb_publishable_p3OXbhWhj04w_eFGMpu83w_ZbybQ_t_';
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // GitHub에 업로드된 1층(png), 2층(jpg) 도면 파일 경로 매핑
-  const FLOOR_IMAGES = {
-    1: './floor1.png',
-    2: './floor2.jpg'
+  // 카테고리 및 도면 매핑 구조
+  const CATEGORY_TREE = {
+    thermal2: {
+      name: '기력 2호기',
+      subs: {
+        boiler: { name: '보일러', floors: [1,2,3,4,5,6,7,8], images: { 1: './floor1.png', 2: './floor2.jpg' } },
+        turbine: { name: '터빈', floors: [1,2,3,4], images: {} }
+      }
+    },
+    thermal3: {
+      name: '기력 3호기',
+      subs: {
+        boiler: { name: '보일러', floors: [1,2,3,4,5,6,7,8], images: {} },
+        turbine: { name: '터빈', floors: [1,2,3,4], images: {} }
+      }
+    },
+    thermal_common: {
+      name: '기력 공통',
+      subs: {
+        oiltank: { name: '기름 탱크', floors: [1], images: {} },
+        pumproom: { name: '연료펌프룸', floors: [1], images: {} }
+      }
+    },
+    diesel1: {
+      name: '내연 1호기',
+      subs: {
+        main: { name: '본관', floors: [1,2], images: {} }
+      }
+    },
+    diesel2: {
+      name: '내연 2호기',
+      subs: {
+        main: { name: '본관', floors: [1,2], images: {} }
+      }
+    },
+    diesel_common: {
+      name: '내연 공통',
+      subs: {
+        main: { name: '공통구역', floors: [1], images: {} }
+      }
+    }
   };
 
+  let currentMain = 'thermal2';
+  let currentSub = 'boiler';
   let currentFloor = 1;
+
   let currentCoord = { x: 0, y: 0 };
   let currentInstruments = [];
   let currentMarkerObjects = [];
@@ -365,7 +476,7 @@
     document.getElementById('auth-overlay').style.display = 'none';
     document.getElementById('headerUserName').innerText = name;
     initMapOnce();
-    switchFloor(1);
+    renderCategorySelectors();
   }
 
   // 지문 등록
@@ -383,7 +494,7 @@
       const credential = await navigator.credentials.create({
         publicKey: {
           challenge: challenge,
-          rp: { name: "보일러 계측관리 시스템", id: window.location.hostname },
+          rp: { name: "계측관리 시스템", id: window.location.hostname },
           user: {
             id: userId,
             name: currentUserInfo.email || "user@jeju.com",
@@ -534,7 +645,7 @@
     }
   });
 
-  // 도면 비율 (가로 3000 x 세로 2100)
+  // 지도 인스턴스
   const mapWidth = 3000;
   const mapHeight = 2100;
   const bounds = [[0, 0], [mapHeight, mapWidth]];
@@ -572,7 +683,76 @@
     });
   }
 
-  function drawGrid(floor) {
+  // 하단 선택창 이벤트 및 동적 렌더링
+  function renderCategorySelectors() {
+    const mainSelect = document.getElementById('main-cat-select');
+    const subSelect = document.getElementById('sub-cat-select');
+
+    mainSelect.value = currentMain;
+    updateSubCategorySelect();
+
+    mainSelect.onchange = (e) => {
+      currentMain = e.target.value;
+      const subs = Object.keys(CATEGORY_TREE[currentMain].subs);
+      currentSub = subs[0];
+      updateSubCategorySelect();
+    };
+
+    subSelect.onchange = (e) => {
+      currentSub = e.target.value;
+      updateFloorButtons();
+    };
+  }
+
+  function updateSubCategorySelect() {
+    const subSelect = document.getElementById('sub-cat-select');
+    subSelect.innerHTML = '';
+    const currentSubs = CATEGORY_TREE[currentMain].subs;
+    const subKeys = Object.keys(currentSubs);
+
+    // 내연호기 등 단독 대분류일 경우 소분류 셀렉터 숨김
+    if (subKeys.length === 1 && subKeys[0] === 'main') {
+      subSelect.style.display = 'none';
+    } else {
+      subSelect.style.display = 'block';
+      subKeys.forEach(k => {
+        const opt = document.createElement('option');
+        opt.value = k;
+        opt.innerText = currentSubs[k].name;
+        subSelect.appendChild(opt);
+      });
+      subSelect.value = currentSub;
+    }
+
+    updateFloorButtons();
+  }
+
+  function updateFloorButtons() {
+    const floorGroup = document.getElementById('floor-btn-group');
+    floorGroup.innerHTML = '';
+    const subData = CATEGORY_TREE[currentMain].subs[currentSub];
+    const floors = subData.floors;
+
+    if (!floors.includes(currentFloor)) {
+      currentFloor = floors[0];
+    }
+
+    floors.forEach(f => {
+      const btn = document.createElement('button');
+      btn.className = `floor-chip-btn ${f === currentFloor ? 'active' : ''}`;
+      btn.innerText = `${f}F`;
+      btn.onclick = () => {
+        currentFloor = f;
+        updateFloorButtons();
+        loadFloorPlan();
+      };
+      floorGroup.appendChild(btn);
+    });
+
+    loadFloorPlan();
+  }
+
+  function drawGrid(floorText) {
     const canvas = document.createElement('canvas');
     canvas.width = mapWidth;
     canvas.height = mapHeight;
@@ -591,32 +771,28 @@
     ctx.lineWidth = 8;
     ctx.strokeRect(10, 10, mapWidth - 20, mapHeight - 20);
     ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-    ctx.font = 'bold 400px sans-serif';
+    ctx.font = 'bold 300px sans-serif';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(`${floor}F`, mapWidth / 2, mapHeight / 2);
+    ctx.fillText(floorText, mapWidth / 2, mapHeight / 2);
     return canvas.toDataURL();
   }
 
-  function switchFloor(f) {
-    currentFloor = f;
-    const floorNames = { 1: '1F (EL.6800)', 2: '2F', 3: '3F', 4: '4F', 5: '5F', 6: '6F', 7: '7F', 8: '8F' };
-    document.getElementById('current-floor-badge').innerText = floorNames[f] || `${f}F`;
-    document.getElementById('modal-floor-text').innerText = `${f}F`;
-    document.querySelectorAll('.floor-btn').forEach(b => {
-      b.classList.toggle('active', parseInt(b.dataset.floor) === f);
-    });
+  function loadFloorPlan() {
+    const mainName = CATEGORY_TREE[currentMain].name;
+    const subData = CATEGORY_TREE[currentMain].subs[currentSub];
+    const subName = subData.name === '본관' || subData.name === '공통구역' ? '' : ` > ${subData.name}`;
+    const locationString = `${mainName}${subName} > ${currentFloor}F`;
+
+    document.getElementById('current-location-badge').innerText = locationString;
+    document.getElementById('modal-location-text').innerText = locationString;
 
     if (floorLayer) mapInstance.removeLayer(floorLayer);
 
-    const imageUrl = FLOOR_IMAGES[f] || drawGrid(f);
+    const imageUrl = (subData.images && subData.images[currentFloor]) || drawGrid(`${currentFloor}F`);
     floorLayer = L.imageOverlay(imageUrl, bounds).addTo(mapInstance);
     mapInstance.fitBounds(bounds);
-    fetchInstruments(f);
+    fetchInstruments();
   }
-
-  document.querySelectorAll('.floor-btn').forEach(btn => {
-    btn.addEventListener('click', () => switchFloor(parseInt(btn.dataset.floor)));
-  });
 
   window.deleteInstrument = async function(id) {
     if (!confirm('이 계측기를 영구 삭제하시겠습니까?')) return;
@@ -626,24 +802,30 @@
     if (error) {
       alert('삭제 실패: ' + error.message);
     } else {
-      fetchInstruments(currentFloor);
+      fetchInstruments();
     }
   };
 
-  async function fetchInstruments(floor) {
-    const { data, error } = await supabaseClient.from('instruments').select('*').eq('floor', floor);
+  async function fetchInstruments() {
+    const locationKey = `${currentMain}_${currentSub}`;
+    const { data, error } = await supabaseClient.from('instruments')
+      .select('*')
+      .eq('floor', currentFloor);
+      
     if (error) return;
     currentInstruments = data || [];
     renderMarkers();
   }
 
+  // 2배 확대된 크기로 핀 렌더링 (45px ~ 160px)
   function renderMarkers() {
     currentMarkerObjects.forEach(m => mapInstance.removeLayer(m));
     currentMarkerObjects = [];
 
     const zoom = mapInstance.getZoom();
-    const calculatedSize = Math.max(22, Math.min(80, Math.round(44 + zoom * 8)));
-    const badgeDisplay = calculatedSize < 32 ? 'none' : 'block';
+    // 기존 대비 2배 확대된 핀 크기 계산
+    const calculatedSize = Math.max(45, Math.min(160, Math.round(90 + zoom * 16)));
+    const badgeDisplay = calculatedSize < 50 ? 'none' : 'block';
 
     currentInstruments.forEach(item => {
       let marker;
@@ -653,7 +835,7 @@
           html: `
             <div class="photo-pin-container" style="width:${calculatedSize}px; height:${calculatedSize}px;">
               <img src="${item.photo_url}" class="photo-pin-img">
-              <div class="photo-pin-badge" style="display:${badgeDisplay}; font-size:${Math.max(8, calculatedSize * 0.18)}px;">${item.tag_no}</div>
+              <div class="photo-pin-badge" style="display:${badgeDisplay}; font-size:${Math.max(10, calculatedSize * 0.16)}px;">${item.tag_no}</div>
             </div>
           `,
           iconSize: [calculatedSize, calculatedSize],
@@ -727,7 +909,7 @@
     }
 
     document.getElementById('modal').style.display = 'none';
-    fetchInstruments(currentFloor);
+    fetchInstruments();
   });
 
   if (sessionStorage.getItem('jeju_admin_auth') === 'true') {
