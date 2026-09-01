@@ -212,7 +212,7 @@
       border-color: #90e0ef;
     }
 
-    /* 2배 커진 사진 핀 스타일 */
+    /* 사진 핀 스타일 */
     .photo-pin-container {
       position: relative;
       width: 100%;
@@ -249,41 +249,150 @@
       text-overflow: ellipsis;
     }
 
+    /* 팝업 카드 & 이력 관리 스타일 */
     .leaflet-popup-content-wrapper {
       background: #1c2541;
       color: #fff;
       border-radius: 12px;
       border: 1px solid #3a506b;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.7);
+      max-height: 480px;
+      overflow-y: auto;
     }
     .leaflet-popup-tip { background: #1c2541; }
-    .popup-card { font-size: 13px; line-height: 1.5; min-width: 190px; }
+    .popup-card { font-size: 13px; line-height: 1.5; min-width: 230px; }
     .popup-card b { font-size: 15px; color: #48cae4; display: block; margin-bottom: 4px; }
-    .popup-card .field-tag { color: #94a3b8; font-size: 11px; margin-right: 4px; }
-    .popup-img { width: 100%; max-height: 200px; object-fit: cover; border-radius: 8px; margin: 8px 0; border: 1px solid #334155; }
+    .popup-card .field-tag { color: #94a3b8; font-size: 11px; margin-right: 4px; font-weight: bold; }
+    .popup-img { width: 100%; max-height: 180px; object-fit: cover; border-radius: 8px; margin: 8px 0; border: 1px solid #334155; }
+    
+    /* 팝업 이력 섹션 */
+    .history-section {
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px dashed #334155;
+    }
+    .history-title {
+      font-size: 12px;
+      font-weight: bold;
+      color: #38bdf8;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .history-list {
+      max-height: 120px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .history-item {
+      background: #0f172a;
+      border-left: 3px solid #38bdf8;
+      padding: 5px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+    .history-item-header {
+      display: flex;
+      justify-content: space-between;
+      color: #94a3b8;
+      font-size: 10px;
+      margin-bottom: 2px;
+    }
+    .history-item-content { color: #f1f5f9; white-space: pre-wrap; word-break: break-all; }
+    .btn-add-history-quick {
+      width: 100%;
+      padding: 6px;
+      background: #0284c7;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 6px;
+    }
     .btn-delete-pin {
       width: 100%;
-      padding: 8px;
-      margin-top: 10px;
+      padding: 7px;
+      margin-top: 6px;
       background: #ef4444;
       border: none;
       border-radius: 6px;
       color: #fff;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: bold;
       cursor: pointer;
     }
 
-    #modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #ffffff; padding: 20px; border-radius: 12px; z-index: 9000; width: 88%; max-width: 360px; color: #333; max-height: 90vh; overflow-y: auto; }
-    #modal h3 { margin: 0 0 12px 0; font-size: 16px; }
+    /* 모달 등록 창 */
+    #modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #ffffff; padding: 20px; border-radius: 12px; z-index: 9000; width: 90%; max-width: 360px; color: #333; max-height: 90vh; overflow-y: auto; }
+    #modal h3 { margin: 0 0 12px 0; font-size: 16px; color: #0b132b; }
     .form-group { margin-bottom: 10px; }
     .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #334155; }
-    .form-group input { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
+    .form-group input, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; font-family: inherit; }
+    
+    /* 모달 내부 이력 추가 박스 */
+    .modal-history-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 10px;
+      margin-top: 10px;
+    }
+    .modal-history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .btn-add-history-row {
+      background: #0284c7;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 3px 8px;
+      font-size: 11px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    .modal-history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+    .modal-history-entry {
+      background: #fff;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 8px;
+      position: relative;
+    }
+    .modal-history-entry-title {
+      font-size: 11px;
+      font-weight: bold;
+      color: #0284c7;
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+    }
+    .btn-del-history-entry {
+      color: #ef4444;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: bold;
+    }
+
     .btn-wrap { display: flex; gap: 8px; margin-top: 14px; }
     .btn-wrap button { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
     .btn-save { background: #0077b6; color: #fff; }
     .btn-cancel { background: #e2e8f0; color: #475569; }
-    .photo-preview { width: 100%; height: 120px; background: #f1f5f9; border: 1px dashed #94a3b8; border-radius: 6px; display: flex; align-items: center; justify-content: center; margin-top: 6px; overflow: hidden; }
+    .photo-preview { width: 100%; height: 110px; background: #f1f5f9; border: 1px dashed #94a3b8; border-radius: 6px; display: flex; align-items: center; justify-content: center; margin-top: 6px; overflow: hidden; }
     .photo-preview img { width: 100%; height: 100%; object-fit: cover; display: none; }
   </style>
 </head>
@@ -364,13 +473,13 @@
   </div>
 </div>
 
+<!-- 계측기 등록 모달 -->
 <div id="modal">
   <h3>계측기 등록 (<span id="modal-location-text">1F</span>)</h3>
   <div class="form-group"><label>Tag No.</label><input type="text" id="tagNo" placeholder="예: 20-PT-101"></div>
   <div class="form-group"><label>기기명</label><input type="text" id="name" placeholder="예: 보일러 급수 압력"></div>
   <div class="form-group"><label>모델명</label><input type="text" id="model"></div>
   <div class="form-group"><label>측정범위 / 신호</label><input type="text" id="range"></div>
-  <div class="form-group"><label>실례가</label><input type="text" id="price"></div>
   
   <div class="form-group">
     <label>현장 사진 첨부</label>
@@ -378,6 +487,17 @@
     <div class="photo-preview" id="photoPreviewBox">
       <span id="photoPreviewText" style="font-size: 12px; color: #94a3b8;">촬영 또는 사진 선택</span>
       <img id="photoPreviewImg" src="" alt="미리보기">
+    </div>
+  </div>
+
+  <!-- 정비/점검 이력 관리 섹션 -->
+  <div class="modal-history-box">
+    <div class="modal-history-header">
+      <span style="font-size: 12px; font-weight: bold; color: #0b132b;">📋 정비/점검 이력</span>
+      <button type="button" class="btn-add-history-row" id="btnAddHistoryRow">+ 이력 추가</button>
+    </div>
+    <div class="modal-history-list" id="modalHistoryList">
+      <!-- 동적으로 이력 입력 행이 추가됩니다 -->
     </div>
   </div>
 
@@ -662,6 +782,37 @@
     }
   });
 
+  // 이력 입력 행 추가 기능
+  function addHistoryRow(dateStr = '', authorStr = '', textStr = '') {
+    const list = document.getElementById('modalHistoryList');
+    const idx = list.children.length + 1;
+    const div = document.createElement('div');
+    div.className = 'modal-history-entry';
+    div.innerHTML = `
+      <div class="modal-history-entry-title">
+        <span>이력 ${idx}</span>
+        <span class="btn-del-history-entry" onclick="this.parentElement.parentElement.remove(); reIndexHistory();">삭제</span>
+      </div>
+      <div style="display:flex; gap:6px; margin-bottom:4px;">
+        <input type="text" class="hist-date" placeholder="날짜 (예: 2026.09.01)" value="${dateStr || new Date().toISOString().slice(0,10)}" style="flex:1; padding:4px; font-size:11px;">
+        <input type="text" class="hist-author" placeholder="작업자" value="${authorStr || currentUserInfo.name}" style="flex:1; padding:4px; font-size:11px;">
+      </div>
+      <textarea class="hist-desc" placeholder="정비/점검 내용 입력" rows="2" style="width:100%; padding:4px; font-size:11px;">${textStr}</textarea>
+    `;
+    list.appendChild(div);
+  }
+
+  function reIndexHistory() {
+    const list = document.getElementById('modalHistoryList');
+    Array.from(list.children).forEach((entry, i) => {
+      entry.querySelector('.modal-history-entry-title span').innerText = `이력 ${i + 1}`;
+    });
+  }
+
+  document.getElementById('btnAddHistoryRow').addEventListener('click', () => {
+    addHistoryRow();
+  });
+
   // 지도 인스턴스
   const mapWidth = 3000;
   const mapHeight = 2100;
@@ -688,10 +839,14 @@
       document.getElementById('name').value = '';
       document.getElementById('model').value = '';
       document.getElementById('range').value = '';
-      document.getElementById('price').value = '';
       document.getElementById('instPhoto').value = '';
       document.getElementById('photoPreviewImg').style.display = 'none';
       document.getElementById('photoPreviewText').style.display = 'block';
+      document.getElementById('modalHistoryList').innerHTML = '';
+      
+      // 기본 1개 이력 빈 행 추가
+      addHistoryRow();
+
       document.getElementById('modal').style.display = 'block';
     });
 
@@ -809,6 +964,38 @@
     fetchInstruments();
   }
 
+  // 팝업 내에서 바로 신규 이력 추가
+  window.addQuickHistory = async function(id) {
+    const text = prompt('추가할 정비/점검 이력 내용을 입력하세요:');
+    if (!text || text.trim() === '') return;
+
+    const targetInst = currentInstruments.find(i => i.id === id);
+    if (!targetInst) return;
+
+    const currentLogs = Array.isArray(targetInst.history_logs) ? targetInst.history_logs : [];
+    const newEntry = {
+      index: currentLogs.length + 1,
+      date: new Date().toISOString().slice(0, 10),
+      author: currentUserInfo.name || '작업자',
+      content: text.trim()
+    };
+
+    const updatedLogs = [newEntry, ...currentLogs];
+
+    const { error } = await supabaseClient.from('instruments')
+      .update({ history_logs: updatedLogs })
+      .eq('id', id);
+
+    if (error) {
+      alert('이력 추가 실패: ' + error.message);
+    } else {
+      targetInst.history_logs = updatedLogs;
+      renderMarkers();
+      mapInstance.closePopup();
+      alert('✅ 이력이 추가되었습니다.');
+    }
+  };
+
   window.deleteInstrument = async function(id) {
     if (!confirm('이 계측기를 영구 삭제하시겠습니까?')) return;
     mapInstance.closePopup();
@@ -821,7 +1008,7 @@
     }
   };
 
-  // 구역별(location_key) + 층별(floor) 엄격 분리 조회
+  // 구역별 + 층별 분리 조회
   async function fetchInstruments() {
     const curLocationKey = `${currentMain}_${currentSub}`;
     
@@ -835,7 +1022,7 @@
     renderMarkers();
   }
 
-  // 2배 확대된 핀 렌더링
+  // 핀 렌더링
   function renderMarkers() {
     currentMarkerObjects.forEach(m => mapInstance.removeLayer(m));
     currentMarkerObjects = [];
@@ -863,14 +1050,39 @@
         marker = L.marker([item.y_coord, item.x_coord]).addTo(mapInstance);
       }
 
+      // 이력 리스트 HTML 생성
+      const logs = Array.isArray(item.history_logs) ? item.history_logs : [];
+      let historyHtml = '';
+      if (logs.length > 0) {
+        historyHtml = logs.map((h, i) => `
+          <div class="history-item">
+            <div class="history-item-header">
+              <b>이력 ${logs.length - i}</b>
+              <span>${h.date} (${h.author || '담당자'})</span>
+            </div>
+            <div class="history-item-content">${h.content}</div>
+          </div>
+        `).join('');
+      } else {
+        historyHtml = '<div style="color:#64748b; font-size:11px; text-align:center; padding:4px 0;">등록된 정비 이력이 없습니다.</div>';
+      }
+
       let popupContent = `
         <div class="popup-card">
           <b>${item.tag_no}</b>
           <div><span class="field-tag">기기명</span>${item.name}</div>
           ${item.model ? `<div><span class="field-tag">모델명</span>${item.model}</div>` : ''}
           ${item.signal_range ? `<div><span class="field-tag">범위/신호</span>${item.signal_range}</div>` : ''}
-          ${item.price ? `<div><span class="field-tag">실례가</span>${item.price}</div>` : ''}
           ${item.photo_url ? `<img src="${item.photo_url}" class="popup-img">` : ''}
+          
+          <div class="history-section">
+            <div class="history-title">
+              <span>📋 정비/점검 이력 (${logs.length}건)</span>
+            </div>
+            <div class="history-list">${historyHtml}</div>
+            <button class="btn-add-history-quick" onclick="window.addQuickHistory('${item.id}')">+ 점검/정비 이력 추가</button>
+          </div>
+
           <button class="btn-delete-pin" onclick="window.deleteInstrument('${item.id}')">🗑️ 계측기 삭제</button>
         </div>
       `;
@@ -883,7 +1095,7 @@
     document.getElementById('modal').style.display = 'none';
   });
 
-  // 저장 시 현재 선택된 호기/설비 키(location_key) 함께 저장
+  // 계측기 저장 (이력 목록 배열 포함)
   document.getElementById('btnSaveInst').addEventListener('click', async () => {
     const saveBtn = document.getElementById('btnSaveInst');
     const tagNo = document.getElementById('tagNo').value.trim();
@@ -906,6 +1118,23 @@
       }
     }
 
+    // 모달에서 작성된 이력들 수집
+    const historyList = [];
+    const entries = document.querySelectorAll('.modal-history-entry');
+    entries.forEach((entry, idx) => {
+      const date = entry.querySelector('.hist-date').value.trim();
+      const author = entry.querySelector('.hist-author').value.trim();
+      const content = entry.querySelector('.hist-desc').value.trim();
+      if (content) {
+        historyList.push({
+          index: idx + 1,
+          date: date || new Date().toISOString().slice(0, 10),
+          author: author || currentUserInfo.name || '작업자',
+          content: content
+        });
+      }
+    });
+
     const curLocationKey = `${currentMain}_${currentSub}`;
 
     const { error: insertErr } = await supabaseClient.from('instruments').insert([{
@@ -915,7 +1144,7 @@
       name: name,
       model: document.getElementById('model').value.trim(),
       signal_range: document.getElementById('range').value.trim(),
-      price: document.getElementById('price').value.trim(),
+      history_logs: historyList,
       photo_url: photoUrl,
       x_coord: currentCoord.x,
       y_coord: currentCoord.y
