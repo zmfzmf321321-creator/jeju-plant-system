@@ -236,12 +236,12 @@
   </div>
 
   <div id="register-box" class="auth-box">
-    <div class="auth-title">📝 신규 팀원 등록</div>
-    <div class="auth-desc">이름, 사번(이메일 형식), 비밀번호를 입력하세요.</div>
+    <div class="auth-title">📝 신규 팀원 등록 신청</div>
+    <div class="auth-desc">가입 신청 후 관리자의 승인이 완료되어야 로그인할 수 있습니다.</div>
     <input type="text" id="regName" class="auth-input" placeholder="이름 (예: 홍길동)">
     <input type="text" id="regEmail" class="auth-input" placeholder="사번 (예: 240101@jeju.com)">
     <input type="password" id="regPassword" class="auth-input" placeholder="비밀번호 (6자리 이상)">
-    <button class="auth-btn" id="btnRegisterSubmit">가입 신청</button>
+    <button class="auth-btn" id="btnRegisterSubmit">가입 신청하기</button>
     <div id="regMsg" class="auth-status-error"></div>
     <div class="auth-toggle-link" id="linkBackLogin2">로그인 화면으로 돌아가기</div>
   </div>
@@ -362,7 +362,7 @@
     switchFloor(1);
   }
 
-  // 지문 등록 (팀원별 계정 정보 연동)
+  // 지문 등록
   document.getElementById('btnRegisterBio').addEventListener('click', async () => {
     if (!window.PublicKeyCredential) {
       alert('이 기기는 생체인식 센서를 지원하지 않습니다.');
@@ -401,10 +401,10 @@
         localStorage.setItem('jeju_bio_credential_id', rawIdBase64);
         localStorage.setItem('jeju_bio_user', currentUserInfo.name || "사용자");
         localStorage.setItem('jeju_bio_email', currentUserInfo.email || "user@jeju.com");
-        alert('✅ 기기 지문 등록이 완료되었습니다!\n이제 로그아웃 후 지문 버튼으로 로그인할 수 있습니다.');
+        alert('✅ 기기 지문 등록이 완료되었습니다!\n이제 지문 버튼으로 즉시 로그인할 수 있습니다.');
       }
     } catch (err) {
-      alert('지문 등록 실패: ' + err.message + '\n(기기 설정에서 화면 잠금/지문이 등록되어 있는지 확인해주세요)');
+      alert('지문 등록 실패: ' + err.message + '\n(기기 자체 화면 잠금/지문 설정을 먼저 확인해주세요)');
     }
   });
 
@@ -449,7 +449,7 @@
     }
   });
 
-  // 팀원 가입 신청
+  // 팀원 가입 신청 (기본 상태: 승인 대기 false)
   document.getElementById('btnRegisterSubmit').addEventListener('click', async () => {
     const name = document.getElementById('regName').value.trim();
     const email = document.getElementById('regEmail').value.trim();
@@ -462,7 +462,7 @@
       return; 
     }
     if (pass.length < 6) {
-      msg.innerText = '⚠️ 비밀번호는 6자리 이상으로 설정해야 합니다.';
+      msg.innerText = '⚠️ 비밀번호는 6자리 이상이어야 합니다.';
       msg.style.display = 'block';
       return;
     }
@@ -476,19 +476,24 @@
     const { error } = await supabaseClient.auth.signUp({
       email: email,
       password: pass,
-      options: { data: { full_name: name, approved: true } }
+      options: { 
+        data: { 
+          full_name: name, 
+          approved: false // 기본값: 미승인 (관리자가 승인해야 로그인 가능)
+        } 
+      }
     });
 
     if (error) { 
       msg.innerText = '⚠️ 가입 오류: ' + error.message; 
       msg.style.display = 'block'; 
     } else { 
-      alert('🎉 가입이 완료되었습니다!\n사번과 비밀번호로 로그인해 주세요.'); 
+      alert('📋 가입 신청이 접수되었습니다.\n보안을 위해 관리자의 승인 완료 후 로그인이 가능합니다.'); 
       location.reload(); 
     }
   });
 
-  // 팀원 로그인
+  // 팀원 로그인 시 승인 여부(approved) 엄격 검증
   document.getElementById('btnMemberLogin').addEventListener('click', async () => {
     const email = document.getElementById('loginEmail').value.trim();
     const pass = document.getElementById('loginPassword').value;
@@ -496,9 +501,16 @@
     
     const { data, error } = await supabaseClient.auth.signInWithPassword({ email: email, password: pass });
     if (error) { 
-      msg.innerText = '⚠️ 아이디 또는 비밀번호가 올바르지 않습니다: ' + error.message; 
+      msg.innerText = '⚠️ 사번 또는 비밀번호가 일치하지 않습니다.'; 
       msg.style.display = 'block'; 
       return; 
+    }
+
+    const isApproved = data.user.user_metadata?.approved;
+    if (isApproved !== true) {
+      alert('🚫 관리자 승인 대기 중인 계정입니다.\n관리자에게 승인을 요청해 주세요.');
+      await supabaseClient.auth.signOut();
+      return;
     }
 
     unlock(data.user.user_metadata?.full_name || '팀원', data.user.email);
@@ -740,4 +752,3 @@
 </script>
 </body>
 </html>
-=
