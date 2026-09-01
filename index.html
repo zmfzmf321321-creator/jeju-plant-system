@@ -9,7 +9,13 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { box-sizing: border-box; }
-    body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0b132b; color: #fff; overflow: hidden; }
+    html, body {
+      margin: 0; padding: 0;
+      width: 100vw; height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #0b132b; color: #fff;
+      overflow: hidden;
+    }
 
     #auth-overlay {
       position: fixed;
@@ -115,6 +121,7 @@
       justify-content: space-between;
       padding: 0 14px;
       border-bottom: 2px solid #3a506b;
+      flex-shrink: 0;
     }
     #header .brand { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
     #header .location-tag { background: #48cae4; color: #0b132b; padding: 3px 8px; border-radius: 20px; font-size: 12px; font-weight: bold; }
@@ -122,33 +129,33 @@
     .btn-bio-reg { background: #065f46; border: 1px solid #10b981; color: #a7f3d0; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
     .btn-logout { background: transparent; border: 1px solid #64748b; color: #cbd5e1; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; }
 
-    /* 지도 및 하단 컨트롤러 레이아웃 */
+    /* 메인 컨테이너 및 하단 바 */
     #main-container {
-      position: relative;
       width: 100vw;
       height: calc(100vh - 52px);
       display: flex;
       flex-direction: column;
+      position: relative;
     }
     #map-wrapper {
       flex: 1;
+      min-height: 0;
       width: 100%;
-      height: 100%;
       position: relative;
       background: #0f172a;
     }
-    #map { width: 100%; height: 100%; background: #0f172a; z-index: 10; }
+    #map { width: 100%; height: 100%; background: #0f172a; }
 
-    /* 하단 선택 바 (Bottom Control Bar) */
     #bottom-control-bar {
-      height: 64px;
+      height: 60px;
+      flex-shrink: 0;
       background: #111a33;
       border-top: 2px solid #3a506b;
       display: flex;
       align-items: center;
       padding: 0 10px;
       gap: 8px;
-      z-index: 500;
+      z-index: 1000;
       box-shadow: 0 -4px 16px rgba(0,0,0,0.5);
     }
     .select-dropdown {
@@ -164,10 +171,10 @@
     }
     .floor-btn-group {
       display: flex;
-      gap: 5px;
+      gap: 6px;
       overflow-x: auto;
       flex: 1;
-      padding-bottom: 2px;
+      align-items: center;
       scrollbar-width: none;
     }
     .floor-btn-group::-webkit-scrollbar { display: none; }
@@ -325,7 +332,7 @@
     <div id="map"></div>
   </div>
 
-  <!-- 하단 카테고리 / 층수 선택 바 -->
+  <!-- 하단 고정 선택 바 -->
   <div id="bottom-control-bar">
     <select id="main-cat-select" class="select-dropdown">
       <option value="thermal2">기력 2호기</option>
@@ -337,11 +344,9 @@
     </select>
 
     <select id="sub-cat-select" class="select-dropdown">
-      <!-- 자바스크립트로 동적 생성 -->
     </select>
 
     <div class="floor-btn-group" id="floor-btn-group">
-      <!-- 층수 버튼 동적 생성 -->
     </div>
   </div>
 </div>
@@ -375,7 +380,6 @@
   const SUPABASE_KEY = 'sb_publishable_p3OXbhWhj04w_eFGMpu83w_ZbybQ_t_';
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  // 카테고리 및 도면 매핑 구조
   const CATEGORY_TREE = {
     thermal2: {
       name: '기력 2호기',
@@ -477,6 +481,7 @@
     document.getElementById('headerUserName').innerText = name;
     initMapOnce();
     renderCategorySelectors();
+    setTimeout(() => { if (mapInstance) mapInstance.invalidateSize(); }, 200);
   }
 
   // 지문 등록
@@ -683,7 +688,6 @@
     });
   }
 
-  // 하단 선택창 이벤트 및 동적 렌더링
   function renderCategorySelectors() {
     const mainSelect = document.getElementById('main-cat-select');
     const subSelect = document.getElementById('sub-cat-select');
@@ -710,7 +714,6 @@
     const currentSubs = CATEGORY_TREE[currentMain].subs;
     const subKeys = Object.keys(currentSubs);
 
-    // 내연호기 등 단독 대분류일 경우 소분류 셀렉터 숨김
     if (subKeys.length === 1 && subKeys[0] === 'main') {
       subSelect.style.display = 'none';
     } else {
@@ -807,7 +810,6 @@
   };
 
   async function fetchInstruments() {
-    const locationKey = `${currentMain}_${currentSub}`;
     const { data, error } = await supabaseClient.from('instruments')
       .select('*')
       .eq('floor', currentFloor);
@@ -817,13 +819,11 @@
     renderMarkers();
   }
 
-  // 2배 확대된 크기로 핀 렌더링 (45px ~ 160px)
   function renderMarkers() {
     currentMarkerObjects.forEach(m => mapInstance.removeLayer(m));
     currentMarkerObjects = [];
 
     const zoom = mapInstance.getZoom();
-    // 기존 대비 2배 확대된 핀 크기 계산
     const calculatedSize = Math.max(45, Math.min(160, Math.round(90 + zoom * 16)));
     const badgeDisplay = calculatedSize < 50 ? 'none' : 'block';
 
