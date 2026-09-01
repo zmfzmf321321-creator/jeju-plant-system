@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>발전소 계측제어 설비 맵</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -15,6 +15,7 @@
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background-color: #0b132b; color: #fff;
       overflow: hidden;
+      position: fixed;
     }
 
     #auth-overlay {
@@ -114,80 +115,94 @@
     #admin-login-box, #register-box { display: none; }
 
     #header {
-      height: 52px;
+      position: fixed;
+      top: 0; left: 0; width: 100vw;
+      height: 50px;
       background: #1c2541;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 14px;
+      padding: 0 10px;
       border-bottom: 2px solid #3a506b;
-      flex-shrink: 0;
+      z-index: 5000;
     }
-    #header .brand { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
-    #header .location-tag { background: #48cae4; color: #0b132b; padding: 3px 8px; border-radius: 20px; font-size: 12px; font-weight: bold; }
-    .header-btns { display: flex; gap: 8px; align-items: center; }
-    .btn-bio-reg { background: #065f46; border: 1px solid #10b981; color: #a7f3d0; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
-    .btn-logout { background: transparent; border: 1px solid #64748b; color: #cbd5e1; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; }
+    #header .brand { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+    #header .location-tag { 
+      background: #48cae4; 
+      color: #0b132b; 
+      padding: 3px 6px; 
+      border-radius: 12px; 
+      font-size: 11px; 
+      font-weight: bold; 
+      max-width: 130px; 
+      white-space: nowrap; 
+      overflow: hidden; 
+      text-overflow: ellipsis; 
+    }
+    .header-btns { display: flex; gap: 6px; align-items: center; }
+    .btn-bio-reg { background: #065f46; border: 1px solid #10b981; color: #a7f3d0; padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
+    .btn-logout { background: transparent; border: 1px solid #64748b; color: #cbd5e1; padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 11px; }
 
-    /* 메인 컨테이너 및 하단 바 */
-    #main-container {
-      width: 100vw;
-      height: calc(100vh - 52px);
-      display: flex;
-      flex-direction: column;
-      position: relative;
-    }
+    /* 지도 영역 */
     #map-wrapper {
-      flex: 1;
-      min-height: 0;
-      width: 100%;
-      position: relative;
+      position: fixed;
+      top: 50px;
+      bottom: 60px;
+      left: 0;
+      width: 100vw;
       background: #0f172a;
+      z-index: 10;
     }
     #map { width: 100%; height: 100%; background: #0f172a; }
 
+    /* 화면 하단 고정 바 */
     #bottom-control-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100vw;
       height: 60px;
-      flex-shrink: 0;
       background: #111a33;
       border-top: 2px solid #3a506b;
       display: flex;
       align-items: center;
-      padding: 0 10px;
-      gap: 8px;
-      z-index: 1000;
-      box-shadow: 0 -4px 16px rgba(0,0,0,0.5);
+      padding: 0 8px;
+      gap: 6px;
+      z-index: 5000;
+      box-shadow: 0 -4px 16px rgba(0,0,0,0.6);
     }
     .select-dropdown {
       background: #1c2541;
       color: #48cae4;
       border: 1px solid #3a506b;
-      padding: 8px 6px;
-      border-radius: 8px;
-      font-size: 13px;
+      padding: 6px 4px;
+      border-radius: 6px;
+      font-size: 12px;
       font-weight: bold;
       outline: none;
-      max-width: 120px;
+      max-width: 100px;
+      height: 38px;
     }
     .floor-btn-group {
       display: flex;
-      gap: 6px;
+      gap: 5px;
       overflow-x: auto;
       flex: 1;
       align-items: center;
       scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
     }
     .floor-btn-group::-webkit-scrollbar { display: none; }
     .floor-chip-btn {
       flex-shrink: 0;
       height: 38px;
-      min-width: 44px;
-      padding: 0 10px;
+      min-width: 40px;
+      padding: 0 8px;
       background: #1c2541;
       color: #94a3b8;
       border: 1px solid #3a506b;
-      border-radius: 8px;
-      font-size: 13px;
+      border-radius: 6px;
+      font-size: 12px;
       font-weight: bold;
       cursor: pointer;
     }
@@ -259,7 +274,7 @@
       cursor: pointer;
     }
 
-    #modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #ffffff; padding: 20px; border-radius: 12px; z-index: 2000; width: 88%; max-width: 360px; color: #333; max-height: 90vh; overflow-y: auto; }
+    #modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #ffffff; padding: 20px; border-radius: 12px; z-index: 9000; width: 88%; max-width: 360px; color: #333; max-height: 90vh; overflow-y: auto; }
     #modal h3 { margin: 0 0 12px 0; font-size: 16px; }
     .form-group { margin-bottom: 10px; }
     .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #334155; }
@@ -318,36 +333,34 @@
 <div id="header">
   <div class="brand">
     <span>⚡ 계측제어 설비 맵</span>
-    <span class="location-tag" id="current-location-badge">기력 2호기 > 보일러 > 1F</span>
+    <span class="location-tag" id="current-location-badge">기력 2호기 > 1F</span>
   </div>
   <div class="header-btns">
-    <span id="headerUserName" style="color: #48cae4; font-weight: bold; font-size: 12px;"></span>
-    <button class="btn-bio-reg" id="btnRegisterBio">👆 기기 지문 등록</button>
+    <button class="btn-bio-reg" id="btnRegisterBio">👆 지문 등록</button>
     <button class="btn-logout" id="btnLogout">로그아웃</button>
   </div>
 </div>
 
-<div id="main-container">
-  <div id="map-wrapper">
-    <div id="map"></div>
-  </div>
+<!-- 지도 영역 -->
+<div id="map-wrapper">
+  <div id="map"></div>
+</div>
 
-  <!-- 하단 고정 선택 바 -->
-  <div id="bottom-control-bar">
-    <select id="main-cat-select" class="select-dropdown">
-      <option value="thermal2">기력 2호기</option>
-      <option value="thermal3">기력 3호기</option>
-      <option value="thermal_common">기력 공통</option>
-      <option value="diesel1">내연 1호기</option>
-      <option value="diesel2">내연 2호기</option>
-      <option value="diesel_common">내연 공통</option>
-    </select>
+<!-- 하단 고정 선택 바 -->
+<div id="bottom-control-bar">
+  <select id="main-cat-select" class="select-dropdown">
+    <option value="thermal2">기력 2호기</option>
+    <option value="thermal3">기력 3호기</option>
+    <option value="thermal_common">기력 공통</option>
+    <option value="diesel1">내연 1호기</option>
+    <option value="diesel2">내연 2호기</option>
+    <option value="diesel_common">내연 공통</option>
+  </select>
 
-    <select id="sub-cat-select" class="select-dropdown">
-    </select>
+  <select id="sub-cat-select" class="select-dropdown">
+  </select>
 
-    <div class="floor-btn-group" id="floor-btn-group">
-    </div>
+  <div class="floor-btn-group" id="floor-btn-group">
   </div>
 </div>
 
@@ -478,10 +491,9 @@
   function unlock(name, email = 'user@jeju.com') {
     currentUserInfo = { name: name, email: email };
     document.getElementById('auth-overlay').style.display = 'none';
-    document.getElementById('headerUserName').innerText = name;
     initMapOnce();
     renderCategorySelectors();
-    setTimeout(() => { if (mapInstance) mapInstance.invalidateSize(); }, 200);
+    setTimeout(() => { if (mapInstance) mapInstance.invalidateSize(); }, 250);
   }
 
   // 지문 등록
