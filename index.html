@@ -305,7 +305,7 @@
     
     .btn-add-history-quick {
       width: 100%;
-      padding: 8px;
+      padding: 9px;
       background: #0284c7;
       color: #fff;
       border: none;
@@ -314,6 +314,7 @@
       font-weight: bold;
       cursor: pointer;
       margin-bottom: 6px;
+      display: block;
     }
     .btn-delete-pin {
       width: 100%;
@@ -328,7 +329,7 @@
       cursor: pointer;
     }
 
-    /* 모달 등록 창 공통 */
+    /* 최상위 모달 등록 창 공통 */
     #modal, #history-modal {
       display: none;
       position: fixed;
@@ -337,18 +338,18 @@
       background: #ffffff;
       padding: 20px;
       border-radius: 12px;
-      z-index: 9000;
+      z-index: 999999;
       width: 90%;
       max-width: 360px;
       color: #333;
       max-height: 90vh;
       overflow-y: auto;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
     }
     #modal h3, #history-modal h3 { margin: 0 0 12px 0; font-size: 16px; color: #0b132b; }
     .form-group { margin-bottom: 10px; }
     .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #334155; }
-    .form-group input, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; font-family: inherit; }
+    .form-group input, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; font-family: inherit; color: #111; }
     
     .modal-history-box {
       background: #f8fafc;
@@ -996,15 +997,24 @@
     fetchInstruments();
   }
 
-  // 이력 단독 추가 모달 열기
-  window.openQuickHistoryModal = function(id) {
-    const target = currentInstruments.find(i => i.id === id);
-    if (!target) return;
-    activeHistoryTargetId = id;
+  // 이력 단독 추가 모달 열기 (글로벌 윈도우 바인딩 및 이벤트 방어)
+  window.openQuickHistoryModal = function(id, e) {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const target = currentInstruments.find(i => String(i.id) === String(id));
+    if (!target) {
+      alert('해당 계측기 정보를 찾을 수 없습니다.');
+      return;
+    }
+    activeHistoryTargetId = target.id;
     document.getElementById('historyTargetTag').innerText = `[${target.tag_no}] ${target.name}`;
     document.getElementById('quickHistDate').value = new Date().toISOString().slice(0, 10);
     document.getElementById('quickHistAuthor').value = currentUserInfo.name || '';
     document.getElementById('quickHistContent').value = '';
+    
+    mapInstance.closePopup();
     document.getElementById('history-modal').style.display = 'block';
   };
 
@@ -1028,7 +1038,7 @@
     saveBtn.innerText = '저장 중...';
     saveBtn.disabled = true;
 
-    const targetInst = currentInstruments.find(i => i.id === activeHistoryTargetId);
+    const targetInst = currentInstruments.find(i => String(i.id) === String(activeHistoryTargetId));
     const currentLogs = Array.isArray(targetInst.history_logs) ? targetInst.history_logs : [];
     
     const newEntry = {
@@ -1053,7 +1063,6 @@
       targetInst.history_logs = updatedLogs;
       document.getElementById('history-modal').style.display = 'none';
       renderMarkers();
-      mapInstance.closePopup();
       alert('✅ 정비 이력이 성공적으로 추가되었습니다!');
     }
   });
@@ -1140,7 +1149,7 @@
               <span>📋 정비/점검 이력 (${logs.length}건)</span>
             </div>
             <div class="history-list">${historyHtml}</div>
-            <button class="btn-add-history-quick" onclick="window.openQuickHistoryModal('${item.id}')">+ 점검/정비 이력 추가</button>
+            <button class="btn-add-history-quick" onclick="window.openQuickHistoryModal('${item.id}', event)">+ 점검/정비 이력 추가</button>
           </div>
 
           <button class="btn-delete-pin" onclick="window.deleteInstrument('${item.id}')">🗑️ 계측기 삭제</button>
