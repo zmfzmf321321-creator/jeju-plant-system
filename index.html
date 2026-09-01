@@ -103,7 +103,7 @@
       cursor: pointer;
       text-decoration: underline;
     }
-    .auth-status-error { color: #ef4444; font-size: 12px; margin-top: 10px; display: none; }
+    .auth-status-error { color: #ef4444; font-size: 12px; margin-top: 10px; display: none; line-height: 1.4; }
 
     #admin-login-box, #register-box { display: none; }
 
@@ -130,7 +130,6 @@
     #map-wrapper { flex: 1; height: 100%; position: relative; background: #070d1d; }
     #map { width: 100%; height: 100%; background: #070d1d; z-index: 10; }
 
-    /* 동적 크기 조절 사진 마커 */
     .photo-pin-container {
       position: relative;
       width: 100%;
@@ -167,7 +166,6 @@
       text-overflow: ellipsis;
     }
 
-    /* 팝업 창 */
     .leaflet-popup-content-wrapper {
       background: #1c2541;
       color: #fff;
@@ -218,7 +216,7 @@
     
     <div class="auth-divider"><span>또는 사번 로그인</span></div>
     
-    <input type="text" id="loginEmail" class="auth-input" placeholder="사번(이메일 형태: emp@jeju.com)">
+    <input type="text" id="loginEmail" class="auth-input" placeholder="사번(이메일 형식: 12345@jeju.com)">
     <input type="password" id="loginPassword" class="auth-input" placeholder="비밀번호">
     <button class="auth-btn" id="btnMemberLogin">팀원 로그인</button>
     <div id="loginMsg" class="auth-status-error"></div>
@@ -239,9 +237,9 @@
 
   <div id="register-box" class="auth-box">
     <div class="auth-title">📝 신규 팀원 등록</div>
-    <div class="auth-desc">신청 후 관리자의 승인이 필요합니다.</div>
+    <div class="auth-desc">이름, 사번(이메일 형식), 비밀번호를 입력하세요.</div>
     <input type="text" id="regName" class="auth-input" placeholder="이름 (예: 홍길동)">
-    <input type="text" id="regEmail" class="auth-input" placeholder="사번(이메일 형태)">
+    <input type="text" id="regEmail" class="auth-input" placeholder="사번 (예: 240101@jeju.com)">
     <input type="password" id="regPassword" class="auth-input" placeholder="비밀번호 (6자리 이상)">
     <button class="auth-btn" id="btnRegisterSubmit">가입 신청</button>
     <div id="regMsg" class="auth-status-error"></div>
@@ -320,7 +318,6 @@
     return Uint8Array.from(atob(base64), c => c.charCodeAt(0)).buffer;
   }
 
-  // 화면 전환 이벤트
   document.getElementById('btnGoAdmin').addEventListener('click', () => {
     document.getElementById('login-box').style.display = 'none';
     document.getElementById('admin-login-box').style.display = 'block';
@@ -446,6 +443,61 @@
     }
   });
 
+  // 팀원 가입 신청
+  document.getElementById('btnRegisterSubmit').addEventListener('click', async () => {
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const pass = document.getElementById('regPassword').value;
+    const msg = document.getElementById('regMsg');
+    
+    if (!name || !email || !pass) { 
+      msg.innerText = '⚠️ 모든 항목을 입력해주세요.'; 
+      msg.style.display = 'block'; 
+      return; 
+    }
+    if (pass.length < 6) {
+      msg.innerText = '⚠️ 비밀번호는 6자리 이상으로 설정해야 합니다.';
+      msg.style.display = 'block';
+      return;
+    }
+    if (!email.includes('@') || !email.includes('.')) {
+      msg.innerText = '⚠️ 사번을 이메일 형식으로 입력해주세요. (예: 12345@jeju.com)';
+      msg.style.display = 'block';
+      return;
+    }
+
+    msg.style.display = 'none';
+    const { data, error } = await supabaseClient.auth.signUp({
+      email: email,
+      password: pass,
+      options: { data: { full_name: name, approved: true } }
+    });
+
+    if (error) { 
+      msg.innerText = '⚠️ 가입 오류: ' + error.message; 
+      msg.style.display = 'block'; 
+    } else { 
+      alert('🎉 가입 신청 및 등록이 완료되었습니다!\n이제 로그인 화면에서 사번과 비밀번호로 로그인해 주세요.'); 
+      location.reload(); 
+    }
+  });
+
+  // 팀원 로그인
+  document.getElementById('btnMemberLogin').addEventListener('click', async () => {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass = document.getElementById('loginPassword').value;
+    const msg = document.getElementById('loginMsg');
+    
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email: email, password: pass });
+    if (error) { 
+      msg.innerText = '⚠️ 아이디 또는 비밀번호가 올바르지 않습니다: ' + error.message; 
+      msg.style.display = 'block'; 
+      return; 
+    }
+
+    unlock(data.user.user_metadata?.full_name || '팀원');
+  });
+
   // 사진 압축
   function compressImage(file, maxWidth = 1000, quality = 0.75) {
     return new Promise((resolve) => {
@@ -514,7 +566,6 @@
       document.getElementById('modal').style.display = 'block';
     });
 
-    // 지도 줌 레벨 변경 시 마커 크기 동적 갱신
     mapInstance.on('zoomend', () => {
       renderMarkers();
     });
@@ -565,42 +616,30 @@
     btn.addEventListener('click', () => switchFloor(parseInt(btn.dataset.floor)));
   });
 
-  // 전역 계측기 삭제 함수
   window.deleteInstrument = async function(id) {
     if (!confirm('이 계측기를 영구 삭제하시겠습니까?')) return;
     mapInstance.closePopup();
     
-    const { error } = await supabaseClient
-      .from('instruments')
-      .delete()
-      .eq('id', id);
-
+    const { error } = await supabaseClient.from('instruments').delete().eq('id', id);
     if (error) {
-      alert('삭제 실패: ' + error.message + '\n(Supabase SQL에서 DELETE 권한을 확인해주세요)');
+      alert('삭제 실패: ' + error.message);
     } else {
-      alert('삭제되었습니다.');
       fetchInstruments(currentFloor);
     }
   };
 
-  // 데이터 로드
   async function fetchInstruments(floor) {
     const { data, error } = await supabaseClient.from('instruments').select('*').eq('floor', floor);
-    if (error) {
-      console.error(error);
-      return;
-    }
+    if (error) return;
     currentInstruments = data || [];
     renderMarkers();
   }
 
-  // 줌 레벨에 비례하여 마커 렌더링
   function renderMarkers() {
     currentMarkerObjects.forEach(m => mapInstance.removeLayer(m));
     currentMarkerObjects = [];
 
     const zoom = mapInstance.getZoom();
-    // 줌 레벨(-4 ~ +4)에 따라 핀 크기를 지름 24px ~ 90px 범위로 자동 조절
     const calculatedSize = Math.max(24, Math.min(90, Math.round(50 + zoom * 8)));
     const badgeDisplay = calculatedSize < 35 ? 'none' : 'block';
 
@@ -643,7 +682,6 @@
     document.getElementById('modal').style.display = 'none';
   });
 
-  // 등록 저장
   document.getElementById('btnSaveInst').addEventListener('click', async () => {
     const saveBtn = document.getElementById('btnSaveInst');
     const tagNo = document.getElementById('tagNo').value.trim();
@@ -660,7 +698,9 @@
         contentType: 'image/jpeg',
         upsert: true
       });
-      if (!uploadErr) {
+      if (uploadErr) {
+        alert('사진 업로드 실패: ' + uploadErr.message);
+      } else {
         const { data: publicUrlData } = supabaseClient.storage.from('instrument-photos').getPublicUrl(fileName);
         photoUrl = publicUrlData.publicUrl;
       }
