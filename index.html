@@ -274,7 +274,7 @@
   <button class="floor-btn" onclick="openFloorRoom('3.1/3층', 'floor_3_1_3f.jpg', this)">3.1/3층</button>
   <button class="floor-btn" onclick="openFloorRoom('3.2/3층', 'floor_3_2_3f.jpg', this)">3.2/3층</button>
   <button class="floor-btn" onclick="openFloorRoom('4층', 'floor_4f.jpg', this)">4층</button>
-  <button class="floor-btn" onclick="openFloorRoom('4.5층', 'floor_4_5.jpg', this)">4.5층</button>
+  <button class="floor-btn" onclick="openFloorRoom('4.5층', 'floor_4_5f.jpg', this)">4.5층</button>
   <button class="floor-btn" onclick="openFloorRoom('5층', 'floor_5f.jpg', this)">5층</button>
   <button class="floor-btn" onclick="openFloorRoom('5.5층', 'floor_5_5f.jpg', this)">5.5층</button>
   <button class="floor-btn" onclick="openFloorRoom('6층', 'floor_6f.jpg', this)">6층</button>
@@ -495,7 +495,6 @@
     zoomCanvas(e.deltaY < 0 ? 0.15 : -0.15);
   }, { passive: false });
 
-  // 도면 터치 시 핀 등록 (2D, 3D 통합 데이터를 위해 공통 필드 저장)
   board.addEventListener('click', (e) => {
     if (e.target.closest('.floor-inst-pin')) return;
     const rect = board.getBoundingClientRect();
@@ -539,16 +538,20 @@
   });
 
   async function fetchInstruments() {
-    // 통합키('boiler_integrated') 또는 기존 키('boiler_2d', 'boiler_3d') 모두 불러와서 양쪽 연동
     const { data, error } = await supabaseClient.from('instruments').select('*');
     if (!error) {
-      currentInstruments = data || [];
+      currentInstruments = (data || []).map(item => ({
+        ...item,
+        floor: item.floor || '6층',
+        coord_x: item.coord_x ?? 300,
+        coord_y: item.coord_y ?? 300,
+        history_logs: item.history_logs || []
+      }));
       renderFloorPins();
       render3DHotspots();
     }
   }
 
-  // 2D 도면 화면에 핀 렌더링
   function renderFloorPins() {
     board.querySelectorAll('.floor-inst-pin').forEach(el => el.remove());
 
@@ -570,7 +573,6 @@
     });
   }
 
-  // 3D 조감도 화면에 핀 렌더링
   function render3DHotspots() {
     viewer.querySelectorAll('.hotspot-pin').forEach(el => el.remove());
 
