@@ -69,47 +69,41 @@
       background: radial-gradient(circle at center, #1b2838 0%, #080d1a 100%);
       z-index: 10;
     }
-    
-    /* 손가락 애니메이션 강제 숨김 */
+
+    /* 공간 이동 화면 전환 암전 레이어 */
+    #warp-overlay {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: #000; opacity: 0; pointer-events: none;
+      transition: opacity 0.35s ease; z-index: 30;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    }
+    #warp-overlay.active { opacity: 0.85; pointer-events: auto; }
+    .warp-text { color: #38bdf8; font-size: 16px; font-weight: bold; letter-spacing: 1px; }
+
+    /* 손가락 제스처 및 로딩 바 숨김 */
     model-viewer {
       width: 100%; height: 100%;
       --poster-color: transparent;
+      transition: filter 0.3s;
     }
     model-viewer::part(default-progress-bar),
     model-viewer::part(prompt) {
       display: none !important;
     }
 
-    /* 상단 X, Y, Z축 회전 컨트롤 패널 (상시 표시) */
-    #axis-control-hud {
-      position: absolute; top: 8px; left: 8px; right: 8px;
-      background: rgba(11, 19, 43, 0.94); border: 1px solid #00b4d8;
-      border-radius: 10px; padding: 8px; font-size: 11px;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.6); z-index: 25;
+    /* 층 내부 진입 시 표시되는 현장 명판 배너 */
+    #floor-zone-banner {
+      position: absolute; top: 12px; left: 12px; right: 12px;
+      background: rgba(15, 23, 42, 0.9); border: 1px solid #00b4d8;
+      border-radius: 8px; padding: 8px 14px; display: flex;
+      justify-content: space-between; align-items: center; z-index: 22;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
     }
-    .hud-info {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 6px; border-bottom: 1px solid #334155; padding-bottom: 4px;
-    }
-    .hud-val { color: #facc15; font-family: monospace; font-weight: bold; }
-
-    .axis-btn-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 6px;
-    }
-    .axis-control-btn {
-      background: #1e293b; color: #90e0ef; border: 1px solid #38bdf8;
-      border-radius: 5px; padding: 6px 0; font-size: 11px; font-weight: bold; cursor: pointer;
-      text-align: center;
-    }
-    .axis-control-btn:active { background: #0284c7; color: #fff; }
-
-    .util-btn-row { display: flex; gap: 4px; }
-    .util-btn {
-      flex: 1; background: #334155; color: #fff; border: 1px solid #64748b;
-      border-radius: 5px; padding: 5px 0; font-size: 11px; font-weight: bold; cursor: pointer;
-    }
-    .btn-save-default {
-      flex: 1.5; background: #059669; border-color: #10b981; color: #ecfdf5;
+    .zone-info { font-size: 12px; color: #94a3b8; }
+    .zone-title { font-size: 14px; font-weight: bold; color: #38bdf8; }
+    .zone-btn-out {
+      background: #334155; color: #fff; border: none; padding: 5px 10px;
+      border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: bold;
     }
 
     /* 하단 층수 바 */
@@ -133,9 +127,9 @@
     /* 3D 핀 */
     .hotspot-pin {
       background: #00b4d8; border: 2px solid #ffffff; border-radius: 50%;
-      box-shadow: 0 0 14px rgba(0, 180, 216, 1); width: 26px; height: 26px;
+      box-shadow: 0 0 14px rgba(0, 180, 216, 1); width: 28px; height: 28px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 12px; font-weight: bold; color: #0b132b; cursor: pointer; transform: translate(-50%, -50%);
+      font-size: 13px; font-weight: bold; color: #0b132b; cursor: pointer; transform: translate(-50%, -50%);
     }
 
     /* 모달 */
@@ -211,31 +205,23 @@
 </div>
 
 <div id="viewer-container">
-  <div id="axis-control-hud">
-    <div class="hud-info">
-      <span>📐 회전축: <b class="hud-val" id="hudOrientationVal">로딩 중...</b></span>
-      <span>🎥 거리: <b class="hud-val" id="hudDistanceVal">380m</b></span>
-    </div>
-    
-    <div class="axis-btn-grid">
-      <button class="axis-control-btn" onclick="rotateAxis('x', 15)">X축 +15°</button>
-      <button class="axis-control-btn" onclick="rotateAxis('y', 15)">Y축 +15°</button>
-      <button class="axis-control-btn" onclick="rotateAxis('z', 15)">Z축 +15°</button>
-      <button class="axis-control-btn" onclick="rotateAxis('x', -15)">X축 -15°</button>
-      <button class="axis-control-btn" onclick="rotateAxis('y', -15)">Y축 -15°</button>
-      <button class="axis-control-btn" onclick="rotateAxis('z', -15)">Z축 -15°</button>
-    </div>
+  <!-- 워프 트랜지션 암전막 -->
+  <div id="warp-overlay">
+    <div class="warp-text" id="warpStatusText">1층 구역으로 이동 중...</div>
+  </div>
 
-    <div class="util-btn-row">
-      <button class="util-btn" onclick="zoomView(0.85)">🔍 확대 (+)</button>
-      <button class="util-btn" onclick="zoomView(1.15)">🔎 축소 (-)</button>
-      <button class="util-btn btn-save-default" onclick="saveAsDefaultView()">💾 현재 각도를 초기값 저장</button>
+  <!-- 층 구역 현황 배너 -->
+  <div id="floor-zone-banner">
+    <div>
+      <div class="zone-info">현재 작업 구역</div>
+      <div class="zone-title" id="bannerZoneTitle">보일러 전체 (조감도)</div>
     </div>
+    <button class="zone-btn-out" onclick="resetToOverall()">🌐 전체 조감도</button>
   </div>
 
   <model-viewer id="boilerViewer" src="./boiler.glb"
     interaction-prompt="none"
-    orientation="0deg 0deg 90deg"
+    orientation="90deg 270deg 210deg"
     camera-orbit="0deg 75deg 380m"
     camera-target="auto auto auto"
     camera-controls
@@ -245,27 +231,27 @@
     shadow-intensity="1.5"
     shadow-softness="0.5"
     exposure="1.0"
-    min-camera-orbit="auto auto 20m"
+    min-camera-orbit="auto auto 15m"
     max-camera-orbit="auto auto 600m">
   </model-viewer>
 </div>
 
 <!-- 13개 세부 층수 바 -->
 <div id="floor-bar">
-  <button class="floor-btn active" onclick="selectFloor('ALL', 0.5, this)">전체</button>
-  <button class="floor-btn" onclick="selectFloor('1층', 0.08, this)">1층</button>
-  <button class="floor-btn" onclick="selectFloor('2층', 0.15, this)">2층</button>
-  <button class="floor-btn" onclick="selectFloor('2.5층', 0.22, this)">2.5층</button>
-  <button class="floor-btn" onclick="selectFloor('3층', 0.28, this)">3층</button>
-  <button class="floor-btn" onclick="selectFloor('3.1/3층', 0.35, this)">3.1/3층</button>
-  <button class="floor-btn" onclick="selectFloor('3.2/3층', 0.42, this)">3.2/3층</button>
-  <button class="floor-btn" onclick="selectFloor('4층', 0.50, this)">4층</button>
-  <button class="floor-btn" onclick="selectFloor('4.5층', 0.58, this)">4.5층</button>
-  <button class="floor-btn" onclick="selectFloor('5층', 0.65, this)">5층</button>
-  <button class="floor-btn" onclick="selectFloor('5.5층', 0.72, this)">5.5층</button>
-  <button class="floor-btn" onclick="selectFloor('6층', 0.80, this)">6층</button>
-  <button class="floor-btn" onclick="selectFloor('7층', 0.88, this)">7층</button>
-  <button class="floor-btn" onclick="selectFloor('루프탑', 0.98, this)">루프탑</button>
+  <button class="floor-btn active" id="btn-ALL" onclick="enterFloorSpace('ALL', 0.5, this)">전체</button>
+  <button class="floor-btn" onclick="enterFloorSpace('1층', 0.08, this)">1층</button>
+  <button class="floor-btn" onclick="enterFloorSpace('2층', 0.15, this)">2층</button>
+  <button class="floor-btn" onclick="enterFloorSpace('2.5층', 0.22, this)">2.5층</button>
+  <button class="floor-btn" onclick="enterFloorSpace('3층', 0.28, this)">3층</button>
+  <button class="floor-btn" onclick="enterFloorSpace('3.1/3층', 0.35, this)">3.1/3층</button>
+  <button class="floor-btn" onclick="enterFloorSpace('3.2/3층', 0.42, this)">3.2/3층</button>
+  <button class="floor-btn" onclick="enterFloorSpace('4층', 0.50, this)">4층</button>
+  <button class="floor-btn" onclick="enterFloorSpace('4.5층', 0.58, this)">4.5층</button>
+  <button class="floor-btn" onclick="enterFloorSpace('5층', 0.65, this)">5층</button>
+  <button class="floor-btn" onclick="enterFloorSpace('5.5층', 0.72, this)">5.5층</button>
+  <button class="floor-btn" onclick="enterFloorSpace('6층', 0.80, this)">6층</button>
+  <button class="floor-btn" onclick="enterFloorSpace('7층', 0.88, this)">7층</button>
+  <button class="floor-btn" onclick="enterFloorSpace('루프탑', 0.98, this)">루프탑</button>
 </div>
 
 <!-- 계측기 등록 모달 -->
@@ -321,54 +307,15 @@
   let activeTargetId = null;
   let selectedFloor = 'ALL';
 
-  // 로컬에 저장된 사용자 회전축 불러오기 (기본값: 0deg 0deg 90deg)
-  const savedOri = localStorage.getItem('boiler_custom_ori') || '0 0 90';
-  const [initX, initY, initZ] = savedOri.split(' ').map(Number);
-  let rotX = initX || 0;
-  let rotY = initY || 0;
-  let rotZ = (initZ !== undefined) ? initZ : 90;
-
   const viewer = document.getElementById('boilerViewer');
-
-  function updateOrientation() {
-    const oriStr = `${rotX}deg ${rotY}deg ${rotZ}deg`;
-    viewer.orientation = oriStr;
-    document.getElementById('hudOrientationVal').innerText = `${rotX}° ${rotY}° ${rotZ}°`;
-  }
-
-  // 색상 칠하기 스크립트 추가
-  viewer.addEventListener('load', () => {
-    const materials = viewer.model.materials;
-    materials.forEach((mat, idx) => {
-      const name = (mat.name || '').toLowerCase();
-      if (name.includes('stack') || name.includes('chimney') || idx % 4 === 1) {
-        mat.pbrMetallicRoughness.setBaseColorFactor([0.92, 0.45, 0.15, 1.0]); 
-        mat.pbrMetallicRoughness.setRoughnessFactor(0.4);
-        mat.pbrMetallicRoughness.setMetallicFactor(0.6);
-      } else if (name.includes('boiler') || name.includes('body') || idx % 4 === 2) {
-        mat.pbrMetallicRoughness.setBaseColorFactor([0.15, 0.35, 0.65, 1.0]); 
-        mat.pbrMetallicRoughness.setRoughnessFactor(0.3);
-        mat.pbrMetallicRoughness.setMetallicFactor(0.4);
-      } else if (idx % 4 === 3) {
-        mat.pbrMetallicRoughness.setBaseColorFactor([0.22, 0.26, 0.32, 1.0]); 
-        mat.pbrMetallicRoughness.setRoughnessFactor(0.7);
-        mat.pbrMetallicRoughness.setMetallicFactor(0.8);
-      } else {
-        mat.pbrMetallicRoughness.setBaseColorFactor([0.75, 0.82, 0.88, 1.0]); 
-        mat.pbrMetallicRoughness.setRoughnessFactor(0.3);
-        mat.pbrMetallicRoughness.setMetallicFactor(0.5);
-      }
-    });
-  });
 
   function unlock(name, email = 'user@jeju.com') {
     currentUserInfo = { name: name, email: email };
     document.getElementById('auth-overlay').style.display = 'none';
-    updateOrientation();
     fetchInstruments();
   }
 
-  // 로그인 로직
+  // 로그인 모달
   document.getElementById('btnGoAdmin').addEventListener('click', () => {
     document.getElementById('login-box').style.display = 'none';
     document.getElementById('admin-login-box').style.display = 'block';
@@ -398,57 +345,43 @@
     location.reload();
   });
 
-  // 축별 회전
-  window.rotateAxis = function(axis, deg) {
-    if (axis === 'x') rotX = (rotX + deg) % 360;
-    if (axis === 'y') rotY = (rotY + deg) % 360;
-    if (axis === 'z') rotZ = (rotZ + deg) % 360;
-    updateOrientation();
-  };
-
-  // 현재 축을 영구 초기값으로 저장
-  window.saveAsDefaultView = function() {
-    localStorage.setItem('boiler_custom_ori', `${rotX} ${rotY} ${rotZ}`);
-    alert(`✅ 현재 회전 각도 (${rotX}°, ${rotY}°, ${rotZ}°)가 영구 기본값으로 저장되었습니다!`);
-  };
-
-  window.zoomView = function(scale) {
-    const orbit = viewer.getCameraOrbit();
-    if (orbit) {
-      const theta = orbit.theta * (180 / Math.PI);
-      const phi = orbit.phi * (180 / Math.PI);
-      const newRadius = orbit.radius * scale;
-      viewer.cameraOrbit = `${theta}deg ${phi}deg ${newRadius}m`;
-    }
-  };
-
-  viewer.addEventListener('camera-change', () => {
-    const orbit = viewer.getCameraOrbit();
-    if (orbit) {
-      document.getElementById('hudDistanceVal').innerText = `${orbit.radius.toFixed(0)}m`;
-    }
-  });
-
-  // 층 선택 시 해당 층 깊숙이 줌인 & 해당 층 핀만 격리 표시
-  window.selectFloor = function(floor, heightRatio, btn) {
+  // 공간 전환 함수 (암전 워프 연출)
+  window.enterFloorSpace = function(floor, heightRatio, btn) {
     selectedFloor = floor;
     document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('currentFloorTag').innerText = floor === 'ALL' ? '보일러 전체' : `보일러 ${floor}`;
+    if (btn) btn.classList.add('active');
 
-    if (floor === 'ALL') {
-      viewer.cameraTarget = 'auto auto auto';
-      viewer.cameraOrbit = '0deg 75deg 380m';
-    } else {
-      // 1층 등 선택한 층의 세로 위치로 시점 맞춤 & 줌인(160m)
-      viewer.cameraTarget = `auto ${Math.round(heightRatio * 100)}% auto`;
-      viewer.cameraOrbit = `0deg 80deg 160m`;
-    }
-    // 해당 층 핀만 필터링하여 다시 그리기
-    renderHotspots();
+    const overlay = document.getElementById('warp-overlay');
+    const warpText = document.getElementById('warpStatusText');
+    const bannerTitle = document.getElementById('bannerZoneTitle');
+    const floorTag = document.getElementById('currentFloorTag');
+
+    warpText.innerText = floor === 'ALL' ? '🌐 전체 조감도로 나가는 중...' : `🚀 ${floor} 현장 내부 공간으로 진입 중...`;
+    overlay.classList.add('active');
+
+    setTimeout(() => {
+      if (floor === 'ALL') {
+        floorTag.innerText = '보일러 전체';
+        bannerTitle.innerText = '보일러 전체 (조감도)';
+        viewer.cameraTarget = 'auto auto auto';
+        viewer.cameraOrbit = '0deg 75deg 380m';
+      } else {
+        floorTag.innerText = `보일러 ${floor}`;
+        bannerTitle.innerText = `📍 [보일러 ${floor}] 전용 작업 구역`;
+        // 해당 층 바닥 깊숙이 파고드는 초근접 1인칭 화각(55m 거리)
+        viewer.cameraTarget = `auto ${Math.round(heightRatio * 100)}% auto`;
+        viewer.cameraOrbit = `15deg 82deg 55m`;
+      }
+      renderHotspots();
+      overlay.classList.remove('active');
+    }, 280);
   };
 
-  // 3D 표면 터치 시 계측기 등록 창 열기
+  window.resetToOverall = function() {
+    enterFloorSpace('ALL', 0.5, document.getElementById('btn-ALL'));
+  };
+
+  // 표면 터치 시 핀 등록 (해당 층에 고정)
   viewer.addEventListener('click', (event) => {
     if (event.target.classList.contains('hotspot-pin')) return;
     const hit = viewer.positionAndNormalFromPoint(event.clientX, event.clientY);
@@ -458,7 +391,6 @@
       document.getElementById('name').value = '';
       document.getElementById('model').value = '';
       document.getElementById('range').value = '';
-      // 현재 선택된 층으로 핀이 등록되도록 자동 지정
       document.getElementById('modalFloorText').innerText = selectedFloor === 'ALL' ? '보일러 전체' : selectedFloor;
       document.getElementById('modal').style.display = 'block';
     }
@@ -471,7 +403,6 @@
 
     const pos = clickedSurfacePoint ? clickedSurfacePoint.position.toString() : '0 0 0';
     const norm = clickedSurfacePoint ? clickedSurfacePoint.normal.toString() : '0 1 0';
-
     const targetFloor = (selectedFloor === 'ALL') ? '1층' : selectedFloor;
 
     const { error } = await supabaseClient.from('instruments').insert([{
@@ -502,14 +433,11 @@
     }
   }
 
-  // 현재 선택된 층의 핀만 표시 (전체 뷰일 때는 모두 표시)
   function renderHotspots() {
     document.querySelectorAll('.hotspot-pin').forEach(el => el.remove());
 
     currentInstruments.forEach(item => {
       if (!item.model_position) return;
-      
-      // '전체'가 아닐 때는 해당 층 핀만 표시
       if (selectedFloor !== 'ALL' && item.floor !== selectedFloor) return;
 
       const btn = document.createElement('button');
