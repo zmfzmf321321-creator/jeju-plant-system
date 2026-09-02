@@ -391,19 +391,20 @@
   let initialPinchDist = 0;
   let initialScale = 0.65;
 
-  // 📌 1. 측정된 1층(8.14) ~ 7층(44.80)의 Y축(높이) 정밀 보간 데이터
+  // 📌 1. 측정된 1층(8.14) ~ 7층(44.80)의 Y축(높이) 보정 데이터
+  // 6층이 7층(꼭대기)에 겹치는 현상을 막기 위해 6층 이하를 약간 아래로 하향 조정했습니다.
   const floor3DHeights = {
     '1층': 8.14,
-    '2층': 11.47,
-    '2.5층': 14.80,
-    '3층': 18.14,
-    '3.1/3층': 21.47,
-    '3.2/3층': 24.80,
-    '4층': 28.14,
-    '4.5층': 31.47,
-    '5층': 34.80,
-    '5.5층': 38.14,
-    '6층': 41.47,
+    '2층': 11.50,
+    '2.5층': 14.50,
+    '3층': 17.50,
+    '3.1/3층': 20.50,
+    '3.2/3층': 23.50,
+    '4층': 26.50,
+    '4.5층': 29.50,
+    '5층': 32.50,
+    '5.5층': 35.50,
+    '6층': 38.50,
     '7층': 44.80
   };
 
@@ -728,28 +729,22 @@
     });
   }
 
-  // 📌 2. 이중선형보간법을 이용한 도면(2D) -> 모델(3D) 정밀 평면 매핑
   function render3DHotspots() {
     viewer.querySelectorAll('.hotspot-pin').forEach(el => el.remove());
 
     currentInstruments.forEach(item => {
       let pos = item.model_position;
       if (!pos || pos === '0 0 0') {
-        // Z축(모델뷰어상 Y축) 높이 적용
         const h = floor3DHeights[item.floor] !== undefined ? floor3DHeights[item.floor] : 26;
 
-        // 2D 평면도의 해상도 (1400 x 1000) 대비 핀의 위치 비율 (0.0 ~ 1.0)
         const u = item.coord_x / 1400;
         const v = item.coord_y / 1000;
 
-        // 측정한 4개 꼭지점 좌표 (2D 평면 네 모서리에 1:1 매칭)
-        // 화면 방향과 도면 방향을 일치시키기 위해 꼭지점을 배치합니다.
-        const P_TL = { x: 1.96, z: -0.61 };    // 도면 좌측 상단 (4번)
-        const P_TR = { x: 12.93, z: 17.94 };   // 도면 우측 상단 (1번)
-        const P_BR = { x: 30.94, z: 6.58 };    // 도면 우측 하단 (2번)
-        const P_BL = { x: 19.86, z: -11.47 };  // 도면 좌측 하단 (3번)
+        const P_TL = { x: 1.96, z: -0.61 };
+        const P_TR = { x: 12.93, z: 17.94 };
+        const P_BR = { x: 30.94, z: 6.58 };
+        const P_BL = { x: 19.86, z: -11.47 };
 
-        // 이중선형보간 수식을 통한 정확한 3D 투영 좌표 계산
         const x3d = (1 - u) * (1 - v) * P_TL.x + u * (1 - v) * P_TR.x + u * v * P_BR.x + (1 - u) * v * P_BL.x;
         const z3d = (1 - u) * (1 - v) * P_TL.z + u * (1 - v) * P_TR.z + u * v * P_BR.z + (1 - u) * v * P_BL.z;
 
