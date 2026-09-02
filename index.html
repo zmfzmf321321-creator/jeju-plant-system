@@ -111,7 +111,7 @@
     }
 
     .no-img-notice {
-      color: #64748b; font-size: 15px; font-weight: bold; pointer-events: none;
+      color: #ef4444; font-size: 15px; font-weight: bold; pointer-events: none;
       background: rgba(15, 23, 42, 0.9); padding: 12px 20px; border-radius: 8px; border: 1px dashed #334155;
     }
 
@@ -265,7 +265,6 @@
   </div>
 </div>
 
-<!-- JPG 파일명으로 연결된 11개 층 버튼 -->
 <div id="floor-bar">
   <button class="floor-btn active" id="btn-ALL" onclick="exitToOverall()">전체</button>
   <button class="floor-btn" onclick="openFloorRoom('1층', 'floor_1f.jpg', this)">1층</button>
@@ -378,6 +377,7 @@
   const canvasWrap = document.getElementById('floor-canvas-wrap');
   const board = document.getElementById('floor-board');
   const notice = document.getElementById('noImgNotice');
+  const viewer = document.getElementById('boilerViewer');
 
   window.openFloorRoom = function(floor, imgFile, btn) {
     selectedFloor = floor;
@@ -398,7 +398,7 @@
     };
     testImg.onerror = () => {
       board.style.backgroundImage = 'none';
-      notice.innerText = `⚠️ [${imgFile}] 파일이 GitHub에 없습니다. JPG로 업로드해 주세요.`;
+      notice.innerText = `⚠️ [${imgFile}] 파일을 찾을 수 없습니다.`;
       notice.style.display = 'block';
     };
 
@@ -414,6 +414,7 @@
     document.getElementById('floor-room-view').style.display = 'none';
     document.getElementById('overall-3d-view').style.display = 'block';
     document.getElementById('currentFloorTag').innerText = '보일러 전체';
+    render3DHotspots();
   };
 
   function updateTransform() {
@@ -430,7 +431,6 @@
     updateTransform();
   };
 
-  // 모바일 터치 제스처 (핀치 줌 & 드래그)
   canvasWrap.addEventListener('touchstart', (e) => {
     if (e.target.closest('.floor-inst-pin')) return;
     if (e.touches.length === 1) {
@@ -470,7 +470,6 @@
     if (e.touches.length === 0) isDragging = false;
   });
 
-  // PC 마우스 드래그 & 휠 줌
   canvasWrap.addEventListener('mousedown', (e) => {
     if (e.target.closest('.floor-inst-pin')) return;
     isDragging = true;
@@ -496,7 +495,7 @@
     zoomCanvas(e.deltaY < 0 ? 0.15 : -0.15);
   }, { passive: false });
 
-  // 도면 터치 시 핀 등록
+  // 도면 터치 시 핀 등록 (2D, 3D 통합 데이터를 위해 공통 필드 저장)
   board.addEventListener('click', (e) => {
     if (e.target.closest('.floor-inst-pin')) return;
     const rect = board.getBoundingClientRect();
@@ -519,7 +518,7 @@
     if (!tag || !name) { alert('Tag No와 기기명을 입력하세요.'); return; }
 
     const { error } = await supabaseClient.from('instruments').insert([{
-      location_key: 'boiler_2d',
+      location_key: 'boiler_integrated',
       floor: selectedFloor,
       tag_no: tag,
       name: name,
@@ -527,6 +526,7 @@
       signal_range: document.getElementById('range').value.trim(),
       coord_x: clickedFloorCoord.x,
       coord_y: clickedFloorCoord.y,
+      model_position: '0 0 0',
       history_logs: []
     }]);
 
@@ -539,18 +539,22 @@
   });
 
   async function fetchInstruments() {
-    const { data, error } = await supabaseClient.from('instruments').select('*').eq('location_key', 'boiler_2d');
+    // 통합키('boiler_integrated') 또는 기존 키('boiler_2d', 'boiler_3d') 모두 불러와서 양쪽 연동
+    const { data, error } = await supabaseClient.from('instruments').select('*');
     if (!error) {
       currentInstruments = data || [];
       renderFloorPins();
+      render3DHotspots();
     }
   }
 
+  // 2D 도면 화면에 핀 렌더링
   function renderFloorPins() {
     board.querySelectorAll('.floor-inst-pin').forEach(el => el.remove());
 
     currentInstruments.forEach(item => {
       if (item.floor !== selectedFloor) return;
+      if (item.coord_x === undefined || item.coord_x === null) return;
 
       const pin = document.createElement('div');
       pin.className = 'floor-inst-pin';
@@ -566,11 +570,32 @@
     });
   }
 
+  // 3D 조감도 화면에 핀 렌더링
+  function render3DHotspots() {
+    viewer.querySelectorAll('.hotspot-pin').forEach(el => el.remove());
+
+    currentInstruments.forEach(item => {
+      if (!item.model_position || item.model_position === '0 0 0') return;
+
+      const btn = document.createElement('button');
+      btn.className = 'hotspot-pin';
+      btn.slot = `hotspot-${item.id}`;
+      btn.dataset.position = item.model_position;
+      btn.innerText = '📍';
+
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        showDetail(item);
+      };
+      viewer.appendChild(btn);
+    });
+  }
+
   function showDetail(item) {
     activeTargetId = item.id;
     document.getElementById('infoTitle').innerText = `[${item.tag_no}] ${item.name}`;
     document.getElementById('infoBody').innerHTML = `
-      <div><b>배치 구역:</b> <span style="color:#0284c7; font-weight:bold;">${item.floor}</span></div>
+      <div><b>배치 층수:</b> <span style="color:#0284c7; font-weight:bold;">${item.floor || '1층'}</span></div>
       <div><b>모델명:</b> ${item.model || '-'}</div>
       <div><b>측정범위/신호:</b> ${item.signal_range || '-'}</div>
     `;
