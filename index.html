@@ -182,24 +182,26 @@
   </div>
 </div>
 
-<!-- orientation 속성: 90deg 회전으로 모델 수직 배치 -->
+<!-- 보일러 수직 정렬 및 초기 카메라 각도 설정 -->
 <div id="viewer-container">
   <div class="guide-box">🎮 회전(드래그) | 줌(핀치) | 표면 터치 시 핀 등록</div>
   <model-viewer id="boilerViewer" src="./boiler.glb"
-    orientation="90deg 0deg 0deg"
+    orientation="0deg 0deg 90deg"
+    camera-orbit="45deg 70deg 105%"
+    camera-target="auto auto auto"
     camera-controls
-    touch-action="none"
-    interpolation-decay="200"
+    touch-action="pan-y"
+    interpolation-decay="150"
     environment-image="neutral"
     shadow-intensity="1.5"
     shadow-softness="0.5"
     exposure="1.0"
-    min-camera-orbit="auto auto 5%"
+    min-camera-orbit="auto auto 10%"
     max-camera-orbit="auto auto 300%">
   </model-viewer>
 </div>
 
-<!-- 층 선택 바 -->
+<!-- 하단 층 선택 바 -->
 <div id="floor-bar">
   <button class="floor-btn active" onclick="selectFloor('ALL', this)">전체</button>
   <button class="floor-btn" onclick="selectFloor('1F', this)">1F</button>
@@ -225,7 +227,7 @@
   </div>
 </div>
 
-<!-- 핀 상세 정보 모달 -->
+<!-- 핀 상세 모달 -->
 <div id="info-modal">
   <h3 id="infoTitle">계측기 상세</h3>
   <div id="infoBody" style="font-size: 13px; line-height: 1.5;"></div>
@@ -302,7 +304,7 @@
 
   const viewer = document.getElementById('boilerViewer');
 
-  // 층 선택 시 해당 층 높이로 카메라 타겟 이동
+  // 층수 선택 시 정확한 높이 이동
   window.selectFloor = function(floor, btn) {
     selectedFloor = floor;
     document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
@@ -311,13 +313,13 @@
 
     if (floor === 'ALL') {
       viewer.cameraTarget = 'auto auto auto';
-      viewer.cameraOrbit = 'auto auto auto';
+      viewer.cameraOrbit = '45deg 70deg 105%';
     } else {
       const floorNum = parseInt(floor);
-      // 모델 중심을 기준으로 1F(하단) ~ 8F(상단) 높이 계산
-      const targetY = -4 + (floorNum * 1.5);
-      viewer.cameraTarget = `auto ${targetY}m auto`;
-      viewer.cameraOrbit = `45deg 70deg 25m`;
+      // 1층(바닥) ~ 8층(최상단) 높이 비율에 맞춘 타겟
+      const percentY = ((floorNum - 1) / 7.0); 
+      viewer.cameraTarget = `auto ${percentY * 100}% auto`;
+      viewer.cameraOrbit = `30deg 75deg 60%`;
     }
     renderHotspots();
   };
