@@ -207,7 +207,7 @@
     #modal, #info-modal, #history-modal {
       display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
       background: #ffffff; padding: 20px; border-radius: 12px; z-index: 999999;
-      width: 90%; max-width: 360px; color: #333; max-height: 90vh; overflow-y: auto;
+      width: 90%; max-width: 360px; color: #333; max-height: 88vh; overflow-y: auto;
       box-shadow: 0 10px 40px rgba(0,0,0,0.8);
     }
     #modal h3, #info-modal h3, #history-modal h3 { margin: 0 0 12px 0; font-size: 16px; color: #0b132b; }
@@ -343,7 +343,7 @@
   <button class="floor-btn" onclick="openFloorRoom('7층', 'floor_7f.jpg', this)">7층</button>
 </div>
 
-<!-- 등록 모달 -->
+<!-- 등록 모달: 최초 생성 시 이력 추가 기능 통합 -->
 <div id="modal">
   <h3>계측기 등록 (<span id="modalFloorText" style="color:#00b4d8; font-weight:bold;">1층</span>)</h3>
   <div class="form-group"><label>Tag No.</label><input type="text" id="tagNo" placeholder="예: 20-PT-101"></div>
@@ -351,13 +351,28 @@
   <div class="form-group"><label>모델명</label><input type="text" id="model"></div>
   <div class="form-group"><label>측정범위 / 신호</label><input type="text" id="range"></div>
   <div class="form-group">
-    <label>현장 사진 촬영/첨부 (핀에 표시됨)</label>
+    <label>기기 사진 (핀에 표시됨)</label>
     <div class="file-input-wrapper">
-      <div class="btn-file-upload">📷 사진 촬영 / 앨범 선택</div>
+      <div class="btn-file-upload">📷 기기 사진 촬영 / 앨범</div>
       <input type="file" id="instPhoto" accept="image/*" capture="environment">
     </div>
     <img id="photoPreview" class="preview-img">
   </div>
+
+  <div class="history-section" style="background:#f8fafc; padding:10px; border-radius:8px; margin-top:14px; border:1px solid #e2e8f0;">
+    <div class="history-title" style="margin-bottom:6px;">📋 최초 점검/설치 이력 작성 (선택)</div>
+    <div class="form-group"><label>작업자 성명</label><input type="text" id="initHistAuthor" placeholder="작업자 이름"></div>
+    <div class="form-group"><label>설치/점검 내용</label><textarea id="initHistContent" rows="2" placeholder="신규 설치 및 상태 점검 내용"></textarea></div>
+    <div class="form-group">
+      <label>조치 현장 사진</label>
+      <div class="file-input-wrapper">
+        <div class="btn-file-upload" style="padding:6px; font-size:12px;">📷 조치 사진 첨부</div>
+        <input type="file" id="initHistPhoto" accept="image/*" capture="environment">
+      </div>
+      <img id="initHistPreview" class="preview-img">
+    </div>
+  </div>
+
   <div class="btn-wrap">
     <button class="btn-save" id="btnSaveInst">저장하기</button>
     <button class="btn-cancel" onclick="document.getElementById('modal').style.display='none'">취소</button>
@@ -372,7 +387,7 @@
   <div class="history-section">
     <div class="history-title">📋 정비/점검 이력 관리</div>
     <div class="history-list" id="infoHistoryList"></div>
-    <button class="btn-add-history-quick" id="btnAddHistBtn">+ 새 점검 이력 작성</button>
+    <button class="btn-add-history-quick" id="btnAddHistBtn">+ 새 점검 이력 추가</button>
   </div>
   <button class="btn-delete-pin" id="btnDeletePin">🗑️ 계측기 완전히 삭제</button>
   <div class="btn-wrap" style="margin-top: 10px;">
@@ -415,6 +430,7 @@
   let isMeasureMode = false;
   
   let currentInstPhotoBase64 = '';
+  let initHistPhotoBase64 = '';
   let currentHistPhotoBase64 = '';
 
   let scale = 0.65;
@@ -430,7 +446,6 @@
     '6층': 38.50, '7층': 44.80
   };
 
-  // 사진 압축 함수
   function compressImage(file, callback) {
     if (!file) return;
     const reader = new FileReader();
@@ -457,6 +472,15 @@
     compressImage(e.target.files[0], (base64) => {
       currentInstPhotoBase64 = base64;
       const preview = document.getElementById('photoPreview');
+      preview.src = base64;
+      preview.style.display = 'block';
+    });
+  });
+
+  document.getElementById('initHistPhoto').addEventListener('change', function(e) {
+    compressImage(e.target.files[0], (base64) => {
+      initHistPhotoBase64 = base64;
+      const preview = document.getElementById('initHistPreview');
       preview.src = base64;
       preview.style.display = 'block';
     });
@@ -660,15 +684,38 @@
     document.getElementById('instPhoto').value = '';
     document.getElementById('photoPreview').style.display = 'none';
 
+    // 신규 등록 시 최초 이력 입력창 초기화
+    initHistPhotoBase64 = '';
+    document.getElementById('initHistPhoto').value = '';
+    document.getElementById('initHistPreview').style.display = 'none';
+    document.getElementById('initHistAuthor').value = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '';
+    document.getElementById('initHistContent').value = '';
+
     document.getElementById('modalFloorText').innerText = selectedFloor;
     document.getElementById('modal').style.display = 'block';
   });
 
-  // DB 구조에 맞춘 저장 처리 (photo_url과 image_data 동시 대응)
+  // 신규 등록: 최초 이력이 함께 작성된 경우 포함하여 저장
   document.getElementById('btnSaveInst').addEventListener('click', async () => {
     const tag = document.getElementById('tagNo').value.trim();
     const name = document.getElementById('name').value.trim();
     if (!tag || !name) { alert('Tag No와 기기명을 입력하세요.'); return; }
+
+    const initialLogs = [];
+    const initContent = document.getElementById('initHistContent').value.trim();
+    const initAuthor = document.getElementById('initHistAuthor').value.trim() || currentUserInfo.name || '관리자';
+
+    if (initContent) {
+      initialLogs.push({
+        date: new Date().toISOString().slice(0, 10),
+        author: initAuthor,
+        content: initContent,
+        photo: initHistPhotoBase64 || null
+      });
+      localStorage.setItem('jeju_worker_name', initAuthor);
+      currentUserInfo.name = initAuthor;
+      document.getElementById('loginUserBadge').innerText = `👤 ${initAuthor}`;
+    }
 
     const insertData = {
       tag_no: tag,
@@ -681,7 +728,7 @@
       x_coord: clickedFloorCoord.x,
       y_coord: clickedFloorCoord.y,
       model_position: '0 0 0',
-      history_logs: [],
+      history_logs: initialLogs,
       photo_url: currentInstPhotoBase64 || null,
       image_data: currentInstPhotoBase64 || null
     };
@@ -748,15 +795,26 @@
     });
   }
 
+  // 1번 코너(엘리베이터) ↔ 4번 코너 정렬 대칭 보정 공식 적용
   function render3DHotspots() {
     viewer.querySelectorAll('.hotspot-pin').forEach(el => el.remove());
     currentInstruments.forEach(item => {
       let pos = item.model_position;
       if (!pos || pos === '0 0 0') {
         const h = floor3DHeights[item.floor] !== undefined ? floor3DHeights[item.floor] : 26;
-        const u = item.coord_x / 1400; const v = item.coord_y / 1000;
-        const P_TL = { x: 1.96, z: -0.61 }; const P_TR = { x: 12.93, z: 17.94 };
-        const P_BR = { x: 30.94, z: 6.58 }; const P_BL = { x: 19.86, z: -11.47 };
+        
+        // 2D 평면도 핀 위치 비율 (0.0 ~ 1.0)
+        const u = item.coord_x / 1400; 
+        const v = item.coord_y / 1000;
+
+        // 1번 꼭지점(엘리베이터 코너): P1(12.93, 17.94)
+        // 4번 꼭지점(엘리베이터 대각 반대 코너): P4(1.96, -0.61)
+        // 도면 기준 X/Y 투영 축을 일치시키도록 4개 모서리 매핑 반전 교정
+        const P_TL = { x: 19.86, z: -11.47 }; // 3번
+        const P_TR = { x: 1.96,  z: -0.61 };  // 4번 코너 (엘리베이터 반대편)
+        const P_BR = { x: 12.93, z: 17.94 };  // 1번 코너 (엘리베이터 측)
+        const P_BL = { x: 30.94, z: 6.58 };   // 2번
+
         const x3d = (1 - u) * (1 - v) * P_TL.x + u * (1 - v) * P_TR.x + u * v * P_BR.x + (1 - u) * v * P_BL.x;
         const z3d = (1 - u) * (1 - v) * P_TL.z + u * (1 - v) * P_TR.z + u * v * P_BR.z + (1 - u) * v * P_BL.z;
         pos = `${x3d} ${h} ${z3d}`;
@@ -833,7 +891,6 @@
     document.getElementById('info-modal').style.display = 'block';
   }
 
-  // 이력 관리 저장
   document.getElementById('btnSaveHist').addEventListener('click', async () => {
     const text = document.getElementById('histContent').value.trim();
     const workerName = document.getElementById('histAuthor').value.trim();
