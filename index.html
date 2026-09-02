@@ -73,7 +73,6 @@
     model-viewer { width: 100%; height: 100%; --poster-color: transparent; }
     model-viewer::part(default-progress-bar), model-viewer::part(prompt) { display: none !important; }
 
-    /* 3D 화면의 핀 스타일 */
     .hotspot-pin {
       background: transparent; border: none; font-size: 26px;
       cursor: pointer; transform: translate(-50%, -50%);
@@ -348,7 +347,6 @@
   let initialPinchDist = 0;
   let initialScale = 0.65;
 
-  // 각 층별 3D 공간상의 높이(Y축) 매핑 (모델 크기에 따라 숫자 조절 가능)
   const floor3DHeights = {
     '1층': -40, '2층': -25, '2.5층': -15, '3층': -5, '3.1/3층': 0, '3.2/3층': 5,
     '4층': 15, '4.5층': 25, '5층': 35, '5.5층': 45, '6층': 55, '7층': 70
@@ -558,7 +556,16 @@
     if (!error) {
       currentInstruments = (data || []).map(item => {
         let f = item.floor;
-        if (!f || typeof f !== 'string' || !f.includes('층')) f = '6층';
+        
+        // 데이터베이스에 입력된 값이 숫자형태(int4)인 경우를 대비하여 문자열화 후 '층'을 붙임
+        if (f !== null && f !== undefined) {
+          f = String(f);
+          if (!f.includes('층')) {
+            f += '층';
+          }
+        } else {
+          f = '6층';
+        }
         
         let cx = parseFloat(item.coord_x);
         let cy = parseFloat(item.coord_y);
@@ -598,16 +605,13 @@
     });
   }
 
-  // 3D 조감도 자동 핀 매핑 로직
   function render3DHotspots() {
     viewer.querySelectorAll('.hotspot-pin').forEach(el => el.remove());
 
     currentInstruments.forEach(item => {
-      // 지정된 3D 좌표가 있으면 사용하고, 없으면 2D좌표와 층수를 조합하여 3D 위치 자동 생성
       let pos = item.model_position;
       if (!pos || pos === '0 0 0') {
-        const h = floor3DHeights[item.floor] || 0; // 층별 기본 높이
-        // 2D 캔버스(1400x1000) 좌표를 3D 폭/깊이 스케일로 축소 변환
+        const h = floor3DHeights[item.floor] || 0;
         const x3d = (item.coord_x - 700) / 12;
         const z3d = (item.coord_y - 500) / 12;
         pos = `${x3d} ${h} ${z3d}`;
