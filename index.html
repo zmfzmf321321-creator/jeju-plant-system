@@ -793,7 +793,7 @@
     });
   }
 
-  // 도면과 3D 축 1:1 엘리베이터 기준 정렬 매핑
+  // 평면도 기준 1:1 대응 3D 앵커 포인트 재계산
   function render3DHotspots() {
     viewer.querySelectorAll('.hotspot-pin').forEach(el => el.remove());
     currentInstruments.forEach(item => {
@@ -801,20 +801,20 @@
       if (!pos || pos === '0 0 0') {
         const h = floor3DHeights[item.floor] !== undefined ? floor3DHeights[item.floor] : 26;
         
-        const u = item.coord_x / 1400; 
-        const v = item.coord_y / 1000;
+        // 2D 도면 기준 정규화 좌표 (0.0 ~ 1.0)
+        const u = item.coord_x / 1400; // 좌 -> 우
+        const v = item.coord_y / 1000; // 상 -> 하
 
-        // 도면 기준:
-        // Top-Left (엘리베이터가 있는 좌상단 코너)
-        // Bottom-Left (테스트3이 찍힌 좌하단 코너 -> 화면 앞/아래쪽)
-        const P_TL = { x: 12.93, z: 17.94 };  // 엘리베이터 측 코너
-        const P_TR = { x: 1.96,  z: -0.61 };  // 우상단
+        // 도면 꼭지점과 1:1 일치하는 3D 좌표
+        const P_TL = { x: 12.93, z: 17.94 };  // 좌상단: 엘리베이터 코너
+        const P_BL = { x: 1.96,  z: -0.61 };  // 좌하단: 테스트3 핀이 위치한 아래쪽 코너
+        const P_TR = { x: 30.94, z: 6.58 };   // 우상단
         const P_BR = { x: 19.86, z: -11.47 }; // 우하단
-        const P_BL = { x: 30.94, z: 6.58 };   // 테스트3 코너 (화면 아래쪽/앞쪽)
 
-        const x3d = (1 - u) * (1 - v) * P_TL.x + u * (1 - v) * P_TR.x + u * v * P_BR.x + (1 - u) * v * P_BL.x;
-        const z3d = (1 - u) * (1 - v) * P_TL.z + u * (1 - v) * P_TR.z + u * v * P_BR.z + (1 - u) * v * P_BL.z;
-        pos = `${x3d} ${h} ${z3d}`;
+        // Bilinear 보간: (1-v)는 상단(엘리베이터 라인), v는 하단(테스트3 라인)
+        const x3d = (1 - u) * ((1 - v) * P_TL.x + v * P_BL.x) + u * ((1 - v) * P_TR.x + v * P_BR.x);
+        const z3d = (1 - u) * ((1 - v) * P_TL.z + v * P_BL.z) + u * ((1 - v) * P_TR.z + v * P_BR.z);
+        pos = `${x3d.toFixed(2)} ${h} ${z3d.toFixed(2)}`;
       }
 
       const btn = document.createElement('button');
@@ -834,6 +834,7 @@
       viewer.appendChild(btn);
     });
   }
+
 
   function showDetail(item) {
     activeTargetId = item.id;
