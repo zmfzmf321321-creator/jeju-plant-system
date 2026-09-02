@@ -71,7 +71,7 @@
     .btn-bio-reg { background: #065f46; border: 1px solid #10b981; color: #a7f3d0; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
     .btn-logout { background: transparent; border: 1px solid #64748b; color: #cbd5e1; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; }
 
-    /* 3D 뷰포트 영역 (풀스크린) */
+    /* 3D 뷰어 (전체 화면) */
     #three-wrapper {
       position: fixed; top: 50px; bottom: 0; left: 0; width: 100vw;
       background: #080d1a; z-index: 10;
@@ -84,7 +84,7 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
 
-    /* 팝업 & 모달 공통 */
+    /* 모달 공통 */
     #modal, #history-modal, #three-info-modal {
       display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
       background: #ffffff; padding: 20px; border-radius: 12px; z-index: 999999;
@@ -164,7 +164,7 @@
   </div>
 </div>
 
-<!-- 3D 뷰어 영역 -->
+<!-- 3D 뷰어 영역 (전체 화면) -->
 <div id="three-wrapper">
   <div class="three-guide-tag">🎮 3D 조작: 회전(드래그) | 줌(핀치) | 표면 터치 시 계측기 핀 등록</div>
   <canvas id="three-canvas"></canvas>
@@ -233,7 +233,6 @@
   let currentUserInfo = { name: '', email: '' };
   let activeHistoryTargetId = null;
 
-  // 3D Three.js 엔진 변수
   let threeScene, threeCamera, threeRenderer, threeControls;
   let threeModel = null;
   let threeRaycaster = new THREE.Raycaster();
@@ -373,7 +372,7 @@
     }
   });
 
-  // ==================== Three.js 3D 보일러 단일 엔진 ====================
+  // Three.js 3D 엔진 초기화
   function initThreeJSOnce() {
     if (threeScene) return;
     const canvas = document.getElementById('three-canvas');
@@ -393,19 +392,17 @@
     threeControls.enableDamping = true;
     threeControls.dampingFactor = 0.05;
 
-    // 조명 설정
     const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.4);
     threeScene.add(hemiLight);
     const dirLight = new THREE.DirectionalLight(0xffffff, 1.6);
     dirLight.position.set(25, 45, 25);
     threeScene.add(dirLight);
 
-    // 바닥 격자 그리드
     const gridHelper = new THREE.GridHelper(60, 30, 0x00b4d8, 0x1e293b);
     gridHelper.position.y = -0.01;
     threeScene.add(gridHelper);
 
-    // boiler.glb 모델 로딩
+    // boiler.glb 불러오기
     const loader = new THREE.GLTFLoader();
     loader.load('./boiler.glb', (gltf) => {
       threeModel = gltf.scene;
@@ -422,7 +419,7 @@
       threeScene.add(threeModel);
       animateThree();
     }, undefined, (err) => {
-      console.warn('3D 모델 로딩 대기:', err);
+      console.warn('3D 모델 로딩 에러:', err);
     });
 
     canvas.addEventListener('pointerdown', () => { touchStartTime = Date.now(); });
@@ -445,7 +442,7 @@
   }
 
   function onThreePointerUp(e) {
-    if (Date.now() - touchStartTime > 300) return; // 드래그 회전 제외
+    if (Date.now() - touchStartTime > 300) return;
 
     const rect = threeRenderer.domElement.getBoundingClientRect();
     threeMouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
@@ -453,14 +450,12 @@
 
     threeRaycaster.setFromCamera(threeMouse, threeCamera);
 
-    // 1. 기존 3D 핀 터치 확인
     const markerHits = threeRaycaster.intersectObjects(threeMarkers);
     if (markerHits.length > 0) {
       showThreeInstInfo(markerHits[0].object.userData);
       return;
     }
 
-    // 2. 3D 보일러 표면 터치 시 새 핀 등록 창
     if (threeModel) {
       const modelHits = threeRaycaster.intersectObject(threeModel, true);
       if (modelHits.length > 0) {
@@ -485,7 +480,6 @@
     document.getElementById('modal').style.display = 'block';
   }
 
-  // 3D 핀 렌더링
   function render3DMarkers() {
     threeMarkers.forEach(m => threeScene.remove(m));
     threeMarkers = [];
@@ -542,7 +536,6 @@
     document.getElementById('three-info-modal').style.display = 'block';
   }
 
-  // ==================== 데이터 조회 및 저장 ====================
   async function fetchInstruments() {
     const { data, error } = await supabaseClient.from('instruments').select('*').eq('location_key', 'boiler_3d');
     if (!error) {
