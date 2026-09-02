@@ -2,567 +2,141 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>발전소 계측제어 설비 & 창고재고 맵</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>보일러 계측기 관리 시스템</title>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- 엑셀 파싱 라이브러리 -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- Three.js 및 GLTFLoader, OrbitControls 로드 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+
   <style>
     * { box-sizing: border-box; }
-    html, body {
-      margin: 0; padding: 0;
-      width: 100vw; height: 100vh;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background-color: #0b132b; color: #fff;
-      overflow: hidden;
-      position: fixed;
-    }
+    body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0b132b; color: #fff; overflow: hidden; }
 
-    #auth-overlay {
-      position: fixed;
-      top: 0; left: 0; width: 100vw; height: 100vh;
-      background: #0b132b;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 99999;
-    }
-    .auth-box {
-      background: #1c2541;
-      padding: 28px 24px;
-      border-radius: 16px;
-      border: 1px solid #3a506b;
-      width: 90%;
-      max-width: 340px;
-      text-align: center;
-    }
+    #auth-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0b132b; display: flex; align-items: center; justify-content: center; z-index: 99999; }
+    .auth-box { background: #1c2541; padding: 28px 24px; border-radius: 16px; border: 1px solid #3a506b; width: 90%; max-width: 340px; text-align: center; }
     .auth-title { font-size: 20px; font-weight: bold; margin-bottom: 6px; color: #48cae4; }
     .auth-desc { font-size: 13px; color: #94a3b8; margin-bottom: 20px; line-height: 1.4; }
-
-    .auth-input {
-      width: 100%;
-      padding: 12px;
-      background: #0b132b;
-      border: 1px solid #3a506b;
-      border-radius: 8px;
-      color: #fff;
-      font-size: 15px;
-      margin-bottom: 12px;
-      outline: none;
-    }
-    .auth-input:focus { border-color: #00b4d8; }
-
-    .auth-btn {
-      width: 100%;
-      padding: 12px;
-      background: #00b4d8;
-      color: #0b132b;
-      border: none;
-      border-radius: 8px;
-      font-size: 15px;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: 6px;
-    }
-    .btn-biometric {
-      width: 100%;
-      padding: 12px;
-      background: #10b981;
-      color: #fff;
-      border: none;
-      border-radius: 8px;
-      font-size: 15px;
-      font-weight: bold;
-      cursor: pointer;
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-    .auth-divider {
-      display: flex;
-      align-items: center;
-      margin: 16px 0;
-      color: #64748b;
-      font-size: 12px;
-    }
-    .auth-divider::before, .auth-divider::after {
-      content: ''; flex: 1; border-bottom: 1px solid #334155;
-    }
-    .auth-divider span { padding: 0 10px; }
-
-    .btn-admin-pass {
-      width: 100%;
-      padding: 11px;
-      background: #111a33;
-      border: 1px solid #3b82f6;
-      color: #93c5fd;
-      border-radius: 8px;
-      font-size: 13px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .auth-toggle-link {
-      margin-top: 14px;
-      font-size: 13px;
-      color: #94a3b8;
-      cursor: pointer;
-      text-decoration: underline;
-    }
+    .auth-input { width: 100%; padding: 12px; background: #0b132b; border: 1px solid #3a506b; border-radius: 8px; color: #fff; font-size: 15px; margin-bottom: 12px; outline: none; }
+    .auth-btn { width: 100%; padding: 12px; background: #00b4d8; color: #0b132b; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 6px; }
+    .btn-admin-pass { width: 100%; padding: 11px; background: #111a33; border: 1px solid #3b82f6; color: #93c5fd; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; margin-top: 10px; }
     .auth-status-error { color: #ef4444; font-size: 12px; margin-top: 10px; display: none; line-height: 1.4; }
 
-    #admin-login-box, #register-box { display: none; }
+    #header { height: 56px; background: #1c2541; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 2px solid #3a506b; }
+    #header .brand { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    #header .floor-tag { background: #48cae4; color: #0b132b; padding: 3px 8px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+    .header-btns { display: flex; gap: 8px; align-items: center; }
+    .btn-3d { background: linear-gradient(135deg, #0284c7, #0369a1); border: 1px solid #38bdf8; color: #fff; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; }
+    .btn-logout { background: transparent; border: 1px solid #64748b; color: #cbd5e1; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
 
-    #header {
-      position: fixed;
-      top: 0; left: 0; width: 100vw;
-      height: 50px;
-      background: #1c2541;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 10px;
-      border-bottom: 2px solid #3a506b;
-      z-index: 5000;
-    }
-    #header .brand { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
-    #header .location-tag { 
-      background: #48cae4; 
-      color: #0b132b; 
-      padding: 3px 6px; 
-      border-radius: 12px; 
-      font-size: 11px; 
-      font-weight: bold; 
-      max-width: 150px; 
-      white-space: nowrap; 
-      overflow: hidden; 
-      text-overflow: ellipsis; 
-    }
-    .header-btns { display: flex; gap: 6px; align-items: center; }
-    .btn-bio-reg { background: #065f46; border: 1px solid #10b981; color: #a7f3d0; padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
-    .btn-logout { background: transparent; border: 1px solid #64748b; color: #cbd5e1; padding: 4px 6px; border-radius: 6px; cursor: pointer; font-size: 11px; }
+    #container { display: flex; height: calc(100vh - 56px); width: 100vw; position: relative; }
+    #floor-selector { width: 76px; background: #111a33; border-right: 1px solid #1c2541; display: flex; flex-direction: column; gap: 6px; padding: 8px 6px; z-index: 500; overflow-y: auto; }
+    .floor-btn { width: 100%; height: 46px; background: #1c2541; color: #94a3b8; border: 1px solid #3a506b; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; }
+    .floor-btn.active { background: #00b4d8; color: #0b132b; border-color: #90e0ef; }
 
-    /* 지도 뷰 */
-    #map-wrapper {
-      position: fixed;
-      top: 50px;
-      bottom: 60px;
-      left: 0;
-      width: 100vw;
-      background: #0f172a;
-      z-index: 10;
-    }
-    #map { width: 100%; height: 100%; background: #0f172a; }
+    #map-wrapper { flex: 1; height: 100%; position: relative; background: #0f172a; }
+    #map { width: 100%; height: 100%; background: #0f172a; z-index: 10; }
 
-    /* 창고 재고 엑셀/테이블 뷰 */
-    #warehouse-wrapper {
-      position: fixed;
-      top: 50px;
-      bottom: 60px;
-      left: 0;
-      width: 100vw;
-      background: #0b132b;
-      z-index: 20;
-      display: none;
-      flex-direction: column;
-      padding: 10px;
-      overflow: hidden;
-    }
-    .warehouse-toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-    .search-input {
-      flex: 1;
-      min-width: 140px;
-      padding: 8px 12px;
-      background: #1c2541;
-      border: 1px solid #3a506b;
-      border-radius: 8px;
-      color: #fff;
-      font-size: 13px;
-      outline: none;
-    }
-    .search-input:focus { border-color: #00b4d8; }
-    .btn-tool {
-      padding: 8px 12px;
-      border-radius: 8px;
-      border: none;
-      font-size: 12px;
-      font-weight: bold;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .btn-excel-upload { background: #10b981; color: #fff; }
-    .btn-add-item { background: #00b4d8; color: #0b132b; }
-    
-    .table-container {
-      flex: 1;
-      overflow-x: auto;
-      overflow-y: auto;
-      background: #111a33;
-      border-radius: 8px;
-      border: 1px solid #1c2541;
-    }
-    table.inv-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-      text-align: left;
-      white-space: nowrap;
-    }
-    table.inv-table th {
-      background: #1c2541;
-      color: #48cae4;
-      padding: 10px 8px;
-      position: sticky;
-      top: 0;
-      z-index: 5;
-      border-bottom: 2px solid #3a506b;
-    }
-    table.inv-table td {
-      padding: 8px;
-      border-bottom: 1px solid #1e293b;
-      color: #cbd5e1;
-    }
-    table.inv-table tr:hover { background: #1e293b; }
-    .qty-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-weight: bold;
-      color: #38bdf8;
-    }
-    .btn-qty {
-      width: 24px;
-      height: 24px;
-      background: #334155;
-      border: 1px solid #475569;
-      color: #fff;
-      border-radius: 4px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-    .loc-badge {
-      background: #0369a1;
-      color: #e0f2fe;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 11px;
-    }
+    /* 3D 모달 오버레이 */
+    #modal-3d { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0, 0, 0, 0.85); z-index: 9999; }
+    #viewer-3d-wrap { width: 100%; height: 100%; position: relative; }
+    #canvas-3d { width: 100%; height: 100%; display: block; }
+    .btn-close-3d { position: absolute; top: 16px; right: 16px; background: #ef4444; color: #fff; border: none; border-radius: 8px; padding: 10px 18px; font-size: 14px; font-weight: bold; cursor: pointer; z-index: 10001; }
+    .info-3d { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(11, 19, 43, 0.85); padding: 8px 16px; border-radius: 20px; border: 1px solid #3a506b; font-size: 12px; color: #90e0ef; pointer-events: none; }
 
-    /* 화면 하단 고정 바 */
-    #bottom-control-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100vw;
-      height: 60px;
-      background: #111a33;
-      border-top: 2px solid #3a506b;
-      display: flex;
-      align-items: center;
-      padding: 0 8px;
-      gap: 6px;
-      z-index: 5000;
-      box-shadow: 0 -4px 16px rgba(0,0,0,0.6);
-    }
-    .select-dropdown {
-      background: #1c2541;
-      color: #48cae4;
-      border: 1px solid #3a506b;
-      padding: 6px 4px;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: bold;
-      outline: none;
-      max-width: 100px;
-      height: 38px;
-    }
-    .floor-btn-group {
-      display: flex;
-      gap: 5px;
-      overflow-x: auto;
-      flex: 1;
-      align-items: center;
-      scrollbar-width: none;
-      -webkit-overflow-scrolling: touch;
-    }
-    .floor-btn-group::-webkit-scrollbar { display: none; }
-    .floor-chip-btn {
-      flex-shrink: 0;
-      height: 38px;
-      min-width: 40px;
-      padding: 0 8px;
-      background: #1c2541;
-      color: #94a3b8;
-      border: 1px solid #3a506b;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-    .floor-chip-btn.active {
-      background: #00b4d8;
-      color: #0b132b;
-      border-color: #90e0ef;
-    }
-
-    /* 사진 핀 스타일 */
-    .photo-pin-container {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      border: 3px solid #00b4d8;
-      box-shadow: 0 0 16px rgba(0, 180, 216, 0.9), 0 4px 10px rgba(0,0,0,0.7);
-      background: #1c2541;
-      cursor: pointer;
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .photo-pin-img { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .photo-pin-badge {
-      position: absolute; bottom: 0; left: 0; width: 100%;
-      background: rgba(11, 19, 43, 0.92); color: #fff;
-      font-size: 11px; text-align: center; font-weight: bold;
-      padding: 2px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-
-    /* 팝업 카드 */
-    .leaflet-popup-content-wrapper {
-      background: #1c2541;
-      color: #fff;
-      border-radius: 12px;
-      border: 1px solid #3a506b;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.7);
-      max-height: 480px;
-      overflow-y: auto;
-    }
+    /* 2D 핀 팝업 및 등록 모달 */
+    .photo-pin-container { position: relative; width: 100%; height: 100%; border-radius: 50%; border: 2px solid #00b4d8; box-shadow: 0 0 10px rgba(0, 180, 216, 0.8); background: #1c2541; cursor: pointer; overflow: hidden; }
+    .photo-pin-img { width: 100%; height: 100%; object-fit: cover; }
+    .photo-pin-badge { position: absolute; bottom: 0; left: 0; width: 100%; background: rgba(11, 19, 43, 0.9); color: #fff; font-size: 8px; text-align: center; font-weight: bold; white-space: nowrap; overflow: hidden; }
+    .leaflet-popup-content-wrapper { background: #1c2541; color: #fff; border-radius: 12px; border: 1px solid #3a506b; }
     .leaflet-popup-tip { background: #1c2541; }
-    .popup-card { font-size: 13px; line-height: 1.5; min-width: 230px; }
+    .popup-card { font-size: 13px; line-height: 1.5; min-width: 180px; }
     .popup-card b { font-size: 15px; color: #48cae4; display: block; margin-bottom: 4px; }
-    .popup-card .field-tag { color: #94a3b8; font-size: 11px; margin-right: 4px; font-weight: bold; }
     .popup-img { width: 100%; max-height: 180px; object-fit: cover; border-radius: 8px; margin: 8px 0; border: 1px solid #334155; }
-    
-    .history-section {
-      margin-top: 10px; padding-top: 8px; border-top: 1px dashed #334155;
-    }
-    .history-title {
-      font-size: 12px; font-weight: bold; color: #38bdf8;
-      display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;
-    }
-    .history-list {
-      max-height: 130px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px;
-    }
-    .history-item {
-      background: #0f172a; border-left: 3px solid #38bdf8; padding: 6px 8px; border-radius: 4px; font-size: 11px;
-    }
-    .history-item-header {
-      display: flex; justify-content: space-between; color: #94a3b8; font-size: 10px; margin-bottom: 2px;
-    }
-    .history-item-content { color: #f1f5f9; white-space: pre-wrap; word-break: break-all; line-height: 1.4; }
-    
-    .btn-add-history-quick {
-      width: 100%; padding: 9px; background: #0284c7; color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; margin-bottom: 6px; display: block;
-    }
-    .btn-delete-pin {
-      width: 100%; padding: 7px; margin-top: 6px; background: #ef4444; border: none; border-radius: 6px; color: #fff; font-size: 12px; font-weight: bold; cursor: pointer;
-    }
+    .btn-delete-pin { width: 100%; padding: 8px; margin-top: 10px; background: #ef4444; border: none; border-radius: 6px; color: #fff; font-weight: bold; cursor: pointer; }
 
-    /* 모달 공통 */
-    #modal, #history-modal, #item-modal {
-      display: none; position: fixed; top: 50%; left: 50%;
-      transform: translate(-50%, -50%); background: #ffffff;
-      padding: 20px; border-radius: 12px; z-index: 999999;
-      width: 90%; max-width: 360px; color: #333; max-height: 90vh; overflow-y: auto;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-    }
-    #modal h3, #history-modal h3, #item-modal h3 { margin: 0 0 12px 0; font-size: 16px; color: #0b132b; }
+    #modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #ffffff; padding: 20px; border-radius: 12px; z-index: 2000; width: 88%; max-width: 360px; color: #333; max-height: 90vh; overflow-y: auto; }
+    #modal h3 { margin: 0 0 12px 0; font-size: 16px; }
     .form-group { margin-bottom: 10px; }
     .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #334155; }
-    .form-group input, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; font-family: inherit; color: #111; }
-    
+    .form-group input { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
     .btn-wrap { display: flex; gap: 8px; margin-top: 14px; }
     .btn-wrap button { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
     .btn-save { background: #0077b6; color: #fff; }
     .btn-cancel { background: #e2e8f0; color: #475569; }
-    .photo-preview { width: 100%; height: 110px; background: #f1f5f9; border: 1px dashed #94a3b8; border-radius: 6px; display: flex; align-items: center; justify-content: center; margin-top: 6px; overflow: hidden; }
+    .photo-preview { width: 100%; height: 120px; background: #f1f5f9; border: 1px dashed #94a3b8; border-radius: 6px; display: flex; align-items: center; justify-content: center; margin-top: 6px; overflow: hidden; }
     .photo-preview img { width: 100%; height: 100%; object-fit: cover; display: none; }
   </style>
 </head>
 <body>
 
 <div id="auth-overlay">
-  <div id="login-box" class="auth-box">
+  <div class="auth-box">
     <div class="auth-title">🔐 시스템 로그인</div>
-    <div class="auth-desc">발전소 계측제어 설비 & 창고 관리 시스템</div>
-    
-    <button class="btn-biometric" id="btnBioLogin">👆 기기 생체/지문 즉시 로그인</button>
-    <div id="bioLoginMsg" class="auth-status-error"></div>
-    
-    <div class="auth-divider"><span>또는 사번 로그인</span></div>
-    
-    <input type="text" id="loginEmail" class="auth-input" placeholder="사번(이메일 형식: 12345@jeju.com)">
-    <input type="password" id="loginPassword" class="auth-input" placeholder="비밀번호">
-    <button class="auth-btn" id="btnMemberLogin">팀원 로그인</button>
-    <div id="loginMsg" class="auth-status-error"></div>
-    
-    <div class="auth-toggle-link" id="linkToRegister">신규 팀원 계정 등록(신청)</div>
-    <div class="auth-divider"><span>또는</span></div>
-    <button class="btn-admin-pass" id="btnGoAdmin">👑 관리자 비밀번호로 즉시 입장</button>
-  </div>
-
-  <div id="admin-login-box" class="auth-box">
-    <div class="auth-title" style="color: #38bdf8;">👑 관리자 마스터 모드</div>
-    <div class="auth-desc">마스터 비밀번호를 입력하세요.</div>
+    <div class="auth-desc">보일러 계측기 관리 시스템</div>
     <input type="password" id="adminPassInput" class="auth-input" placeholder="마스터 비밀번호">
-    <button class="auth-btn" style="background: #38bdf8;" id="btnAdminSubmit">관리자 즉시 접속</button>
+    <button class="auth-btn" id="btnAdminSubmit">관리자 접속</button>
     <div id="adminErrorMsg" class="auth-status-error">⚠️ 비밀번호가 일치하지 않습니다.</div>
-    <div class="auth-toggle-link" id="linkBackLogin">일반 로그인으로 돌아가기</div>
-  </div>
-
-  <div id="register-box" class="auth-box">
-    <div class="auth-title">📝 신규 팀원 등록 신청</div>
-    <div class="auth-desc">가입 신청 후 관리자의 승인이 완료되어야 로그인할 수 있습니다.</div>
-    <input type="text" id="regName" class="auth-input" placeholder="이름 (예: 홍길동)">
-    <input type="text" id="regEmail" class="auth-input" placeholder="사번 (예: 240101@jeju.com)">
-    <input type="password" id="regPassword" class="auth-input" placeholder="비밀번호 (6자리 이상)">
-    <button class="auth-btn" id="btnRegisterSubmit">가입 신청하기</button>
-    <div id="regMsg" class="auth-status-error"></div>
-    <div class="auth-toggle-link" id="linkBackLogin2">로그인 화면으로 돌아가기</div>
   </div>
 </div>
 
 <div id="header">
   <div class="brand">
-    <span>⚡ 계측제어 설비 & 창고 맵</span>
-    <span class="location-tag" id="current-location-badge">기력 2호기 > 1F</span>
+    <span>🏢 보일러 계측제어 맵</span>
+    <span class="floor-tag" id="current-floor-badge">1F (EL.6800)</span>
   </div>
   <div class="header-btns">
-    <button class="btn-bio-reg" id="btnRegisterBio">👆 지문 등록</button>
+    <button class="btn-3d" id="btnOpen3D">🧊 3D 입체 뷰어</button>
     <button class="btn-logout" id="btnLogout">로그아웃</button>
   </div>
 </div>
 
-<!-- 지도 뷰 (설비 도면용) -->
-<div id="map-wrapper">
-  <div id="map"></div>
-</div>
-
-<!-- 창고 재고 엑셀/테이블 뷰 -->
-<div id="warehouse-wrapper">
-  <div class="warehouse-toolbar">
-    <input type="text" id="invSearchInput" class="search-input" placeholder="🔍 품명, 규격, 보관위치 검색...">
-    <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" style="display: none;">
-    <button class="btn-tool btn-excel-upload" id="btnUploadExcel">📊 엑셀 일괄 등록</button>
-    <button class="btn-tool btn-add-item" id="btnAddNewItem">+ 자재 추가</button>
+<div id="container">
+  <div id="floor-selector">
+    <button class="floor-btn" data-floor="8">8F</button>
+    <button class="floor-btn" data-floor="7">7F</button>
+    <button class="floor-btn" data-floor="6">6F</button>
+    <button class="floor-btn" data-floor="5">5F</button>
+    <button class="floor-btn" data-floor="4">4F</button>
+    <button class="floor-btn" data-floor="3">3F</button>
+    <button class="floor-btn" data-floor="2">2F</button>
+    <button class="floor-btn active" data-floor="1">1F</button>
   </div>
-  <div class="table-container">
-    <table class="inv-table">
-      <thead>
-        <tr>
-          <th>구분</th>
-          <th>품명</th>
-          <th>규격 / 모델</th>
-          <th>수량</th>
-          <th>보관위치</th>
-          <th>최근수정</th>
-          <th>관리</th>
-        </tr>
-      </thead>
-      <tbody id="inventoryTableBody">
-        <!-- 엑셀 데이터 렌더링 -->
-      </tbody>
-    </table>
+  <div id="map-wrapper">
+    <div id="map"></div>
   </div>
 </div>
 
-<!-- 하단 고정 선택 바 -->
-<div id="bottom-control-bar">
-  <select id="main-cat-select" class="select-dropdown">
-    <option value="thermal2">기력 2호기</option>
-    <option value="thermal3">기력 3호기</option>
-    <option value="thermal_common">기력 공통</option>
-    <option value="diesel1">내연 1호기</option>
-    <option value="diesel2">내연 2호기</option>
-    <option value="diesel_common">내연 공통</option>
-    <option value="warehouse">📦 창고 재고</option>
-  </select>
-
-  <select id="sub-cat-select" class="select-dropdown">
-  </select>
-
-  <div class="floor-btn-group" id="floor-btn-group">
+<!-- 3D 뷰어 모달 팝업 -->
+<div id="modal-3d">
+  <div id="viewer-3d-wrap">
+    <button class="btn-close-3d" id="btnClose3D">✖ 3D 닫기</button>
+    <canvas id="canvas-3d"></canvas>
+    <div class="info-3d">💡 한 손가락 드래그: 360° 회전 | 두 손가락: 확대/축소</div>
   </div>
 </div>
 
-<!-- 계측기 등록 모달 -->
+<!-- 계측기 등록 팝업 (기존 유지) -->
 <div id="modal">
-  <h3>계측기 등록 (<span id="modal-location-text">1F</span>)</h3>
+  <h3>계측기 등록 (<span id="modal-floor-text">1F</span>)</h3>
   <div class="form-group"><label>Tag No.</label><input type="text" id="tagNo" placeholder="예: 20-PT-101"></div>
   <div class="form-group"><label>기기명</label><input type="text" id="name" placeholder="예: 보일러 급수 압력"></div>
   <div class="form-group"><label>모델명</label><input type="text" id="model"></div>
-  <div class="form-group"><label>측정범위 / 신호</label><input type="text" id="range"></div>
-  
+  <div class="form-group"><label>측정범위</label><input type="text" id="range"></div>
+  <div class="form-group"><label>실례가</label><input type="text" id="price"></div>
   <div class="form-group">
     <label>현장 사진 첨부</label>
     <input type="file" id="instPhoto" accept="image/*" capture="environment">
-    <div class="photo-preview" id="photoPreviewBox">
-      <span id="photoPreviewText" style="font-size: 12px; color: #94a3b8;">촬영 또는 사진 선택</span>
+    <div class="photo-preview">
       <img id="photoPreviewImg" src="" alt="미리보기">
     </div>
   </div>
-
   <div class="btn-wrap">
     <button class="btn-save" id="btnSaveInst">저장</button>
     <button class="btn-cancel" id="btnCancelInst">취소</button>
-  </div>
-</div>
-
-<!-- 정비 이력 단독 추가 모달 -->
-<div id="history-modal">
-  <h3>📋 정비/점검 이력 추가</h3>
-  <div style="font-size: 13px; color: #0284c7; font-weight: bold; margin-bottom: 12px;" id="historyTargetTag"></div>
-  <div class="form-group">
-    <label>작업일자</label>
-    <input type="date" id="quickHistDate">
-  </div>
-  <div class="form-group">
-    <label>작업자</label>
-    <input type="text" id="quickHistAuthor" placeholder="작업자 이름">
-  </div>
-  <div class="form-group">
-    <label>정비/점검 내용</label>
-    <textarea id="quickHistContent" rows="3" placeholder="점검 및 교체, 교정 내역을 입력하세요"></textarea>
-  </div>
-  <div class="btn-wrap">
-    <button class="btn-save" id="btnSaveQuickHist">이력 저장</button>
-    <button class="btn-cancel" id="btnCancelQuickHist">취소</button>
-  </div>
-</div>
-
-<!-- 창고 자재 개별 등록 모달 -->
-<div id="item-modal">
-  <h3>📦 창고 자재 신규 등록</h3>
-  <div class="form-group"><label>구분 (종류)</label><input type="text" id="invCat" placeholder="예: 압력전송기, 솔레노이드 등"></div>
-  <div class="form-group"><label>품명</label><input type="text" id="invName" placeholder="예: Pressure Transmitter"></div>
-  <div class="form-group"><label>규격 / 모델</label><input type="text" id="invSpec" placeholder="예: EJX110A"></div>
-  <div class="form-group"><label>수량</label><input type="number" id="invQty" value="1"></div>
-  <div class="form-group"><label>보관위치</label><input type="text" id="invLoc" placeholder="예: 계측창고 A-2 선반"></div>
-  <div class="btn-wrap">
-    <button class="btn-save" id="btnSaveInvItem">등록</button>
-    <button class="btn-cancel" id="btnCancelInvItem">취소</button>
   </div>
 </div>
 
@@ -572,99 +146,22 @@
   const SUPABASE_KEY = 'sb_publishable_p3OXbhWhj04w_eFGMpu83w_ZbybQ_t_';
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-  const CATEGORY_TREE = {
-    thermal2: {
-      name: '기력 2호기',
-      subs: {
-        boiler: { name: '보일러', floors: [1,2,3,4,5,6,7,8], images: { 1: './floor1.png', 2: './floor2.jpg' } },
-        turbine: { name: '터빈', floors: [1,2,3,4], images: {} }
-      }
-    },
-    thermal3: {
-      name: '기력 3호기',
-      subs: {
-        boiler: { name: '보일러', floors: [1,2,3,4,5,6,7,8], images: {} },
-        turbine: { name: '터빈', floors: [1,2,3,4], images: {} }
-      }
-    },
-    thermal_common: {
-      name: '기력 공통',
-      subs: {
-        oiltank: { name: '기름 탱크', floors: [1], images: {} },
-        pumproom: { name: '연료펌프룸', floors: [1], images: {} }
-      }
-    },
-    diesel1: {
-      name: '내연 1호기',
-      subs: {
-        main: { name: '본관', floors: [1,2], images: {} }
-      }
-    },
-    diesel2: {
-      name: '내연 2호기',
-      subs: {
-        main: { name: '본관', floors: [1,2], images: {} }
-      }
-    },
-    diesel_common: {
-      name: '내연 공통',
-      subs: {
-        main: { name: '공통구역', floors: [1], images: {} }
-      }
-    },
-    warehouse: {
-      name: '📦 창고 재고',
-      subs: {
-        main: { name: '자재목록', floors: [], images: {} }
-      }
-    }
-  };
-
-  let currentMain = 'thermal2';
-  let currentSub = 'boiler';
+  const FLOOR_IMAGES = { 1: './floor1_drawing.jpg' };
   let currentFloor = 1;
-
   let currentCoord = { x: 0, y: 0 };
+  let mapInstance = null;
+  let floorLayer = null;
   let currentInstruments = [];
   let currentMarkerObjects = [];
-  let mapInstance = null;
   let selectedPhotoBlob = null;
-  let currentUserInfo = { name: '', email: '' };
-  let activeHistoryTargetId = null;
-  let allInventoryData = [];
 
-  function bufferToBase64(buffer) {
-    return btoa(String.fromCharCode(...new Uint8Array(buffer)));
-  }
-  function base64ToBuffer(base64) {
-    return Uint8Array.from(atob(base64), c => c.charCodeAt(0)).buffer;
-  }
-
-  document.getElementById('btnGoAdmin').addEventListener('click', () => {
-    document.getElementById('login-box').style.display = 'none';
-    document.getElementById('admin-login-box').style.display = 'block';
-  });
-
-  document.getElementById('linkBackLogin').addEventListener('click', () => {
-    document.getElementById('admin-login-box').style.display = 'none';
-    document.getElementById('login-box').style.display = 'block';
-  });
-
-  document.getElementById('linkToRegister').addEventListener('click', () => {
-    document.getElementById('login-box').style.display = 'none';
-    document.getElementById('register-box').style.display = 'block';
-  });
-
-  document.getElementById('linkBackLogin2').addEventListener('click', () => {
-    document.getElementById('register-box').style.display = 'none';
-    document.getElementById('login-box').style.display = 'block';
-  });
-
+  // 로그인 인증
   document.getElementById('btnAdminSubmit').addEventListener('click', () => {
-    const val = document.getElementById('adminPassInput').value.trim();
-    if (val === ADMIN_MASTER_PASS) {
+    if (document.getElementById('adminPassInput').value.trim() === ADMIN_MASTER_PASS) {
       sessionStorage.setItem('jeju_admin_auth', 'true');
-      unlock('👑 최고관리자', 'admin@jeju.com');
+      document.getElementById('auth-overlay').style.display = 'none';
+      initMap();
+      switchFloor(1);
     } else {
       document.getElementById('adminErrorMsg').style.display = 'block';
     }
@@ -672,642 +169,168 @@
 
   document.getElementById('btnLogout').addEventListener('click', () => {
     sessionStorage.removeItem('jeju_admin_auth');
-    supabaseClient.auth.signOut().then(() => location.reload());
+    location.reload();
   });
 
-  function unlock(name, email = 'user@jeju.com') {
-    currentUserInfo = { name: name, email: email };
+  if (sessionStorage.getItem('jeju_admin_auth') === 'true') {
     document.getElementById('auth-overlay').style.display = 'none';
-    initMapOnce();
-    renderCategorySelectors();
-    setTimeout(() => { if (mapInstance) mapInstance.invalidateSize(); }, 250);
+    window.addEventListener('DOMContentLoaded', () => { initMap(); switchFloor(1); });
   }
 
-  // 지문 로그인
-  document.getElementById('btnBioLogin').addEventListener('click', async () => {
-    const credIdBase64 = localStorage.getItem('jeju_bio_credential_id');
-    const msg = document.getElementById('bioLoginMsg');
-    
-    if (!credIdBase64) {
-      msg.innerText = '⚠️ 이 기기에 등록된 지문 키가 없습니다. 사번 로그인 후 우측 상단의 지문 등록을 진행해주세요.';
-      msg.style.display = 'block';
-      return;
-    }
-
-    try {
-      const challenge = new Uint8Array(32);
-      window.crypto.getRandomValues(challenge);
-      const credIdBuffer = base64ToBuffer(credIdBase64);
-
-      const assertion = await navigator.credentials.get({
-        publicKey: {
-          challenge: challenge,
-          rpId: window.location.hostname,
-          allowCredentials: [{ id: credIdBuffer, type: 'public-key' }],
-          userVerification: "required",
-          timeout: 60000
-        }
-      });
-
-      if (assertion) {
-        sessionStorage.setItem('jeju_admin_auth', 'true');
-        const user = localStorage.getItem('jeju_bio_user') || '팀원';
-        const email = localStorage.getItem('jeju_bio_email') || 'user@jeju.com';
-        unlock(user, email);
-      }
-    } catch (err) {
-      msg.innerText = '⚠️ 지문 인증 실패: ' + err.message;
-      msg.style.display = 'block';
-    }
-  });
-
-  document.getElementById('btnRegisterBio').addEventListener('click', async () => {
-    if (!window.PublicKeyCredential) {
-      alert('이 기기는 생체인식 센서를 지원하지 않습니다.');
-      return;
-    }
-    try {
-      const challenge = new Uint8Array(32);
-      window.crypto.getRandomValues(challenge);
-      const userId = new Uint8Array(16);
-      window.crypto.getRandomValues(userId);
-
-      const credential = await navigator.credentials.create({
-        publicKey: {
-          challenge: challenge,
-          rp: { name: "계측관리 시스템", id: window.location.hostname },
-          user: {
-            id: userId,
-            name: currentUserInfo.email || "user@jeju.com",
-            displayName: currentUserInfo.name || "사용자"
-          },
-          pubKeyCredParams: [{ alg: -7, type: "public-key" }, { alg: -257, type: "public-key" }],
-          authenticatorSelection: {
-            authenticatorAttachment: "platform",
-            residentKey: "preferred",
-            userVerification: "required"
-          },
-          timeout: 60000
-        }
-      });
-
-      if (credential) {
-        const rawIdBase64 = bufferToBase64(credential.rawId);
-        localStorage.setItem('jeju_bio_credential_id', rawIdBase64);
-        localStorage.setItem('jeju_bio_user', currentUserInfo.name || "사용자");
-        localStorage.setItem('jeju_bio_email', currentUserInfo.email || "user@jeju.com");
-        alert('✅ 기기 지문 등록 완료!');
-      }
-    } catch (err) {
-      alert('지문 등록 실패: ' + err.message);
-    }
-  });
-
-  document.getElementById('btnMemberLogin').addEventListener('click', async () => {
-    const email = document.getElementById('loginEmail').value.trim();
-    const pass = document.getElementById('loginPassword').value;
-    const msg = document.getElementById('loginMsg');
-    
-    const { data, error } = await supabaseClient.auth.signInWithPassword({ email: email, password: pass });
-    if (error) { 
-      msg.innerText = '⚠️ 사번 또는 비밀번호가 일치하지 않습니다.'; 
-      msg.style.display = 'block'; 
-      return; 
-    }
-
-    if (data.user.user_metadata?.approved !== true) {
-      alert('🚫 관리자 승인 대기 중인 계정입니다.');
-      await supabaseClient.auth.signOut();
-      return;
-    }
-
-    unlock(data.user.user_metadata?.full_name || '팀원', data.user.email);
-  });
-
-  document.getElementById('btnRegisterSubmit').addEventListener('click', async () => {
-    const name = document.getElementById('regName').value.trim();
-    const email = document.getElementById('regEmail').value.trim();
-    const pass = document.getElementById('regPassword').value;
-    const msg = document.getElementById('regMsg');
-    
-    if (!name || !email || !pass) { msg.innerText = '⚠️ 모든 항목을 입력해주세요.'; msg.style.display = 'block'; return; }
-    if (pass.length < 6) { msg.innerText = '⚠️ 비밀번호는 6자리 이상이어야 합니다.'; msg.style.display = 'block'; return; }
-    if (!email.includes('@') || !email.includes('.')) { msg.innerText = '⚠️ 사번을 이메일 형식으로 입력해주세요.'; msg.style.display = 'block'; return; }
-
-    msg.style.display = 'none';
-    const { error } = await supabaseClient.auth.signUp({
-      email: email,
-      password: pass,
-      options: { data: { full_name: name, approved: false } }
-    });
-
-    if (error) { 
-      msg.innerText = '⚠️ 가입 오류: ' + error.message; 
-      msg.style.display = 'block'; 
-    } else { 
-      alert('📋 가입 신청 접수 완료! 관리자 승인 후 로그인할 수 있습니다.'); 
-      location.reload(); 
-    }
-  });
-
-  // 지도 인스턴스
-  const mapWidth = 3000;
-  const mapHeight = 2100;
+  // 2D 맵 초기화
+  const mapWidth = 3000, mapHeight = 2100;
   const bounds = [[0, 0], [mapHeight, mapWidth]];
-  let floorLayer = null;
 
-  function initMapOnce() {
+  function initMap() {
     if (mapInstance) return;
-    mapInstance = L.map('map', {
-      crs: L.CRS.Simple,
-      minZoom: -3,
-      maxZoom: 3,
-      zoomSnap: 0.1,
-      zoomDelta: 0.5,
-      attributionControl: false
-    });
-
+    mapInstance = L.map('map', { crs: L.CRS.Simple, minZoom: -3, maxZoom: 3, zoomSnap: 0.1, zoomDelta: 0.5, attributionControl: false });
     mapInstance.on('click', (e) => {
       if (e.latlng.lat < 0 || e.latlng.lat > mapHeight || e.latlng.lng < 0 || e.latlng.lng > mapWidth) return;
       currentCoord.y = Math.round(e.latlng.lat);
       currentCoord.x = Math.round(e.latlng.lng);
-      selectedPhotoBlob = null;
-      document.getElementById('tagNo').value = '';
-      document.getElementById('name').value = '';
-      document.getElementById('model').value = '';
-      document.getElementById('range').value = '';
-      document.getElementById('instPhoto').value = '';
-      document.getElementById('photoPreviewImg').style.display = 'none';
-      document.getElementById('photoPreviewText').style.display = 'block';
       document.getElementById('modal').style.display = 'block';
     });
-
-    mapInstance.on('zoomend', () => {
-      renderMarkers();
-    });
+    mapInstance.on('zoomend', renderMarkers);
   }
 
-  function renderCategorySelectors() {
-    const mainSelect = document.getElementById('main-cat-select');
-    const subSelect = document.getElementById('sub-cat-select');
-
-    mainSelect.value = currentMain;
-    updateSubCategorySelect();
-
-    mainSelect.onchange = (e) => {
-      currentMain = e.target.value;
-      const subs = Object.keys(CATEGORY_TREE[currentMain].subs);
-      currentSub = subs[0];
-      updateSubCategorySelect();
-    };
-
-    subSelect.onchange = (e) => {
-      currentSub = e.target.value;
-      updateFloorButtons();
-    };
-  }
-
-  function updateSubCategorySelect() {
-    const subSelect = document.getElementById('sub-cat-select');
-    subSelect.innerHTML = '';
-    const currentSubs = CATEGORY_TREE[currentMain].subs;
-    const subKeys = Object.keys(currentSubs);
-
-    if (currentMain === 'warehouse') {
-      subSelect.style.display = 'none';
-    } else if (subKeys.length === 1 && subKeys[0] === 'main') {
-      subSelect.style.display = 'none';
-    } else {
-      subSelect.style.display = 'block';
-      subKeys.forEach(k => {
-        const opt = document.createElement('option');
-        opt.value = k;
-        opt.innerText = currentSubs[k].name;
-        subSelect.appendChild(opt);
-      });
-      subSelect.value = currentSub;
-    }
-
-    updateFloorButtons();
-  }
-
-  function updateFloorButtons() {
-    const floorGroup = document.getElementById('floor-btn-group');
-    floorGroup.innerHTML = '';
-    const subData = CATEGORY_TREE[currentMain].subs[currentSub];
-    const floors = subData.floors;
-
-    if (currentMain === 'warehouse') {
-      // 창고 모드 진입
-      document.getElementById('map-wrapper').style.display = 'none';
-      document.getElementById('warehouse-wrapper').style.display = 'flex';
-      document.getElementById('current-location-badge').innerText = '📦 창고 재고 현황';
-      fetchInventory();
-      return;
-    }
-
-    // 도면 모드 복귀
-    document.getElementById('warehouse-wrapper').style.display = 'none';
-    document.getElementById('map-wrapper').style.display = 'block';
-
-    if (!floors.includes(currentFloor)) {
-      currentFloor = floors[0];
-    }
-
-    floors.forEach(f => {
-      const btn = document.createElement('button');
-      btn.className = `floor-chip-btn ${f === currentFloor ? 'active' : ''}`;
-      btn.innerText = `${f}F`;
-      btn.onclick = () => {
-        currentFloor = f;
-        updateFloorButtons();
-        loadFloorPlan();
-      };
-      floorGroup.appendChild(btn);
-    });
-
-    loadFloorPlan();
-  }
-
-  function drawGrid(floorText) {
+  function drawGrid(floor) {
     const canvas = document.createElement('canvas');
-    canvas.width = mapWidth;
-    canvas.height = mapHeight;
+    canvas.width = mapWidth; canvas.height = mapHeight;
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#0a1128';
-    ctx.fillRect(0, 0, mapWidth, mapHeight);
-    ctx.strokeStyle = '#162347';
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= mapWidth; i += 50) {
-      ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, mapHeight); ctx.stroke();
-    }
-    for (let i = 0; i <= mapHeight; i += 50) {
-      ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(mapWidth, i); ctx.stroke();
-    }
-    ctx.strokeStyle = '#00b4d8';
-    ctx.lineWidth = 8;
-    ctx.strokeRect(10, 10, mapWidth - 20, mapHeight - 20);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-    ctx.font = 'bold 300px sans-serif';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.fillText(floorText, mapWidth / 2, mapHeight / 2);
+    ctx.fillStyle = '#0a1128'; ctx.fillRect(0, 0, mapWidth, mapHeight);
+    ctx.strokeStyle = '#22386d'; ctx.lineWidth = 2.5;
+    for (let i = 0; i <= mapWidth; i += 250) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, mapHeight); ctx.stroke(); }
+    for (let i = 0; i <= mapHeight; i += 250) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(mapWidth, i); ctx.stroke(); }
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.05)'; ctx.font = 'bold 400px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(`${floor}F`, mapWidth / 2, mapHeight / 2);
     return canvas.toDataURL();
   }
 
-  function loadFloorPlan() {
-    const mainName = CATEGORY_TREE[currentMain].name;
-    const subData = CATEGORY_TREE[currentMain].subs[currentSub];
-    const subName = subData.name === '본관' || subData.name === '공통구역' ? '' : ` > ${subData.name}`;
-    const locationString = `${mainName}${subName} > ${currentFloor}F`;
-
-    document.getElementById('current-location-badge').innerText = locationString;
-    document.getElementById('modal-location-text').innerText = locationString;
-
+  function switchFloor(f) {
+    currentFloor = f;
+    document.getElementById('current-floor-badge').innerText = f === 1 ? '1F (EL.6800)' : `${f}F`;
+    document.getElementById('modal-floor-text').innerText = `${f}F`;
+    document.querySelectorAll('.floor-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.floor) === f));
     if (floorLayer) mapInstance.removeLayer(floorLayer);
-
-    const imageUrl = (subData.images && subData.images[currentFloor]) || drawGrid(`${currentFloor}F`);
-    floorLayer = L.imageOverlay(imageUrl, bounds).addTo(mapInstance);
+    floorLayer = L.imageOverlay(FLOOR_IMAGES[f] || drawGrid(f), bounds).addTo(mapInstance);
     mapInstance.fitBounds(bounds);
-    fetchInstruments();
+    fetchInstruments(f);
   }
 
-  // ==================== 창고 재고 관리 로직 ====================
-  async function fetchInventory() {
-    const { data, error } = await supabaseClient.from('inventory').select('*').order('category', { ascending: true });
-    if (!error) {
-      allInventoryData = data || [];
-      renderInventoryTable(allInventoryData);
-    }
-  }
-
-  function renderInventoryTable(dataList) {
-    const tbody = document.getElementById('inventoryTableBody');
-    tbody.innerHTML = '';
-
-    if (dataList.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 24px; color: #64748b;">등록된 자재가 없습니다. 엑셀을 업로드하거나 자재를 추가해주세요.</td></tr>`;
-      return;
-    }
-
-    dataList.forEach(item => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td><span style="color:#94a3b8; font-weight:bold;">${item.category || '-'}</span></td>
-        <td><b style="color:#fff;">${item.item_name}</b></td>
-        <td>${item.spec || '-'}</td>
-        <td>
-          <div class="qty-badge">
-            <button class="btn-qty" onclick="changeQty('${item.id}', -1)">-</button>
-            <span style="min-width:24px; text-align:center;">${item.stock_qty} ${item.unit || 'EA'}</span>
-            <button class="btn-qty" onclick="changeQty('${item.id}', 1)">+</button>
-          </div>
-        </td>
-        <td><span class="loc-badge">${item.location || '미지정'}</span></td>
-        <td style="font-size:10px; color:#64748b;">${item.updated_by || ''}</td>
-        <td>
-          <button style="background:transparent; border:1px solid #ef4444; color:#ef4444; border-radius:4px; padding:2px 6px; cursor:pointer;" onclick="deleteInventoryItem('${item.id}')">삭제</button>
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
-  }
-
-  // 재고 검색 필터링
-  document.getElementById('invSearchInput').addEventListener('input', (e) => {
-    const query = e.target.value.toLowerCase().trim();
-    if (!query) {
-      renderInventoryTable(allInventoryData);
-      return;
-    }
-    const filtered = allInventoryData.filter(item => 
-      (item.item_name && item.item_name.toLowerCase().includes(query)) ||
-      (item.spec && item.spec.toLowerCase().includes(query)) ||
-      (item.category && item.category.toLowerCase().includes(query)) ||
-      (item.location && item.location.toLowerCase().includes(query))
-    );
-    renderInventoryTable(filtered);
+  document.querySelectorAll('.floor-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchFloor(parseInt(btn.dataset.floor)));
   });
 
-  // 재고 증감 (+ / -)
-  window.changeQty = async function(id, diff) {
-    const target = allInventoryData.find(i => i.id === id);
-    if (!target) return;
-    const newQty = Math.max(0, (target.stock_qty || 0) + diff);
-
-    const { error } = await supabaseClient.from('inventory')
-      .update({ stock_qty: newQty, updated_by: currentUserInfo.name || '작업자' })
-      .eq('id', id);
-
-    if (!error) {
-      target.stock_qty = newQty;
-      target.updated_by = currentUserInfo.name || '작업자';
-      renderInventoryTable(allInventoryData);
-    }
-  };
-
-  window.deleteInventoryItem = async function(id) {
-    if (!confirm('이 자재를 창고 목록에서 영구 삭제하시겠습니까?')) return;
-    const { error } = await supabaseClient.from('inventory').delete().eq('id', id);
-    if (!error) {
-      fetchInventory();
-    }
-  };
-
-  // 엑셀 업로드 처리
-  document.getElementById('btnUploadExcel').addEventListener('click', () => {
-    document.getElementById('excelFileInput').click();
-  });
-
-  document.getElementById('excelFileInput').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = async (evt) => {
-      try {
-        const data = new Uint8Array(evt.target.result);
-        const workbook = XLSX.read(data, { type: 'array' });
-        const sheetName = workbook.SheetNames[0];
-        const json = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
-
-        if (json.length === 0) {
-          alert('엑셀에 데이터가 비어있습니다.');
-          return;
-        }
-
-        const insertRows = json.map(r => ({
-          category: r['구분'] || r['카테고리'] || r['종류'] || '기타',
-          item_name: r['품명'] || r['품목명'] || r['자재명'] || r['Item'] || '미지정',
-          spec: r['규격'] || r['모델명'] || r['규격/모델'] || r['Spec'] || '',
-          stock_qty: parseInt(r['수량'] || r['재고'] || r['Qty'] || 0),
-          location: r['보관위치'] || r['위치'] || r['창고위치'] || '계측창고',
-          updated_by: currentUserInfo.name || '엑셀등록'
-        }));
-
-        const { error } = await supabaseClient.from('inventory').insert(insertRows);
-        if (error) {
-          alert('엑셀 업로드 실패: ' + error.message);
-        } else {
-          alert(`✅ 엑셀 데이터 ${insertRows.length}건이 성공적으로 등록되었습니다!`);
-          fetchInventory();
-        }
-      } catch (err) {
-        alert('엑셀 파싱 오류: ' + err.message);
-      }
-      document.getElementById('excelFileInput').value = '';
-    };
-    reader.readAsArrayBuffer(file);
-  });
-
-  // 개별 자재 추가 모달
-  document.getElementById('btnAddNewItem').addEventListener('click', () => {
-    document.getElementById('invCat').value = '';
-    document.getElementById('invName').value = '';
-    document.getElementById('invSpec').value = '';
-    document.getElementById('invQty').value = 1;
-    document.getElementById('invLoc').value = '';
-    document.getElementById('item-modal').style.display = 'block';
-  });
-  document.getElementById('btnCancelInvItem').addEventListener('click', () => {
-    document.getElementById('item-modal').style.display = 'none';
-  });
-
-  document.getElementById('btnSaveInvItem').addEventListener('click', async () => {
-    const name = document.getElementById('invName').value.trim();
-    if (!name) { alert('품명은 필수 입력 항목입니다.'); return; }
-
-    const { error } = await supabaseClient.from('inventory').insert([{
-      category: document.getElementById('invCat').value.trim() || '기타',
-      item_name: name,
-      spec: document.getElementById('invSpec').value.trim(),
-      stock_qty: parseInt(document.getElementById('invQty').value) || 0,
-      location: document.getElementById('invLoc').value.trim() || '계측창고',
-      updated_by: currentUserInfo.name || '담당자'
-    }]);
-
-    if (!error) {
-      document.getElementById('item-modal').style.display = 'none';
-      fetchInventory();
-    } else {
-      alert('저장 실패: ' + error.message);
-    }
-  });
-
-  // ==================== 계측기 핀 로직 ====================
-  window.openQuickHistoryModal = function(id, e) {
-    if (e) { e.preventDefault(); e.stopPropagation(); }
-    const target = currentInstruments.find(i => String(i.id) === String(id));
-    if (!target) return;
-    activeHistoryTargetId = target.id;
-    document.getElementById('historyTargetTag').innerText = `[${target.tag_no}] ${target.name}`;
-    document.getElementById('quickHistDate').value = new Date().toISOString().slice(0, 10);
-    document.getElementById('quickHistAuthor').value = currentUserInfo.name || '';
-    document.getElementById('quickHistContent').value = '';
-    mapInstance.closePopup();
-    document.getElementById('history-modal').style.display = 'block';
-  };
-
-  document.getElementById('btnCancelQuickHist').addEventListener('click', () => {
-    document.getElementById('history-modal').style.display = 'none';
-  });
-
-  document.getElementById('btnSaveQuickHist').addEventListener('click', async () => {
-    if (!activeHistoryTargetId) return;
-    const dateVal = document.getElementById('quickHistDate').value;
-    const authorVal = document.getElementById('quickHistAuthor').value.trim();
-    const contentVal = document.getElementById('quickHistContent').value.trim();
-
-    if (!contentVal) { alert('정비/점검 내용을 입력해주세요.'); return; }
-
-    const targetInst = currentInstruments.find(i => String(i.id) === String(activeHistoryTargetId));
-    const currentLogs = Array.isArray(targetInst.history_logs) ? targetInst.history_logs : [];
-    
-    const newEntry = {
-      index: currentLogs.length + 1,
-      date: dateVal || new Date().toISOString().slice(0, 10),
-      author: authorVal || currentUserInfo.name || '작업자',
-      content: contentVal
-    };
-
-    const updatedLogs = [newEntry, ...currentLogs];
-    const { error } = await supabaseClient.from('instruments').update({ history_logs: updatedLogs }).eq('id', activeHistoryTargetId);
-
-    if (!error) {
-      targetInst.history_logs = updatedLogs;
-      document.getElementById('history-modal').style.display = 'none';
-      renderMarkers();
-      alert('✅ 정비 이력이 성공적으로 추가되었습니다!');
-    }
-  });
-
-  window.deleteInstrument = async function(id) {
-    if (!confirm('이 계측기를 영구 삭제하시겠습니까?')) return;
-    mapInstance.closePopup();
-    const { error } = await supabaseClient.from('instruments').delete().eq('id', id);
-    if (!error) fetchInstruments();
-  };
-
-  async function fetchInstruments() {
-    const curLocationKey = `${currentMain}_${currentSub}`;
-    const { data, error } = await supabaseClient.from('instruments').select('*').eq('location_key', curLocationKey).eq('floor', currentFloor);
-    if (!error) {
-      currentInstruments = data || [];
-      renderMarkers();
-    }
+  async function fetchInstruments(floor) {
+    const { data } = await supabaseClient.from('instruments').select('*').eq('floor', floor);
+    currentInstruments = data || [];
+    renderMarkers();
   }
 
   function renderMarkers() {
     currentMarkerObjects.forEach(m => mapInstance.removeLayer(m));
     currentMarkerObjects = [];
-
     const zoom = mapInstance.getZoom();
-    const calculatedSize = Math.max(45, Math.min(160, Math.round(90 + zoom * 16)));
-    const badgeDisplay = calculatedSize < 50 ? 'none' : 'block';
+    const sz = Math.max(22, Math.min(80, Math.round(44 + zoom * 8)));
 
     currentInstruments.forEach(item => {
-      let marker;
-      if (item.photo_url && item.photo_url.trim() !== '') {
-        const photoIcon = L.divIcon({
-          className: 'leaflet-photo-icon',
-          html: `
-            <div class="photo-pin-container" style="width:${calculatedSize}px; height:${calculatedSize}px;">
-              <img src="${item.photo_url}" class="photo-pin-img">
-              <div class="photo-pin-badge" style="display:${badgeDisplay}; font-size:${Math.max(10, calculatedSize * 0.16)}px;">${item.tag_no}</div>
-            </div>
-          `,
-          iconSize: [calculatedSize, calculatedSize],
-          iconAnchor: [calculatedSize / 2, calculatedSize / 2]
-        });
-        marker = L.marker([item.y_coord, item.x_coord], { icon: photoIcon }).addTo(mapInstance);
-      } else {
-        marker = L.marker([item.y_coord, item.x_coord]).addTo(mapInstance);
-      }
+      let icon = item.photo_url ? L.divIcon({
+        className: 'leaflet-photo-icon',
+        html: `<div class="photo-pin-container" style="width:${sz}px; height:${sz}px;"><img src="${item.photo_url}" class="photo-pin-img"><div class="photo-pin-badge">${item.tag_no}</div></div>`,
+        iconSize: [sz, sz], iconAnchor: [sz/2, sz/2]
+      }) : new L.Icon.Default();
 
-      const logs = Array.isArray(item.history_logs) ? item.history_logs : [];
-      let historyHtml = logs.length > 0 ? logs.map((h, i) => `
-        <div class="history-item">
-          <div class="history-item-header">
-            <b>이력 ${logs.length - i}</b>
-            <span>${h.date} (${h.author || '담당자'})</span>
-          </div>
-          <div class="history-item-content">${h.content}</div>
-        </div>
-      `).join('') : '<div style="color:#64748b; font-size:11px; text-align:center; padding:4px 0;">등록된 정비 이력이 없습니다.</div>';
-
-      let popupContent = `
-        <div class="popup-card">
-          <b>${item.tag_no}</b>
-          <div><span class="field-tag">기기명</span>${item.name}</div>
-          ${item.model ? `<div><span class="field-tag">모델명</span>${item.model}</div>` : ''}
-          ${item.signal_range ? `<div><span class="field-tag">범위/신호</span>${item.signal_range}</div>` : ''}
-          ${item.photo_url ? `<img src="${item.photo_url}" class="popup-img">` : ''}
-          <div class="history-section">
-            <div class="history-title">
-              <span>📋 정비/점검 이력 (${logs.length}건)</span>
-            </div>
-            <div class="history-list">${historyHtml}</div>
-            <button class="btn-add-history-quick" onclick="window.openQuickHistoryModal('${item.id}', event)">+ 점검/정비 이력 추가</button>
-          </div>
-          <button class="btn-delete-pin" onclick="window.deleteInstrument('${item.id}')">🗑️ 계측기 삭제</button>
-        </div>
-      `;
-      marker.bindPopup(popupContent);
-      currentMarkerObjects.push(marker);
+      let m = L.marker([item.y_coord, item.x_coord], { icon: icon }).addTo(mapInstance);
+      m.bindPopup(`<div class="popup-card"><b>${item.tag_no}</b><div>${item.name}</div>${item.photo_url ? `<img src="${item.photo_url}" class="popup-img">` : ''}</div>`);
+      currentMarkerObjects.push(m);
     });
   }
 
-  document.getElementById('btnCancelInst').addEventListener('click', () => {
-    document.getElementById('modal').style.display = 'none';
-  });
+  document.getElementById('btnCancelInst').addEventListener('click', () => { document.getElementById('modal').style.display = 'none'; });
 
-  document.getElementById('btnSaveInst').addEventListener('click', async () => {
-    const saveBtn = document.getElementById('btnSaveInst');
-    const tagNo = document.getElementById('tagNo').value.trim();
-    const name = document.getElementById('name').value.trim();
-    if (!tagNo || !name) { alert('Tag No와 기기명은 필수입니다.'); return; }
+  // -------------------------------------------------------------
+  // [Three.js] 3D 뷰어 제어 로직 (boiler.glb 로드)
+  // -------------------------------------------------------------
+  let scene, camera, renderer, controls, is3DInitialized = false;
 
-    saveBtn.innerText = '저장 중...';
-    saveBtn.disabled = true;
+  function init3DViewer() {
+    const canvas = document.getElementById('canvas-3d');
+    const width = window.innerWidth;
+    const height = window.innerHeight;
 
-    let photoUrl = null;
-    if (selectedPhotoBlob) {
-      const fileName = `${Date.now()}_${tagNo.replace(/[^a-zA-Z0-9]/g, '_')}.jpg`;
-      const { error: uploadErr } = await supabaseClient.storage.from('instrument-photos').upload(fileName, selectedPhotoBlob, {
-        contentType: 'image/jpeg',
-        upsert: true
-      });
-      if (!uploadErr) {
-        const { data: publicUrlData } = supabaseClient.storage.from('instrument-photos').getPublicUrl(fileName);
-        photoUrl = publicUrlData.publicUrl;
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x070d1d);
+
+    camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    camera.position.set(45, 60, 80);
+
+    renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(window.devicePixelRatio);
+
+    controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+
+    // 조명 세팅
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
+    hemiLight.position.set(0, 100, 0);
+    scene.add(hemiLight);
+
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLight.position.set(50, 80, 50);
+    scene.add(dirLight);
+
+    // 바닥 그리드 도우미
+    const gridHelper = new THREE.GridHelper(120, 24, 0x00b4d8, 0x1c2541);
+    gridHelper.position.y = 6.0;
+    scene.add(gridHelper);
+
+    // GLB 파일 불러오기 (GitHub에 업로드한 boiler.glb)
+    const loader = new THREE.GLTFLoader();
+    loader.load('./boiler.glb', (gltf) => {
+      scene.add(gltf.scene);
+    }, undefined, (err) => {
+      console.warn('boiler.glb 로드 전 - 임시 큐브 대체');
+      // 파일이 없을 경우 표시할 임시 큐브
+      const box = new THREE.Mesh(new THREE.BoxGeometry(22, 38, 23.5), new THREE.MeshStandardMaterial({ color: 0x00b4d8, wireframe: true }));
+      box.position.set(11, 25, 11.75);
+      scene.add(box);
+    });
+
+    function animate() {
+      requestAnimationFrame(animate);
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      if (document.getElementById('modal-3d').style.display === 'block') {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
       }
-    }
+    });
 
-    const curLocationKey = `${currentMain}_${currentSub}`;
-    const { error: insertErr } = await supabaseClient.from('instruments').insert([{
-      location_key: curLocationKey,
-      floor: currentFloor,
-      tag_no: tagNo,
-      name: name,
-      model: document.getElementById('model').value.trim(),
-      signal_range: document.getElementById('range').value.trim(),
-      history_logs: [],
-      photo_url: photoUrl,
-      x_coord: currentCoord.x,
-      y_coord: currentCoord.y
-    }]);
+    is3DInitialized = true;
+  }
 
-    saveBtn.innerText = '저장';
-    saveBtn.disabled = false;
-
-    if (!insertErr) {
-      document.getElementById('modal').style.display = 'none';
-      fetchInstruments();
+  // 3D 뷰어 열기/닫기
+  document.getElementById('btnOpen3D').addEventListener('click', () => {
+    document.getElementById('modal-3d').style.display = 'block';
+    if (!is3DInitialized) {
+      init3DViewer();
+    } else {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
     }
   });
 
-  if (sessionStorage.getItem('jeju_admin_auth') === 'true') {
-    unlock('👑 최고관리자', 'admin@jeju.com');
-  }
+  document.getElementById('btnClose3D').addEventListener('click', () => {
+    document.getElementById('modal-3d').style.display = 'none';
+  });
 </script>
 </body>
 </html>
