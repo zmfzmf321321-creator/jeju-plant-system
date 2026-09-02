@@ -1,15 +1,467 @@
-<!-- 변경 전: <model-viewer id="boilerViewer" ...> -->
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>보일러 계측제어 3D 시스템</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Google 3D model-viewer 모듈 -->
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      width: 100vw; height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #080d1a; color: #fff;
+      overflow: hidden;
+      position: fixed;
+    }
 
-<!-- 변경 후: 선명한 명암 및 부드러운 터치 조작 적용 -->
-<model-viewer id="boilerViewer" src="./boiler.glb"
-  camera-controls
-  touch-action="none"
-  interpolation-decay="200"
-  environment-image="neutral"
-  shadow-intensity="1.8"
-  shadow-softness="0.4"
-  exposure="0.9"
-  auto-rotate-delay="3000"
-  min-camera-orbit="auto auto 5%"
-  max-camera-orbit="auto auto 200%">
-</model-viewer>
+    #auth-overlay {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: #0b132b; display: flex; align-items: center; justify-content: center;
+      z-index: 99999;
+    }
+    .auth-box {
+      background: #1c2541; padding: 28px 24px; border-radius: 16px;
+      border: 1px solid #3a506b; width: 90%; max-width: 340px; text-align: center;
+    }
+    .auth-title { font-size: 20px; font-weight: bold; margin-bottom: 6px; color: #48cae4; }
+    .auth-desc { font-size: 13px; color: #94a3b8; margin-bottom: 20px; line-height: 1.4; }
+    .auth-input {
+      width: 100%; padding: 12px; background: #0b132b; border: 1px solid #3a506b;
+      border-radius: 8px; color: #fff; font-size: 15px; margin-bottom: 12px; outline: none;
+    }
+    .auth-btn {
+      width: 100%; padding: 12px; background: #00b4d8; color: #0b132b;
+      border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 6px;
+    }
+    .btn-biometric {
+      width: 100%; padding: 12px; background: #10b981; color: #fff;
+      border: none; border-radius: 8px; font-size: 15px; font-weight: bold;
+      cursor: pointer; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .auth-divider { display: flex; align-items: center; margin: 16px 0; color: #64748b; font-size: 12px; }
+    .auth-divider::before, .auth-divider::after { content: ''; flex: 1; border-bottom: 1px solid #334155; }
+    .auth-divider span { padding: 0 10px; }
+    .btn-admin-pass {
+      width: 100%; padding: 11px; background: #111a33; border: 1px solid #3b82f6;
+      color: #93c5fd; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer;
+    }
+    .auth-toggle-link { margin-top: 14px; font-size: 13px; color: #94a3b8; cursor: pointer; text-decoration: underline; }
+    .auth-status-error { color: #ef4444; font-size: 12px; margin-top: 10px; display: none; line-height: 1.4; }
+    #admin-login-box, #register-box { display: none; }
+
+    #header {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 50px;
+      background: #1c2541; display: flex; align-items: center; justify-content: space-between;
+      padding: 0 12px; border-bottom: 2px solid #3a506b; z-index: 5000;
+    }
+    .brand { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+    .location-tag { background: #48cae4; color: #0b132b; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
+    .header-btns { display: flex; gap: 6px; align-items: center; }
+    .btn-bio-reg { background: #065f46; border: 1px solid #10b981; color: #a7f3d0; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
+    .btn-logout { background: transparent; border: 1px solid #64748b; color: #cbd5e1; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; }
+
+    /* 3D 화면 영역 */
+    #viewer-container {
+      position: fixed; top: 50px; bottom: 65px; left: 0; width: 100vw;
+      background: radial-gradient(circle at center, #1b2838 0%, #080d1a 100%);
+      z-index: 10;
+    }
+    model-viewer {
+      width: 100%; height: 100%;
+      --poster-color: transparent;
+    }
+
+    /* 하단 층 선택 바 */
+    #floor-bar {
+      position: fixed; bottom: 0; left: 0; width: 100vw; height: 65px;
+      background: #111a33; border-top: 2px solid #3a506b; display: flex;
+      align-items: center; padding: 0 10px; gap: 8px; z-index: 5000;
+      overflow-x: auto; scrollbar-width: none;
+    }
+    #floor-bar::-webkit-scrollbar { display: none; }
+    .floor-btn {
+      flex-shrink: 0; height: 42px; min-width: 52px; padding: 0 10px;
+      background: #1c2541; color: #94a3b8; border: 1px solid #3a506b;
+      border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer;
+    }
+    .floor-btn.active {
+      background: #00b4d8; color: #0b132b; border-color: #90e0ef;
+    }
+
+    /* 3D 핀(Hotspot) 스타일 */
+    .hotspot-pin {
+      background: #00b4d8;
+      border: 2px solid #ffffff;
+      border-radius: 50%;
+      box-shadow: 0 0 14px rgba(0, 180, 216, 1);
+      width: 26px; height: 26px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: bold; color: #0b132b;
+      cursor: pointer; transform: translate(-50%, -50%);
+    }
+
+    /* 안내 태그 */
+    .guide-box {
+      position: absolute; top: 12px; left: 12px;
+      background: rgba(11, 19, 43, 0.85); border: 1px solid #00b4d8;
+      color: #90e0ef; padding: 6px 12px; border-radius: 8px; font-size: 11px; pointer-events: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+
+    /* 모달 */
+    #modal, #info-modal, #history-modal {
+      display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: #ffffff; padding: 20px; border-radius: 12px; z-index: 999999;
+      width: 90%; max-width: 360px; color: #333; max-height: 90vh; overflow-y: auto;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+    }
+    #modal h3, #info-modal h3, #history-modal h3 { margin: 0 0 12px 0; font-size: 16px; color: #0b132b; }
+    .form-group { margin-bottom: 10px; }
+    .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #334155; }
+    .form-group input, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; font-family: inherit; color: #111; }
+    .btn-wrap { display: flex; gap: 8px; margin-top: 14px; }
+    .btn-wrap button { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
+    .btn-save { background: #0077b6; color: #fff; }
+    .btn-cancel { background: #e2e8f0; color: #475569; }
+
+    .history-section { margin-top: 12px; padding-top: 10px; border-top: 1px dashed #cbd5e1; }
+    .history-title { font-size: 13px; font-weight: bold; color: #0284c7; margin-bottom: 8px; }
+    .history-list { max-height: 140px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
+    .history-item { background: #f8fafc; border-left: 3px solid #0284c7; padding: 6px 8px; border-radius: 4px; font-size: 12px; }
+    .btn-add-history-quick { width: 100%; padding: 9px; background: #0284c7; color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; margin-bottom: 6px; }
+    .btn-delete-pin { width: 100%; padding: 8px; background: #ef4444; border: none; border-radius: 6px; color: #fff; font-size: 12px; font-weight: bold; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+<div id="auth-overlay">
+  <div id="login-box" class="auth-box">
+    <div class="auth-title">🔐 시스템 로그인</div>
+    <div class="auth-desc">보일러 계측제어 3D 시스템</div>
+    <button class="btn-biometric" id="btnBioLogin">👆 기기 생체/지문 즉시 로그인</button>
+    <div id="bioLoginMsg" class="auth-status-error"></div>
+    <div class="auth-divider"><span>또는 사번 로그인</span></div>
+    <input type="text" id="loginEmail" class="auth-input" placeholder="사번(이메일: 12345@jeju.com)">
+    <input type="password" id="loginPassword" class="auth-input" placeholder="비밀번호">
+    <button class="auth-btn" id="btnMemberLogin">팀원 로그인</button>
+    <div id="loginMsg" class="auth-status-error"></div>
+    <div class="auth-toggle-link" id="linkToRegister">신규 팀원 계정 신청</div>
+    <div class="auth-divider"><span>또는</span></div>
+    <button class="btn-admin-pass" id="btnGoAdmin">👑 최고관리자 즉시 입장</button>
+  </div>
+
+  <div id="admin-login-box" class="auth-box">
+    <div class="auth-title" style="color: #38bdf8;">👑 최고관리자 모드</div>
+    <input type="password" id="adminPassInput" class="auth-input" placeholder="마스터 비밀번호">
+    <button class="auth-btn" style="background: #38bdf8;" id="btnAdminSubmit">관리자 접속</button>
+    <div id="adminErrorMsg" class="auth-status-error">⚠️ 비밀번호가 틀렸습니다.</div>
+    <div class="auth-toggle-link" id="linkBackLogin">돌아가기</div>
+  </div>
+
+  <div id="register-box" class="auth-box">
+    <div class="auth-title">📝 신규 팀원 가입</div>
+    <input type="text" id="regName" class="auth-input" placeholder="이름">
+    <input type="text" id="regEmail" class="auth-input" placeholder="사번 (12345@jeju.com)">
+    <input type="password" id="regPassword" class="auth-input" placeholder="비밀번호 (6자리 이상)">
+    <button class="auth-btn" id="btnRegisterSubmit">가입 신청</button>
+    <div id="regMsg" class="auth-status-error"></div>
+    <div class="auth-toggle-link" id="linkBackLogin2">돌아가기</div>
+  </div>
+</div>
+
+<div id="header">
+  <div class="brand">
+    <span>⚡ 보일러 3D 계측관리</span>
+    <span class="location-tag" id="currentFloorTag">전체 뷰</span>
+  </div>
+  <div class="header-btns">
+    <button class="btn-bio-reg" id="btnRegisterBio">👆 지문 등록</button>
+    <button class="btn-logout" id="btnLogout">로그아웃</button>
+  </div>
+</div>
+
+<!-- 3D 뷰어 영역 (수직 회전 orientation 및 음영 옵션 추가) -->
+<div id="viewer-container">
+  <div class="guide-box">🎮 회전(드래그) | 줌(핀치) | 표면 터치 시 핀 등록</div>
+  <model-viewer id="boilerViewer" src="./boiler.glb"
+    orientation="-90deg 0deg 0deg"
+    camera-controls
+    touch-action="none"
+    interpolation-decay="200"
+    environment-image="neutral"
+    shadow-intensity="2"
+    shadow-softness="0.3"
+    exposure="0.85"
+    min-camera-orbit="auto auto 5%"
+    max-camera-orbit="auto auto 250%">
+  </model-viewer>
+</div>
+
+<!-- 하단 층수 선택 바 -->
+<div id="floor-bar">
+  <button class="floor-btn active" onclick="selectFloor('ALL', this)">전체</button>
+  <button class="floor-btn" onclick="selectFloor('1F', this)">1F</button>
+  <button class="floor-btn" onclick="selectFloor('2F', this)">2F</button>
+  <button class="floor-btn" onclick="selectFloor('3F', this)">3F</button>
+  <button class="floor-btn" onclick="selectFloor('4F', this)">4F</button>
+  <button class="floor-btn" onclick="selectFloor('5F', this)">5F</button>
+  <button class="floor-btn" onclick="selectFloor('6F', this)">6F</button>
+  <button class="floor-btn" onclick="selectFloor('7F', this)">7F</button>
+  <button class="floor-btn" onclick="selectFloor('8F', this)">8F</button>
+</div>
+
+<!-- 계측기 등록 모달 -->
+<div id="modal">
+  <h3>계측기 등록 (<span id="modalFloorText">3D</span>)</h3>
+  <div class="form-group"><label>Tag No.</label><input type="text" id="tagNo" placeholder="예: 20-PT-101"></div>
+  <div class="form-group"><label>기기명</label><input type="text" id="name" placeholder="예: 급수 압력 전송기"></div>
+  <div class="form-group"><label>모델명</label><input type="text" id="model"></div>
+  <div class="form-group"><label>측정범위 / 신호</label><input type="text" id="range"></div>
+  <div class="btn-wrap">
+    <button class="btn-save" id="btnSaveInst">저장</button>
+    <button class="btn-cancel" onclick="document.getElementById('modal').style.display='none'">취소</button>
+  </div>
+</div>
+
+<!-- 핀 상세 정보 모달 -->
+<div id="info-modal">
+  <h3 id="infoTitle">계측기 상세</h3>
+  <div id="infoBody" style="font-size: 13px; line-height: 1.5;"></div>
+  <div class="history-section">
+    <div class="history-title">📋 정비/점검 이력</div>
+    <div class="history-list" id="infoHistoryList"></div>
+    <button class="btn-add-history-quick" id="btnAddHistBtn">+ 점검/정비 이력 추가</button>
+  </div>
+  <button class="btn-delete-pin" id="btnDeletePin">🗑️ 계측기 삭제</button>
+  <div class="btn-wrap" style="margin-top: 10px;">
+    <button class="btn-cancel" onclick="document.getElementById('info-modal').style.display='none'">닫기</button>
+  </div>
+</div>
+
+<!-- 이력 추가 모달 -->
+<div id="history-modal">
+  <h3>📋 정비/점검 이력 추가</h3>
+  <div style="font-size: 13px; color: #0284c7; font-weight: bold; margin-bottom: 12px;" id="histTargetTag"></div>
+  <div class="form-group"><label>작업일자</label><input type="date" id="histDate"></div>
+  <div class="form-group"><label>작업자</label><input type="text" id="histAuthor"></div>
+  <div class="form-group"><label>내용</label><textarea id="histContent" rows="3" placeholder="점검 내역 입력"></textarea></div>
+  <div class="btn-wrap">
+    <button class="btn-save" id="btnSaveHist">이력 저장</button>
+    <button class="btn-cancel" onclick="document.getElementById('history-modal').style.display='none'">취소</button>
+  </div>
+</div>
+
+<script>
+  const ADMIN_MASTER_PASS = 'dydy423156!!##';
+  const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_p3OXbhWhj04w_eFGMpu83w_ZbybQ_t_';
+  const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  let currentInstruments = [];
+  let currentUserInfo = { name: '', email: '' };
+  let clickedSurfacePoint = null;
+  let activeTargetId = null;
+  let selectedFloor = 'ALL';
+
+  function unlock(name, email = 'user@jeju.com') {
+    currentUserInfo = { name: name, email: email };
+    document.getElementById('auth-overlay').style.display = 'none';
+    fetchInstruments();
+  }
+
+  // 로그인 로직
+  document.getElementById('btnGoAdmin').addEventListener('click', () => {
+    document.getElementById('login-box').style.display = 'none';
+    document.getElementById('admin-login-box').style.display = 'block';
+  });
+  document.getElementById('linkBackLogin').addEventListener('click', () => {
+    document.getElementById('admin-login-box').style.display = 'none';
+    document.getElementById('login-box').style.display = 'block';
+  });
+  document.getElementById('linkToRegister').addEventListener('click', () => {
+    document.getElementById('login-box').style.display = 'none';
+    document.getElementById('register-box').style.display = 'block';
+  });
+  document.getElementById('linkBackLogin2').addEventListener('click', () => {
+    document.getElementById('register-box').style.display = 'none';
+    document.getElementById('login-box').style.display = 'block';
+  });
+  document.getElementById('btnAdminSubmit').addEventListener('click', () => {
+    if (document.getElementById('adminPassInput').value.trim() === ADMIN_MASTER_PASS) {
+      sessionStorage.setItem('jeju_admin_auth', 'true');
+      unlock('👑 최고관리자', 'admin@jeju.com');
+    } else {
+      document.getElementById('adminErrorMsg').style.display = 'block';
+    }
+  });
+  document.getElementById('btnLogout').addEventListener('click', () => {
+    sessionStorage.removeItem('jeju_admin_auth');
+    location.reload();
+  });
+
+  // 층 선택 및 카메라 시점 제어
+  const viewer = document.getElementById('boilerViewer');
+  window.selectFloor = function(floor, btn) {
+    selectedFloor = floor;
+    document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('currentFloorTag').innerText = floor === 'ALL' ? '보일러 전체' : `보일러 ${floor}`;
+
+    // 층별 높이에 맞춘 카메라 줌 & 타겟 조절
+    if (floor === 'ALL') {
+      viewer.cameraTarget = 'auto auto auto';
+      viewer.cameraOrbit = 'auto auto auto';
+    } else {
+      const floorNum = parseInt(floor);
+      // 1F(아래) ~ 8F(상단) 높이 타겟팅 (보일러 모델 높이에 맞춰 자동 계산)
+      const heightPercent = ((floorNum - 1) / 7) * 100;
+      viewer.cameraTarget = `0m ${floorNum * 2.5}m 0m`;
+      viewer.cameraOrbit = `45deg 75deg 20m`;
+    }
+    renderHotspots();
+  };
+
+  // 3D 표면 터치 시 핀 등록 창
+  viewer.addEventListener('click', (event) => {
+    if (event.target.classList.contains('hotspot-pin')) return;
+    const hit = viewer.positionAndNormalFromPoint(event.clientX, event.clientY);
+    if (hit) {
+      clickedSurfacePoint = hit;
+      document.getElementById('tagNo').value = '';
+      document.getElementById('name').value = '';
+      document.getElementById('model').value = '';
+      document.getElementById('range').value = '';
+      document.getElementById('modalFloorText').innerText = selectedFloor === 'ALL' ? '3D 표면' : selectedFloor;
+      document.getElementById('modal').style.display = 'block';
+    }
+  });
+
+  // 계측기 저장
+  document.getElementById('btnSaveInst').addEventListener('click', async () => {
+    const tag = document.getElementById('tagNo').value.trim();
+    const name = document.getElementById('name').value.trim();
+    if (!tag || !name) { alert('Tag No와 기기명을 입력하세요.'); return; }
+
+    const pos = clickedSurfacePoint ? clickedSurfacePoint.position.toString() : '0 0 0';
+    const norm = clickedSurfacePoint ? clickedSurfacePoint.normal.toString() : '0 1 0';
+
+    const { error } = await supabaseClient.from('instruments').insert([{
+      location_key: 'boiler_3d',
+      floor: selectedFloor === 'ALL' ? '3D' : selectedFloor,
+      tag_no: tag,
+      name: name,
+      model: document.getElementById('model').value.trim(),
+      signal_range: document.getElementById('range').value.trim(),
+      model_position: pos,
+      model_normal: norm,
+      history_logs: []
+    }]);
+
+    if (!error) {
+      document.getElementById('modal').style.display = 'none';
+      fetchInstruments();
+    } else {
+      alert('저장 실패: ' + error.message);
+    }
+  });
+
+  // 핀 불러오기 & 렌더링
+  async function fetchInstruments() {
+    const { data, error } = await supabaseClient.from('instruments').select('*').eq('location_key', 'boiler_3d');
+    if (!error) {
+      currentInstruments = data || [];
+      renderHotspots();
+    }
+  }
+
+  function renderHotspots() {
+    document.querySelectorAll('.hotspot-pin').forEach(el => el.remove());
+
+    currentInstruments.forEach(item => {
+      if (!item.model_position) return;
+      if (selectedFloor !== 'ALL' && item.floor !== selectedFloor && item.floor !== '3D') return;
+
+      const btn = document.createElement('button');
+      btn.className = 'hotspot-pin';
+      btn.slot = `hotspot-${item.id}`;
+      btn.dataset.position = item.model_position;
+      btn.dataset.normal = item.model_normal || '0 1 0';
+      btn.innerText = '📍';
+
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        showDetail(item);
+      };
+      viewer.appendChild(btn);
+    });
+  }
+
+  function showDetail(item) {
+    activeTargetId = item.id;
+    document.getElementById('infoTitle').innerText = `[${item.tag_no}] ${item.name}`;
+    document.getElementById('infoBody').innerHTML = `
+      <div><b>층 구분:</b> ${item.floor || '3D'}</div>
+      <div><b>모델명:</b> ${item.model || '-'}</div>
+      <div><b>범위/신호:</b> ${item.signal_range || '-'}</div>
+    `;
+
+    const logs = Array.isArray(item.history_logs) ? item.history_logs : [];
+    let histHtml = logs.length > 0 ? logs.map(h => `
+      <div class="history-item">
+        <div style="color:#64748b; font-size:11px;">${h.date} (${h.author})</div>
+        <div style="color:#111;">${h.content}</div>
+      </div>
+    `).join('') : '<div style="color:#94a3b8; font-size:11px;">등록된 이력이 없습니다.</div>';
+    document.getElementById('infoHistoryList').innerHTML = histHtml;
+
+    document.getElementById('btnAddHistBtn').onclick = () => {
+      document.getElementById('info-modal').style.display = 'none';
+      document.getElementById('histTargetTag').innerText = `[${item.tag_no}] ${item.name}`;
+      document.getElementById('histDate').value = new Date().toISOString().slice(0, 10);
+      document.getElementById('histAuthor').value = currentUserInfo.name || '';
+      document.getElementById('histContent').value = '';
+      document.getElementById('history-modal').style.display = 'block';
+    };
+
+    document.getElementById('btnDeletePin').onclick = async () => {
+      if (!confirm('삭제하시겠습니까?')) return;
+      await supabaseClient.from('instruments').delete().eq('id', item.id);
+      document.getElementById('info-modal').style.display = 'none';
+      fetchInstruments();
+    };
+
+    document.getElementById('info-modal').style.display = 'block';
+  }
+
+  // 이력 저장
+  document.getElementById('btnSaveHist').addEventListener('click', async () => {
+    const text = document.getElementById('histContent').value.trim();
+    if (!text) { alert('내용을 입력하세요.'); return; }
+
+    const target = currentInstruments.find(i => i.id === activeTargetId);
+    const logs = Array.isArray(target.history_logs) ? target.history_logs : [];
+    const newEntry = {
+      date: document.getElementById('histDate').value,
+      author: document.getElementById('histAuthor').value || '작업자',
+      content: text
+    };
+    const updated = [newEntry, ...logs];
+
+    const { error } = await supabaseClient.from('instruments').update({ history_logs: updated }).eq('id', activeTargetId);
+    if (!error) {
+      target.history_logs = updated;
+      document.getElementById('history-modal').style.display = 'none';
+      alert('✅ 이력이 저장되었습니다.');
+    }
+  });
+
+  if (sessionStorage.getItem('jeju_admin_auth') === 'true') {
+    unlock('👑 최고관리자', 'admin@jeju.com');
+  }
+</script>
+</body>
+</html>
