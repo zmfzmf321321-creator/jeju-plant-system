@@ -793,7 +793,7 @@
     });
   }
 
-  // 1층 핀이 아래쪽 코너로 향하도록 90도 회전 재배치
+  // 도면과 3D 축 1:1 엘리베이터 기준 정렬 매핑
   function render3DHotspots() {
     viewer.querySelectorAll('.hotspot-pin').forEach(el => el.remove());
     currentInstruments.forEach(item => {
@@ -804,10 +804,13 @@
         const u = item.coord_x / 1400; 
         const v = item.coord_y / 1000;
 
-        const P_TL = { x: 30.94, z: 6.58 };   // 2번 꼭지점
-        const P_TR = { x: 19.86, z: -11.47 }; // 3번 꼭지점
-        const P_BR = { x: 1.96,  z: -0.61 };  // 4번 꼭지점 (화면 아래쪽/앞쪽 코너)
-        const P_BL = { x: 12.93, z: 17.94 };  // 1번 꼭지점 (엘리베이터 코너)
+        // 도면 기준:
+        // Top-Left (엘리베이터가 있는 좌상단 코너)
+        // Bottom-Left (테스트3이 찍힌 좌하단 코너 -> 화면 앞/아래쪽)
+        const P_TL = { x: 12.93, z: 17.94 };  // 엘리베이터 측 코너
+        const P_TR = { x: 1.96,  z: -0.61 };  // 우상단
+        const P_BR = { x: 19.86, z: -11.47 }; // 우하단
+        const P_BL = { x: 30.94, z: 6.58 };   // 테스트3 코너 (화면 아래쪽/앞쪽)
 
         const x3d = (1 - u) * (1 - v) * P_TL.x + u * (1 - v) * P_TR.x + u * v * P_BR.x + (1 - u) * v * P_BL.x;
         const z3d = (1 - u) * (1 - v) * P_TL.z + u * (1 - v) * P_TR.z + u * v * P_BR.z + (1 - u) * v * P_BL.z;
