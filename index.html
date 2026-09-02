@@ -63,7 +63,7 @@
     .btn-bio-reg { background: #065f46; border: 1px solid #10b981; color: #a7f3d0; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
     .btn-logout { background: transparent; border: 1px solid #64748b; color: #cbd5e1; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; }
 
-    /* 3D 뷰어 */
+    /* 3D 뷰어 영역 */
     #viewer-container {
       position: fixed; top: 50px; bottom: 65px; left: 0; width: 100vw;
       background: radial-gradient(circle at center, #1b2838 0%, #080d1a 100%);
@@ -73,6 +73,18 @@
       width: 100%; height: 100%;
       --poster-color: transparent;
     }
+
+    /* 실시간 3D 각도 & 축 모니터링 HUD */
+    #axis-hud {
+      position: absolute; top: 12px; left: 12px; right: 12px;
+      background: rgba(11, 19, 43, 0.92); border: 1px solid #00b4d8;
+      border-radius: 10px; padding: 8px 12px; font-size: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.6); z-index: 20;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .hud-row { display: flex; justify-content: space-between; align-items: center; }
+    .hud-title { color: #38bdf8; font-weight: bold; }
+    .hud-val { color: #facc15; font-family: monospace; font-weight: bold; }
 
     /* 하단 층 바 */
     #floor-bar {
@@ -91,26 +103,14 @@
       background: #00b4d8; color: #0b132b; border-color: #90e0ef;
     }
 
-    /* 3D 핀 */
     .hotspot-pin {
-      background: #00b4d8;
-      border: 2px solid #ffffff;
-      border-radius: 50%;
-      box-shadow: 0 0 14px rgba(0, 180, 216, 1);
-      width: 26px; height: 26px;
+      background: #00b4d8; border: 2px solid #ffffff; border-radius: 50%;
+      box-shadow: 0 0 14px rgba(0, 180, 216, 1); width: 26px; height: 26px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 12px; font-weight: bold; color: #0b132b;
-      cursor: pointer; transform: translate(-50%, -50%);
+      font-size: 12px; font-weight: bold; color: #0b132b; cursor: pointer; transform: translate(-50%, -50%);
     }
 
-    .guide-box {
-      position: absolute; top: 12px; left: 12px;
-      background: rgba(11, 19, 43, 0.85); border: 1px solid #00b4d8;
-      color: #90e0ef; padding: 6px 12px; border-radius: 8px; font-size: 11px; pointer-events: none;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-    }
-
-    /* 모달 공통 */
+    /* 모달 */
     #modal, #info-modal, #history-modal {
       display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
       background: #ffffff; padding: 20px; border-radius: 12px; z-index: 999999;
@@ -182,26 +182,41 @@
   </div>
 </div>
 
-<!-- 보일러 수직 정렬 및 초기 카메라 각도 설정 -->
+<!-- 3D 뷰어 -->
 <div id="viewer-container">
-  <div class="guide-box">🎮 회전(드래그) | 줌(핀치) | 표면 터치 시 핀 등록</div>
+  <!-- 실시간 축 & 카메라 좌표 표시창 -->
+  <div id="axis-hud">
+    <div class="hud-row">
+      <span class="hud-title">📐 모델 축(Orientation):</span>
+      <span class="hud-val" id="hudOrientation">0deg 0deg 90deg</span>
+    </div>
+    <div class="hud-row">
+      <span class="hud-title">🎥 카메라 각도(Orbit):</span>
+      <span class="hud-val" id="hudOrbit">계산 중...</span>
+    </div>
+    <div class="hud-row">
+      <span class="hud-title">🎯 시점 타겟(Target):</span>
+      <span class="hud-val" id="hudTarget">auto auto auto</span>
+    </div>
+  </div>
+
   <model-viewer id="boilerViewer" src="./boiler.glb"
     orientation="0deg 0deg 90deg"
     camera-orbit="45deg 70deg 105%"
     camera-target="auto auto auto"
     camera-controls
-    touch-action="pan-y"
+    touch-action="none"
     interpolation-decay="150"
     environment-image="neutral"
     shadow-intensity="1.5"
     shadow-softness="0.5"
     exposure="1.0"
-    min-camera-orbit="auto auto 10%"
+    min-camera-orbit="auto auto 5%"
     max-camera-orbit="auto auto 300%">
   </model-viewer>
 </div>
 
-<!-- 하단 층 선택 바 -->
+<!-- 층 선택 바 -->
 <div id="floor-bar">
   <button class="floor-btn active" onclick="selectFloor('ALL', this)">전체</button>
   <button class="floor-btn" onclick="selectFloor('1F', this)">1F</button>
@@ -304,7 +319,21 @@
 
   const viewer = document.getElementById('boilerViewer');
 
-  // 층수 선택 시 정확한 높이 이동
+  // 실시간 카메라 각도 및 타겟 좌표 HUD 업데이트
+  viewer.addEventListener('camera-change', () => {
+    const orbit = viewer.getCameraOrbit();
+    const target = viewer.getCameraTarget();
+    if (orbit) {
+      const theta = Math.round(orbit.theta * (180 / Math.PI));
+      const phi = Math.round(orbit.phi * (180 / Math.PI));
+      const rad = orbit.radius.toFixed(1);
+      document.getElementById('hudOrbit').innerText = `${theta}deg ${phi}deg ${rad}m`;
+    }
+    if (target) {
+      document.getElementById('hudTarget').innerText = `${target.x.toFixed(1)}m ${target.y.toFixed(1)}m ${target.z.toFixed(1)}m`;
+    }
+  });
+
   window.selectFloor = function(floor, btn) {
     selectedFloor = floor;
     document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
@@ -316,7 +345,6 @@
       viewer.cameraOrbit = '45deg 70deg 105%';
     } else {
       const floorNum = parseInt(floor);
-      // 1층(바닥) ~ 8층(최상단) 높이 비율에 맞춘 타겟
       const percentY = ((floorNum - 1) / 7.0); 
       viewer.cameraTarget = `auto ${percentY * 100}% auto`;
       viewer.cameraOrbit = `30deg 75deg 60%`;
