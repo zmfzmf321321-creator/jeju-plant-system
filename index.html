@@ -63,47 +63,97 @@
     .btn-bio-reg { background: #065f46; border: 1px solid #10b981; color: #a7f3d0; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
     .btn-logout { background: transparent; border: 1px solid #64748b; color: #cbd5e1; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; }
 
-    /* 3D 뷰어 영역 */
-    #viewer-container {
+    /* 화면 컨테이너 공통 */
+    #main-viewport {
       position: fixed; top: 50px; bottom: 65px; left: 0; width: 100vw;
       background: radial-gradient(circle at center, #1b2838 0%, #080d1a 100%);
-      z-index: 10;
+      z-index: 10; overflow: hidden;
     }
 
-    /* 공간 이동 화면 전환 암전 레이어 */
-    #warp-overlay {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      background: #000; opacity: 0; pointer-events: none;
-      transition: opacity 0.35s ease; z-index: 30;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    /* 1. 전체 조감도 3D 모드 */
+    #overall-3d-view {
+      width: 100%; height: 100%; position: absolute; top: 0; left: 0;
     }
-    #warp-overlay.active { opacity: 0.85; pointer-events: auto; }
-    .warp-text { color: #38bdf8; font-size: 16px; font-weight: bold; letter-spacing: 1px; }
-
-    /* 손가락 제스처 및 로딩 바 숨김 */
     model-viewer {
-      width: 100%; height: 100%;
-      --poster-color: transparent;
-      transition: filter 0.3s;
+      width: 100%; height: 100%; --poster-color: transparent;
     }
-    model-viewer::part(default-progress-bar),
-    model-viewer::part(prompt) {
+    model-viewer::part(default-progress-bar), model-viewer::part(prompt) {
       display: none !important;
     }
 
-    /* 층 내부 진입 시 표시되는 현장 명판 배너 */
-    #floor-zone-banner {
-      position: absolute; top: 12px; left: 12px; right: 12px;
-      background: rgba(15, 23, 42, 0.9); border: 1px solid #00b4d8;
-      border-radius: 8px; padding: 8px 14px; display: flex;
-      justify-content: space-between; align-items: center; z-index: 22;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+    /* 2. 각 층별 전용 독립 작업 공간 모드 */
+    #floor-room-view {
+      display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0;
+      background: #0d1527; user-select: none; touch-action: none;
     }
-    .zone-info { font-size: 12px; color: #94a3b8; }
-    .zone-title { font-size: 14px; font-weight: bold; color: #38bdf8; }
-    .zone-btn-out {
-      background: #334155; color: #fff; border: none; padding: 5px 10px;
-      border-radius: 6px; font-size: 11px; cursor: pointer; font-weight: bold;
+    
+    /* 층 내부 상단 헤더 알림판 */
+    #floor-room-header {
+      position: absolute; top: 12px; left: 12px; right: 12px;
+      background: rgba(15, 23, 42, 0.95); border: 1px solid #00b4d8;
+      border-radius: 10px; padding: 10px 14px; display: flex;
+      justify-content: space-between; align-items: center; z-index: 30;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.7);
+    }
+    .room-title { font-size: 15px; font-weight: bold; color: #38bdf8; display: flex; align-items: center; gap: 6px; }
+    .room-desc { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+    .btn-exit-room {
+      background: #0284c7; color: #fff; border: none; padding: 6px 12px;
+      border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer;
+    }
+
+    /* 이동 가능한 층 평면도 캔버스 */
+    #floor-canvas-wrap {
+      width: 100%; height: 100%; position: absolute; top: 0; left: 0;
+      cursor: grab; overflow: hidden;
+    }
+    #floor-board {
+      width: 1200px; height: 1200px; position: absolute;
+      top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1);
+      transform-origin: center center;
+      background: 
+        linear-gradient(rgba(0, 180, 216, 0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 180, 216, 0.08) 1px, transparent 1px),
+        radial-gradient(ellipse at center, #172554 0%, #0b132b 100%);
+      background-size: 40px 40px, 40px 40px, 100% 100%;
+      border: 2px solid #1e40af; border-radius: 16px;
+      box-shadow: inset 0 0 100px rgba(0,0,0,0.8);
+    }
+
+    /* 보일러 본체 및 설비 평면 윤곽 */
+    .plant-layout-box {
+      position: absolute; border: 2px dashed #0284c7; background: rgba(2, 132, 199, 0.08);
+      display: flex; align-items: center; justify-content: center; font-weight: bold; color: #7dd3fc;
+      border-radius: 8px; font-size: 14px;
+    }
+    .boiler-core { top: 250px; left: 350px; width: 500px; height: 500px; border-style: solid; border-color: #38bdf8; }
+    .burner-zone { top: 780px; left: 350px; width: 500px; height: 160px; }
+    .piping-zone-left { top: 250px; left: 100px; width: 220px; height: 500px; }
+    .piping-zone-right { top: 250px; left: 880px; width: 220px; height: 500px; }
+
+    /* 층 내부 전용 계측기 핀 */
+    .floor-inst-pin {
+      position: absolute; width: 34px; height: 34px; border-radius: 50%;
+      background: #00b4d8; border: 2px solid #ffffff;
+      box-shadow: 0 0 14px rgba(0, 180, 216, 1);
+      display: flex; align-items: center; justify-content: center;
+      color: #0b132b; font-size: 14px; font-weight: bold; cursor: pointer;
+      transform: translate(-50%, -50%); z-index: 50;
+    }
+    .floor-inst-pin span {
+      position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%);
+      background: rgba(11, 19, 43, 0.9); color: #fff; padding: 2px 6px;
+      border-radius: 4px; font-size: 11px; white-space: nowrap; border: 1px solid #38bdf8;
+    }
+
+    /* 줌 컨트롤러 */
+    .canvas-zoom-ctrl {
+      position: absolute; right: 14px; bottom: 20px; display: flex; flex-direction: column; gap: 6px; z-index: 40;
+    }
+    .zoom-btn {
+      width: 42px; height: 42px; border-radius: 8px; background: rgba(15, 23, 42, 0.9);
+      border: 1px solid #38bdf8; color: #fff; font-size: 18px; font-weight: bold;
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
     }
 
     /* 하단 층수 바 */
@@ -124,15 +174,7 @@
       background: #00b4d8; color: #0b132b; border-color: #90e0ef;
     }
 
-    /* 3D 핀 */
-    .hotspot-pin {
-      background: #00b4d8; border: 2px solid #ffffff; border-radius: 50%;
-      box-shadow: 0 0 14px rgba(0, 180, 216, 1); width: 28px; height: 28px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: bold; color: #0b132b; cursor: pointer; transform: translate(-50%, -50%);
-    }
-
-    /* 모달 */
+    /* 모달 공통 */
     #modal, #info-modal, #history-modal {
       display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
       background: #ffffff; padding: 20px; border-radius: 12px; z-index: 999999;
@@ -161,7 +203,7 @@
 <div id="auth-overlay">
   <div id="login-box" class="auth-box">
     <div class="auth-title">🔐 시스템 로그인</div>
-    <div class="auth-desc">보일러 계측제어 3D 시스템</div>
+    <div class="auth-desc">보일러 계측제어 관리 시스템</div>
     <button class="btn-biometric" id="btnBioLogin">👆 기기 생체/지문 즉시 로그인</button>
     <div id="bioLoginMsg" class="auth-status-error"></div>
     <div class="auth-divider"><span>또는 사번 로그인</span></div>
@@ -195,7 +237,7 @@
 
 <div id="header">
   <div class="brand">
-    <span>⚡ 보일러 3D 계측관리</span>
+    <span>⚡ 제주 보일러 계측관리</span>
     <span class="location-tag" id="currentFloorTag">보일러 전체</span>
   </div>
   <div class="header-btns">
@@ -204,54 +246,69 @@
   </div>
 </div>
 
-<div id="viewer-container">
-  <!-- 워프 트랜지션 암전막 -->
-  <div id="warp-overlay">
-    <div class="warp-text" id="warpStatusText">1층 구역으로 이동 중...</div>
+<div id="main-viewport">
+  <!-- 모드 1: 전체 조감도 3D 화면 -->
+  <div id="overall-3d-view">
+    <model-viewer id="boilerViewer" src="./boiler.glb"
+      interaction-prompt="none"
+      orientation="90deg 270deg 210deg"
+      camera-orbit="0deg 75deg 380m"
+      camera-target="auto auto auto"
+      camera-controls
+      touch-action="pan-y"
+      interpolation-decay="150"
+      environment-image="neutral"
+      shadow-intensity="1.5"
+      shadow-softness="0.5"
+      exposure="1.0">
+    </model-viewer>
   </div>
 
-  <!-- 층 구역 현황 배너 -->
-  <div id="floor-zone-banner">
-    <div>
-      <div class="zone-info">현재 작업 구역</div>
-      <div class="zone-title" id="bannerZoneTitle">보일러 전체 (조감도)</div>
+  <!-- 모드 2: 층별 독립 전용 작업 공간 화면 -->
+  <div id="floor-room-view">
+    <div id="floor-room-header">
+      <div>
+        <div class="room-title" id="roomTitleText">📍 1층 작업 공간</div>
+        <div class="room-desc">원하는 위치를 터치하여 계측기 등록 | 드래그로 평면 이동</div>
+      </div>
+      <button class="btn-exit-room" onclick="exitToOverall()">🌐 조감도로 나가기</button>
     </div>
-    <button class="zone-btn-out" onclick="resetToOverall()">🌐 전체 조감도</button>
-  </div>
 
-  <model-viewer id="boilerViewer" src="./boiler.glb"
-    interaction-prompt="none"
-    orientation="90deg 270deg 210deg"
-    camera-orbit="0deg 75deg 380m"
-    camera-target="auto auto auto"
-    camera-controls
-    touch-action="pan-y"
-    interpolation-decay="150"
-    environment-image="neutral"
-    shadow-intensity="1.5"
-    shadow-softness="0.5"
-    exposure="1.0"
-    min-camera-orbit="auto auto 15m"
-    max-camera-orbit="auto auto 600m">
-  </model-viewer>
+    <!-- 이동 및 줌이 가능한 층별 보드 -->
+    <div id="floor-canvas-wrap">
+      <div id="floor-board">
+        <div class="plant-layout-box boiler-core">보일러 본체 (Furnace Core)</div>
+        <div class="plant-layout-box burner-zone">버너 & 급기 밸브 라인</div>
+        <div class="plant-layout-box piping-zone-left">주 급수/증기 배관 A</div>
+        <div class="plant-layout-box piping-zone-right">주 급수/증기 배관 B</div>
+        <!-- 핀들이 동적으로 여기에 꽂힘 -->
+      </div>
+    </div>
+
+    <div class="canvas-zoom-ctrl">
+      <button class="zoom-btn" onclick="zoomCanvas(0.2)">＋</button>
+      <button class="zoom-btn" onclick="zoomCanvas(-0.2)">－</button>
+      <button class="zoom-btn" onclick="resetCanvasView()" style="font-size: 13px;">리셋</button>
+    </div>
+  </div>
 </div>
 
-<!-- 13개 세부 층수 바 -->
+<!-- 13개 층수 버튼 바 -->
 <div id="floor-bar">
-  <button class="floor-btn active" id="btn-ALL" onclick="enterFloorSpace('ALL', 0.5, this)">전체</button>
-  <button class="floor-btn" onclick="enterFloorSpace('1층', 0.08, this)">1층</button>
-  <button class="floor-btn" onclick="enterFloorSpace('2층', 0.15, this)">2층</button>
-  <button class="floor-btn" onclick="enterFloorSpace('2.5층', 0.22, this)">2.5층</button>
-  <button class="floor-btn" onclick="enterFloorSpace('3층', 0.28, this)">3층</button>
-  <button class="floor-btn" onclick="enterFloorSpace('3.1/3층', 0.35, this)">3.1/3층</button>
-  <button class="floor-btn" onclick="enterFloorSpace('3.2/3층', 0.42, this)">3.2/3층</button>
-  <button class="floor-btn" onclick="enterFloorSpace('4층', 0.50, this)">4층</button>
-  <button class="floor-btn" onclick="enterFloorSpace('4.5층', 0.58, this)">4.5층</button>
-  <button class="floor-btn" onclick="enterFloorSpace('5층', 0.65, this)">5층</button>
-  <button class="floor-btn" onclick="enterFloorSpace('5.5층', 0.72, this)">5.5층</button>
-  <button class="floor-btn" onclick="enterFloorSpace('6층', 0.80, this)">6층</button>
-  <button class="floor-btn" onclick="enterFloorSpace('7층', 0.88, this)">7층</button>
-  <button class="floor-btn" onclick="enterFloorSpace('루프탑', 0.98, this)">루프탑</button>
+  <button class="floor-btn active" id="btn-ALL" onclick="exitToOverall()">전체</button>
+  <button class="floor-btn" onclick="openFloorRoom('1층', this)">1층</button>
+  <button class="floor-btn" onclick="openFloorRoom('2층', this)">2층</button>
+  <button class="floor-btn" onclick="openFloorRoom('2.5층', this)">2.5층</button>
+  <button class="floor-btn" onclick="openFloorRoom('3층', this)">3층</button>
+  <button class="floor-btn" onclick="openFloorRoom('3.1/3층', this)">3.1/3층</button>
+  <button class="floor-btn" onclick="openFloorRoom('3.2/3층', this)">3.2/3층</button>
+  <button class="floor-btn" onclick="openFloorRoom('4층', this)">4층</button>
+  <button class="floor-btn" onclick="openFloorRoom('4.5층', this)">4.5층</button>
+  <button class="floor-btn" onclick="openFloorRoom('5층', this)">5층</button>
+  <button class="floor-btn" onclick="openFloorRoom('5.5층', this)">5.5층</button>
+  <button class="floor-btn" onclick="openFloorRoom('6층', this)">6층</button>
+  <button class="floor-btn" onclick="openFloorRoom('7층', this)">7층</button>
+  <button class="floor-btn" onclick="openFloorRoom('루프탑', this)">루프탑</button>
 </div>
 
 <!-- 계측기 등록 모달 -->
@@ -303,11 +360,15 @@
 
   let currentInstruments = [];
   let currentUserInfo = { name: '', email: '' };
-  let clickedSurfacePoint = null;
-  let activeTargetId = null;
   let selectedFloor = 'ALL';
+  let activeTargetId = null;
+  let clickedFloorCoord = { x: 0, y: 0 };
 
-  const viewer = document.getElementById('boilerViewer');
+  // 층 평면 보드 제스처 상태
+  let scale = 0.8;
+  let panX = 0, panY = 0;
+  let isPanning = false;
+  let startX = 0, startY = 0;
 
   function unlock(name, email = 'user@jeju.com') {
     currentUserInfo = { name: name, email: email };
@@ -315,7 +376,7 @@
     fetchInstruments();
   }
 
-  // 로그인 모달
+  // 로그인 관리
   document.getElementById('btnGoAdmin').addEventListener('click', () => {
     document.getElementById('login-box').style.display = 'none';
     document.getElementById('admin-login-box').style.display = 'block';
@@ -345,75 +406,104 @@
     location.reload();
   });
 
-  // 공간 전환 함수 (암전 워프 연출)
-  window.enterFloorSpace = function(floor, heightRatio, btn) {
+  // [화면 전환] 특정 층 독립 공간으로 완전 이동
+  window.openFloorRoom = function(floor, btn) {
     selectedFloor = floor;
     document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
     if (btn) btn.classList.add('active');
 
-    const overlay = document.getElementById('warp-overlay');
-    const warpText = document.getElementById('warpStatusText');
-    const bannerTitle = document.getElementById('bannerZoneTitle');
-    const floorTag = document.getElementById('currentFloorTag');
+    // 3D 조감도 숨기고 -> 층별 독립 전용 공간 표시
+    document.getElementById('overall-3d-view').style.display = 'none';
+    document.getElementById('floor-room-view').style.display = 'block';
 
-    warpText.innerText = floor === 'ALL' ? '🌐 전체 조감도로 나가는 중...' : `🚀 ${floor} 현장 내부 공간으로 진입 중...`;
-    overlay.classList.add('active');
+    document.getElementById('currentFloorTag').innerText = `보일러 ${floor}`;
+    document.getElementById('roomTitleText').innerText = `📍 [보일러 ${floor}] 설비 전용 작업 공간`;
 
-    setTimeout(() => {
-      if (floor === 'ALL') {
-        floorTag.innerText = '보일러 전체';
-        bannerTitle.innerText = '보일러 전체 (조감도)';
-        viewer.cameraTarget = 'auto auto auto';
-        viewer.cameraOrbit = '0deg 75deg 380m';
-      } else {
-        floorTag.innerText = `보일러 ${floor}`;
-        bannerTitle.innerText = `📍 [보일러 ${floor}] 전용 작업 구역`;
-        // 해당 층 바닥 깊숙이 파고드는 초근접 1인칭 화각(55m 거리)
-        viewer.cameraTarget = `auto ${Math.round(heightRatio * 100)}% auto`;
-        viewer.cameraOrbit = `15deg 82deg 55m`;
-      }
-      renderHotspots();
-      overlay.classList.remove('active');
-    }, 280);
+    resetCanvasView();
+    renderFloorPins();
   };
 
-  window.resetToOverall = function() {
-    enterFloorSpace('ALL', 0.5, document.getElementById('btn-ALL'));
+  // [화면 전환] 전체 3D 조감도로 탈출
+  window.exitToOverall = function() {
+    selectedFloor = 'ALL';
+    document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn-ALL').classList.add('active');
+
+    document.getElementById('floor-room-view').style.display = 'none';
+    document.getElementById('overall-3d-view').style.display = 'block';
+    document.getElementById('currentFloorTag').innerText = '보일러 전체';
   };
 
-  // 표면 터치 시 핀 등록 (해당 층에 고정)
-  viewer.addEventListener('click', (event) => {
-    if (event.target.classList.contains('hotspot-pin')) return;
-    const hit = viewer.positionAndNormalFromPoint(event.clientX, event.clientY);
-    if (hit) {
-      clickedSurfacePoint = hit;
-      document.getElementById('tagNo').value = '';
-      document.getElementById('name').value = '';
-      document.getElementById('model').value = '';
-      document.getElementById('range').value = '';
-      document.getElementById('modalFloorText').innerText = selectedFloor === 'ALL' ? '보일러 전체' : selectedFloor;
-      document.getElementById('modal').style.display = 'block';
-    }
+  // 층 보드 드래그 & 줌 인터랙션
+  const canvasWrap = document.getElementById('floor-canvas-wrap');
+  const board = document.getElementById('floor-board');
+
+  function updateTransform() {
+    board.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${scale})`;
+  }
+
+  window.zoomCanvas = function(delta) {
+    scale = Math.max(0.4, Math.min(2.5, scale + delta));
+    updateTransform();
+  };
+
+  window.resetCanvasView = function() {
+    scale = 0.8; panX = 0; panY = 0;
+    updateTransform();
+  };
+
+  canvasWrap.addEventListener('pointerdown', (e) => {
+    if (e.target.classList.contains('floor-inst-pin')) return;
+    isPanning = true;
+    startX = e.clientX - panX;
+    startY = e.clientY - panY;
+    canvasWrap.style.cursor = 'grabbing';
   });
 
+  window.addEventListener('pointermove', (e) => {
+    if (!isPanning) return;
+    panX = e.clientX - startX;
+    panY = e.clientY - startY;
+    updateTransform();
+  });
+
+  window.addEventListener('pointerup', () => {
+    isPanning = false;
+    canvasWrap.style.cursor = 'grab';
+  });
+
+  // 층 바닥을 터치하여 신규 핀 등록
+  board.addEventListener('click', (e) => {
+    if (e.target.closest('.floor-inst-pin')) return;
+    const rect = board.getBoundingClientRect();
+    const clickX = (e.clientX - rect.left) / scale;
+    const clickY = (e.clientY - rect.top) / scale;
+
+    clickedFloorCoord = { x: Math.round(clickX), y: Math.round(clickY) };
+
+    document.getElementById('tagNo').value = '';
+    document.getElementById('name').value = '';
+    document.getElementById('model').value = '';
+    document.getElementById('range').value = '';
+    document.getElementById('modalFloorText').innerText = selectedFloor;
+    document.getElementById('modal').style.display = 'block';
+  });
+
+  // Supabase에 계측기 저장 (해당 층 고정)
   document.getElementById('btnSaveInst').addEventListener('click', async () => {
     const tag = document.getElementById('tagNo').value.trim();
     const name = document.getElementById('name').value.trim();
     if (!tag || !name) { alert('Tag No와 기기명을 입력하세요.'); return; }
 
-    const pos = clickedSurfacePoint ? clickedSurfacePoint.position.toString() : '0 0 0';
-    const norm = clickedSurfacePoint ? clickedSurfacePoint.normal.toString() : '0 1 0';
-    const targetFloor = (selectedFloor === 'ALL') ? '1층' : selectedFloor;
-
     const { error } = await supabaseClient.from('instruments').insert([{
-      location_key: 'boiler_3d',
-      floor: targetFloor,
+      location_key: 'boiler_2d',
+      floor: selectedFloor,
       tag_no: tag,
       name: name,
       model: document.getElementById('model').value.trim(),
       signal_range: document.getElementById('range').value.trim(),
-      model_position: pos,
-      model_normal: norm,
+      coord_x: clickedFloorCoord.x,
+      coord_y: clickedFloorCoord.y,
       history_logs: []
     }]);
 
@@ -426,32 +516,31 @@
   });
 
   async function fetchInstruments() {
-    const { data, error } = await supabaseClient.from('instruments').select('*').eq('location_key', 'boiler_3d');
+    const { data, error } = await supabaseClient.from('instruments').select('*').eq('location_key', 'boiler_2d');
     if (!error) {
       currentInstruments = data || [];
-      renderHotspots();
+      renderFloorPins();
     }
   }
 
-  function renderHotspots() {
-    document.querySelectorAll('.hotspot-pin').forEach(el => el.remove());
+  // 해당 층 전용 핀 렌더링
+  function renderFloorPins() {
+    board.querySelectorAll('.floor-inst-pin').forEach(el => el.remove());
 
     currentInstruments.forEach(item => {
-      if (!item.model_position) return;
-      if (selectedFloor !== 'ALL' && item.floor !== selectedFloor) return;
+      if (item.floor !== selectedFloor) return; // 다른 층 핀은 절대 노출되지 않음
 
-      const btn = document.createElement('button');
-      btn.className = 'hotspot-pin';
-      btn.slot = `hotspot-${item.id}`;
-      btn.dataset.position = item.model_position;
-      btn.dataset.normal = item.model_normal || '0 1 0';
-      btn.innerText = '📍';
+      const pin = document.createElement('div');
+      pin.className = 'floor-inst-pin';
+      pin.style.left = `${item.coord_x}px`;
+      pin.style.top = `${item.coord_y}px`;
+      pin.innerHTML = `📍<span>${item.tag_no}</span>`;
 
-      btn.onclick = (e) => {
+      pin.onclick = (e) => {
         e.stopPropagation();
         showDetail(item);
       };
-      viewer.appendChild(btn);
+      board.appendChild(pin);
     });
   }
 
@@ -459,9 +548,9 @@
     activeTargetId = item.id;
     document.getElementById('infoTitle').innerText = `[${item.tag_no}] ${item.name}`;
     document.getElementById('infoBody').innerHTML = `
-      <div><b>등록 층수:</b> <span style="color:#0284c7; font-weight:bold;">${item.floor || '1층'}</span></div>
+      <div><b>배치 구역:</b> <span style="color:#0284c7; font-weight:bold;">${item.floor}</span></div>
       <div><b>모델명:</b> ${item.model || '-'}</div>
-      <div><b>범위/신호:</b> ${item.signal_range || '-'}</div>
+      <div><b>측정범위/신호:</b> ${item.signal_range || '-'}</div>
     `;
 
     const logs = Array.isArray(item.history_logs) ? item.history_logs : [];
@@ -470,7 +559,7 @@
         <div style="color:#64748b; font-size:11px;">${h.date} (${h.author})</div>
         <div style="color:#111;">${h.content}</div>
       </div>
-    `).join('') : '<div style="color:#94a3b8; font-size:11px;">등록된 이력이 없습니다.</div>';
+    `).join('') : '<div style="color:#94a3b8; font-size:11px;">등록된 점검 이력이 없습니다.</div>';
     document.getElementById('infoHistoryList').innerHTML = histHtml;
 
     document.getElementById('btnAddHistBtn').onclick = () => {
@@ -483,7 +572,7 @@
     };
 
     document.getElementById('btnDeletePin').onclick = async () => {
-      if (!confirm('삭제하시겠습니까?')) return;
+      if (!confirm('정말 삭제하시겠습니까?')) return;
       await supabaseClient.from('instruments').delete().eq('id', item.id);
       document.getElementById('info-modal').style.display = 'none';
       fetchInstruments();
