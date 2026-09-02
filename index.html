@@ -82,26 +82,29 @@
     model-viewer { width: 100%; height: 100%; --poster-color: transparent; }
     model-viewer::part(default-progress-bar), model-viewer::part(prompt) { display: none !important; }
 
+    /* 3D 핀 디자인 (사진 썸네일 지원) */
     .hotspot-pin {
       background: #00b4d8;
       border: 2px solid #ffffff;
       border-radius: 50%;
-      width: 20px;
-      height: 20px;
+      width: 28px;
+      height: 28px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 10px;
+      font-size: 12px;
       font-weight: bold;
       color: #0b132b;
       cursor: pointer;
       box-shadow: 0 0 10px rgba(0, 180, 216, 0.9);
       transform: translate(-50%, -50%) scale(var(--pin-scale, 1));
       transition: transform 0.1s ease-out;
+      background-size: cover;
+      background-position: center;
     }
     .hotspot-pin span {
       position: absolute;
-      top: -22px;
+      top: -24px;
       left: 50%;
       transform: translateX(-50%);
       background: rgba(11, 19, 43, 0.92);
@@ -162,16 +165,18 @@
       background: rgba(15, 23, 42, 0.9); padding: 12px 20px; border-radius: 8px; border: 1px dashed #334155;
     }
 
+    /* 2D 도면 핀 디자인 */
     .floor-inst-pin {
-      position: absolute; width: 34px; height: 34px; border-radius: 50%;
+      position: absolute; width: 36px; height: 36px; border-radius: 50%;
       background: #00b4d8; border: 2px solid #ffffff;
       box-shadow: 0 0 14px rgba(0, 180, 216, 1);
       display: flex; align-items: center; justify-content: center;
       color: #0b132b; font-size: 14px; font-weight: bold; cursor: pointer;
       transform: translate(-50%, -50%); z-index: 50;
+      background-size: cover; background-position: center;
     }
     .floor-inst-pin span {
-      position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%);
+      position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%);
       background: rgba(11, 19, 43, 0.9); color: #fff; padding: 2px 6px;
       border-radius: 4px; font-size: 11px; white-space: nowrap; border: 1px solid #38bdf8;
     }
@@ -211,6 +216,12 @@
     .form-group { margin-bottom: 10px; }
     .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #334155; }
     .form-group input, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; font-family: inherit; color: #111; }
+    
+    .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; }
+    .btn-file-upload { background: #e2e8f0; border: 1px dashed #64748b; color: #334155; padding: 10px; width: 100%; border-radius: 6px; font-weight: bold; text-align: center; cursor: pointer; font-size: 13px; }
+    .file-input-wrapper input[type=file] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; height: 100%; }
+    .preview-img { display: none; width: 100%; max-height: 140px; object-fit: contain; margin-top: 8px; border-radius: 8px; border: 1px solid #cbd5e1; }
+
     .btn-wrap { display: flex; gap: 8px; margin-top: 14px; }
     .btn-wrap button { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
     .btn-save { background: #0077b6; color: #fff; }
@@ -218,8 +229,10 @@
 
     .history-section { margin-top: 12px; padding-top: 10px; border-top: 1px dashed #cbd5e1; }
     .history-title { font-size: 13px; font-weight: bold; color: #0284c7; margin-bottom: 8px; }
-    .history-list { max-height: 140px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; }
-    .history-item { background: #f8fafc; border-left: 3px solid #0284c7; padding: 6px 8px; border-radius: 4px; font-size: 12px; }
+    .history-list { max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+    .history-item { background: #f8fafc; border-left: 3px solid #0284c7; padding: 8px; border-radius: 4px; font-size: 12px; }
+    .hist-img { width: 100%; max-height: 100px; object-fit: cover; border-radius: 4px; margin-top: 6px; }
+    
     .btn-add-history-quick { width: 100%; padding: 9px; background: #0284c7; color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; margin-bottom: 6px; }
     .btn-delete-pin { width: 100%; padding: 8px; background: #ef4444; border: none; border-radius: 6px; color: #fff; font-size: 12px; font-weight: bold; cursor: pointer; }
   </style>
@@ -332,39 +345,58 @@
   <button class="floor-btn" onclick="openFloorRoom('7층', 'floor_7f.jpg', this)">7층</button>
 </div>
 
-<!-- 모달 -->
+<!-- 등록 모달 -->
 <div id="modal">
   <h3>계측기 등록 (<span id="modalFloorText" style="color:#00b4d8; font-weight:bold;">1층</span>)</h3>
   <div class="form-group"><label>Tag No.</label><input type="text" id="tagNo" placeholder="예: 20-PT-101"></div>
   <div class="form-group"><label>기기명</label><input type="text" id="name" placeholder="예: 급수 압력 전송기"></div>
   <div class="form-group"><label>모델명</label><input type="text" id="model"></div>
   <div class="form-group"><label>측정범위 / 신호</label><input type="text" id="range"></div>
+  <div class="form-group">
+    <label>현장 사진 촬영/첨부 (핀에 표시됨)</label>
+    <div class="file-input-wrapper">
+      <div class="btn-file-upload">📷 사진 촬영 / 앨범 선택</div>
+      <input type="file" id="instPhoto" accept="image/*" capture="environment">
+    </div>
+    <img id="photoPreview" class="preview-img">
+  </div>
   <div class="btn-wrap">
-    <button class="btn-save" id="btnSaveInst">저장</button>
+    <button class="btn-save" id="btnSaveInst">저장하기</button>
     <button class="btn-cancel" onclick="document.getElementById('modal').style.display='none'">취소</button>
   </div>
 </div>
 
+<!-- 정보 모달 -->
 <div id="info-modal">
   <h3 id="infoTitle">계측기 상세</h3>
+  <img id="infoMainImg" class="preview-img" style="margin-bottom:10px;">
   <div id="infoBody" style="font-size: 13px; line-height: 1.5;"></div>
   <div class="history-section">
-    <div class="history-title">📋 정비/점검 이력</div>
+    <div class="history-title">📋 정비/점검 이력 관리</div>
     <div class="history-list" id="infoHistoryList"></div>
-    <button class="btn-add-history-quick" id="btnAddHistBtn">+ 점검/정비 이력 추가</button>
+    <button class="btn-add-history-quick" id="btnAddHistBtn">+ 새 점검 이력 작성</button>
   </div>
-  <button class="btn-delete-pin" id="btnDeletePin">🗑️ 계측기 삭제</button>
+  <button class="btn-delete-pin" id="btnDeletePin">🗑️ 계측기 완전히 삭제</button>
   <div class="btn-wrap" style="margin-top: 10px;">
     <button class="btn-cancel" onclick="document.getElementById('info-modal').style.display='none'">닫기</button>
   </div>
 </div>
 
+<!-- 이력 추가 모달 -->
 <div id="history-modal">
   <h3>📋 정비/점검 이력 추가</h3>
   <div style="font-size: 13px; color: #0284c7; font-weight: bold; margin-bottom: 12px;" id="histTargetTag"></div>
   <div class="form-group"><label>작업일자</label><input type="date" id="histDate"></div>
-  <div class="form-group"><label>작업자 성명</label><input type="text" id="histAuthor" placeholder="작업자 이름을 입력하세요"></div>
-  <div class="form-group"><label>내용</label><textarea id="histContent" rows="3" placeholder="점검 내역 입력"></textarea></div>
+  <div class="form-group"><label>작업자 성명</label><input type="text" id="histAuthor" placeholder="홍길동"></div>
+  <div class="form-group"><label>점검 내용</label><textarea id="histContent" rows="3" placeholder="점검 및 조치 내역 입력"></textarea></div>
+  <div class="form-group">
+    <label>점검/조치 현장 사진</label>
+    <div class="file-input-wrapper">
+      <div class="btn-file-upload">📷 사진 촬영 / 첨부</div>
+      <input type="file" id="histPhoto" accept="image/*" capture="environment">
+    </div>
+    <img id="histPhotoPreview" class="preview-img">
+  </div>
   <div class="btn-wrap">
     <button class="btn-save" id="btnSaveHist">이력 저장</button>
     <button class="btn-cancel" onclick="document.getElementById('history-modal').style.display='none'">취소</button>
@@ -383,6 +415,9 @@
   let activeTargetId = null;
   let clickedFloorCoord = { x: 0, y: 0 };
   let isMeasureMode = false;
+  
+  let currentInstPhotoBase64 = '';
+  let currentHistPhotoBase64 = '';
 
   let scale = 0.65;
   let panX = 0, panY = 0;
@@ -391,28 +426,59 @@
   let initialPinchDist = 0;
   let initialScale = 0.65;
 
-  // 📌 1. 측정된 1층(8.14) ~ 7층(44.80)의 Y축(높이) 보정 데이터
-  // 6층이 7층(꼭대기)에 겹치는 현상을 막기 위해 6층 이하를 약간 아래로 하향 조정했습니다.
   const floor3DHeights = {
-    '1층': 8.14,
-    '2층': 11.50,
-    '2.5층': 14.50,
-    '3층': 17.50,
-    '3.1/3층': 20.50,
-    '3.2/3층': 23.50,
-    '4층': 26.50,
-    '4.5층': 29.50,
-    '5층': 32.50,
-    '5.5층': 35.50,
-    '6층': 38.50,
-    '7층': 44.80
+    '1층': 8.14, '2층': 11.47, '2.5층': 14.80, '3층': 18.14, '3.1/3층': 21.47,
+    '3.2/3층': 24.80, '4층': 28.14, '4.5층': 31.47, '5층': 34.80, '5.5층': 38.14,
+    '6층': 41.47, '7층': 44.80
   };
+
+  // 사진 압축 공통 함수 (캔버스를 이용해 용량 최적화)
+  function compressImage(file, callback) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        const canvas = document.createElement('canvas');
+        const MAX_SIZE = 400; 
+        let width = img.width; let height = img.height;
+        if (width > height && width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
+        else if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        callback(dataUrl);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // 등록 모달 사진 처리
+  document.getElementById('instPhoto').addEventListener('change', function(e) {
+    compressImage(e.target.files[0], (base64) => {
+      currentInstPhotoBase64 = base64;
+      const preview = document.getElementById('photoPreview');
+      preview.src = base64;
+      preview.style.display = 'block';
+    });
+  });
+
+  // 이력 모달 사진 처리
+  document.getElementById('histPhoto').addEventListener('change', function(e) {
+    compressImage(e.target.files[0], (base64) => {
+      currentHistPhotoBase64 = base64;
+      const preview = document.getElementById('histPhotoPreview');
+      preview.src = base64;
+      preview.style.display = 'block';
+    });
+  });
 
   function unlock(name, email = 'user@jeju.com') {
     const savedName = localStorage.getItem('jeju_worker_name');
     const finalName = savedName || name;
     currentUserInfo = { name: finalName, email: email };
-    
     document.getElementById('auth-overlay').style.display = 'none';
     document.getElementById('loginUserBadge').innerText = `👤 ${finalName}`;
     fetchInstruments();
@@ -484,13 +550,9 @@
   viewer.addEventListener('click', (event) => {
     if (!isMeasureMode) return;
     const rect = viewer.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const y = event.clientY - rect.top;
-
-    const hit = viewer.positionAndNormalFromPoint(x, y);
+    const hit = viewer.positionAndNormalFromPoint(event.clientX - rect.left, event.clientY - rect.top);
     if (hit) {
       const posStr = `${hit.position.x.toFixed(2)} ${hit.position.y.toFixed(2)} ${hit.position.z.toFixed(2)}`;
-      
       let marker = viewer.querySelector('#temp-measure-marker');
       if (!marker) {
         marker = document.createElement('button');
@@ -500,7 +562,6 @@
         viewer.appendChild(marker);
       }
       marker.dataset.position = `${hit.position.x} ${hit.position.y} ${hit.position.z}`;
-
       measureHud.innerHTML = `📍 측정 좌표: <b style="color:#38bdf8;">${posStr}</b> (복사됨)`;
       navigator.clipboard.writeText(posStr).catch(() => {});
     } else {
@@ -525,7 +586,6 @@
 
     document.getElementById('overall-3d-view').style.display = 'none';
     document.getElementById('floor-room-view').style.display = 'block';
-
     document.getElementById('currentFloorTag').innerText = `보일러 ${floor}`;
     document.getElementById('roomTitleText').innerText = `📍 [보일러 ${floor}] 도면 공간`;
 
@@ -549,39 +609,22 @@
     selectedFloor = 'ALL';
     document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('btn-ALL').classList.add('active');
-
     document.getElementById('floor-room-view').style.display = 'none';
     document.getElementById('overall-3d-view').style.display = 'block';
     document.getElementById('currentFloorTag').innerText = '보일러 전체';
     render3DHotspots();
   };
 
-  function updateTransform() {
-    board.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${scale})`;
-  }
-
-  window.zoomCanvas = function(delta) {
-    scale = Math.max(0.3, Math.min(3.5, scale + delta));
-    updateTransform();
-  };
-
-  window.resetCanvasView = function() {
-    scale = 0.65; panX = 0; panY = 0;
-    updateTransform();
-  };
+  function updateTransform() { board.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${scale})`; }
+  window.zoomCanvas = function(delta) { scale = Math.max(0.3, Math.min(3.5, scale + delta)); updateTransform(); };
+  window.resetCanvasView = function() { scale = 0.65; panX = 0; panY = 0; updateTransform(); };
 
   canvasWrap.addEventListener('touchstart', (e) => {
     if (e.target.closest('.floor-inst-pin')) return;
     if (e.touches.length === 1) {
-      isDragging = true;
-      dragStartX = e.touches[0].clientX - panX;
-      dragStartY = e.touches[0].clientY - panY;
+      isDragging = true; dragStartX = e.touches[0].clientX - panX; dragStartY = e.touches[0].clientY - panY;
     } else if (e.touches.length === 2) {
-      isDragging = false;
-      initialPinchDist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
+      isDragging = false; initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
       initialScale = scale;
     }
   }, { passive: false });
@@ -589,67 +632,44 @@
   canvasWrap.addEventListener('touchmove', (e) => {
     e.preventDefault();
     if (e.touches.length === 1 && isDragging) {
-      panX = e.touches[0].clientX - dragStartX;
-      panY = e.touches[0].clientY - dragStartY;
-      updateTransform();
+      panX = e.touches[0].clientX - dragStartX; panY = e.touches[0].clientY - dragStartY; updateTransform();
     } else if (e.touches.length === 2) {
-      const currentDist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      if (initialPinchDist > 0) {
-        const factor = currentDist / initialPinchDist;
-        scale = Math.max(0.3, Math.min(3.5, initialScale * factor));
-        updateTransform();
-      }
+      const currentDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      if (initialPinchDist > 0) { scale = Math.max(0.3, Math.min(3.5, initialScale * (currentDist / initialPinchDist))); updateTransform(); }
     }
   }, { passive: false });
 
-  canvasWrap.addEventListener('touchend', (e) => {
-    if (e.touches.length === 0) isDragging = false;
-  });
-
+  canvasWrap.addEventListener('touchend', (e) => { if (e.touches.length === 0) isDragging = false; });
   canvasWrap.addEventListener('mousedown', (e) => {
     if (e.target.closest('.floor-inst-pin')) return;
-    isDragging = true;
-    dragStartX = e.clientX - panX;
-    dragStartY = e.clientY - panY;
-    canvasWrap.style.cursor = 'grabbing';
+    isDragging = true; dragStartX = e.clientX - panX; dragStartY = e.clientY - panY; canvasWrap.style.cursor = 'grabbing';
   });
-
-  window.addEventListener('mousemove', (e) => {
-    if (!isDragging) return;
-    panX = e.clientX - dragStartX;
-    panY = e.clientY - dragStartY;
-    updateTransform();
-  });
-
-  window.addEventListener('mouseup', () => {
-    isDragging = false;
-    canvasWrap.style.cursor = 'grab';
-  });
-
-  canvasWrap.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    zoomCanvas(e.deltaY < 0 ? 0.15 : -0.15);
-  }, { passive: false });
+  window.addEventListener('mousemove', (e) => { if (!isDragging) return; panX = e.clientX - dragStartX; panY = e.clientY - dragStartY; updateTransform(); });
+  window.addEventListener('mouseup', () => { isDragging = false; canvasWrap.style.cursor = 'grab'; });
+  canvasWrap.addEventListener('wheel', (e) => { e.preventDefault(); zoomCanvas(e.deltaY < 0 ? 0.15 : -0.15); }, { passive: false });
 
   board.addEventListener('click', (e) => {
     if (e.target.closest('.floor-inst-pin')) return;
     const rect = board.getBoundingClientRect();
     const clickX = (e.clientX - rect.left) / scale;
     const clickY = (e.clientY - rect.top) / scale;
-
     clickedFloorCoord = { x: Math.round(clickX), y: Math.round(clickY) };
 
     document.getElementById('tagNo').value = '';
     document.getElementById('name').value = '';
     document.getElementById('model').value = '';
     document.getElementById('range').value = '';
+    
+    // 사진 초기화
+    currentInstPhotoBase64 = '';
+    document.getElementById('instPhoto').value = '';
+    document.getElementById('photoPreview').style.display = 'none';
+
     document.getElementById('modalFloorText').innerText = selectedFloor;
     document.getElementById('modal').style.display = 'block';
   });
 
+  // 저장 버튼 - 강화된 에러 추적 탑재
   document.getElementById('btnSaveInst').addEventListener('click', async () => {
     const tag = document.getElementById('tagNo').value.trim();
     const name = document.getElementById('name').value.trim();
@@ -664,7 +684,8 @@
       coord_x: clickedFloorCoord.x,
       coord_y: clickedFloorCoord.y,
       model_position: '0 0 0',
-      history_logs: []
+      history_logs: [],
+      image_data: currentInstPhotoBase64 // 사진 저장
     };
 
     const { error } = await supabaseClient.from('instruments').insert([insertData]);
@@ -673,7 +694,8 @@
       document.getElementById('modal').style.display = 'none';
       fetchInstruments();
     } else {
-      alert('저장 실패: ' + error.message);
+      alert('❌ 저장 실패!\n원인: ' + error.message + '\n\n* 팁: Supabase SQL에서 [image_data] 컬럼과 [RLS 권한]을 추가하셨는지 확인하세요.');
+      console.error(error);
     }
   });
 
@@ -682,27 +704,10 @@
     if (!error) {
       currentInstruments = (data || []).map(item => {
         let f = item.floor;
-        if (f !== null && f !== undefined) {
-          f = String(f);
-          if (!f.includes('층')) {
-            f += '층';
-          }
-        } else {
-          f = '6층';
-        }
-        
-        let cx = parseFloat(item.coord_x);
-        let cy = parseFloat(item.coord_y);
-        if (isNaN(cx) || cx === 0) cx = 400;
-        if (isNaN(cy) || cy === 0) cy = 400;
-
-        return {
-          ...item,
-          floor: f,
-          coord_x: cx,
-          coord_y: cy,
-          history_logs: Array.isArray(item.history_logs) ? item.history_logs : []
-        };
+        if (f !== null && f !== undefined) { f = String(f); if (!f.includes('층')) f += '층'; } else f = '6층';
+        let cx = parseFloat(item.coord_x); let cy = parseFloat(item.coord_y);
+        if (isNaN(cx) || cx === 0) cx = 400; if (isNaN(cy) || cy === 0) cy = 400;
+        return { ...item, floor: f, coord_x: cx, coord_y: cy, history_logs: Array.isArray(item.history_logs) ? item.history_logs : [] };
       });
       renderFloorPins();
       render3DHotspots();
@@ -711,43 +716,37 @@
 
   function renderFloorPins() {
     board.querySelectorAll('.floor-inst-pin').forEach(el => el.remove());
-
     currentInstruments.forEach(item => {
       if (item.floor !== selectedFloor) return;
-
       const pin = document.createElement('div');
       pin.className = 'floor-inst-pin';
       pin.style.left = `${item.coord_x}px`;
       pin.style.top = `${item.coord_y}px`;
-      pin.innerHTML = `📍<span>${item.tag_no}</span>`;
+      
+      // 사진이 있으면 배경으로, 없으면 아이콘 표시
+      if (item.image_data) {
+        pin.style.backgroundImage = `url(${item.image_data})`;
+        pin.innerHTML = `<span>${item.tag_no}</span>`;
+      } else {
+        pin.innerHTML = `📍<span>${item.tag_no}</span>`;
+      }
 
-      pin.onclick = (e) => {
-        e.stopPropagation();
-        showDetail(item);
-      };
+      pin.onclick = (e) => { e.stopPropagation(); showDetail(item); };
       board.appendChild(pin);
     });
   }
 
   function render3DHotspots() {
     viewer.querySelectorAll('.hotspot-pin').forEach(el => el.remove());
-
     currentInstruments.forEach(item => {
       let pos = item.model_position;
       if (!pos || pos === '0 0 0') {
         const h = floor3DHeights[item.floor] !== undefined ? floor3DHeights[item.floor] : 26;
-
-        const u = item.coord_x / 1400;
-        const v = item.coord_y / 1000;
-
-        const P_TL = { x: 1.96, z: -0.61 };
-        const P_TR = { x: 12.93, z: 17.94 };
-        const P_BR = { x: 30.94, z: 6.58 };
-        const P_BL = { x: 19.86, z: -11.47 };
-
+        const u = item.coord_x / 1400; const v = item.coord_y / 1000;
+        const P_TL = { x: 1.96, z: -0.61 }; const P_TR = { x: 12.93, z: 17.94 };
+        const P_BR = { x: 30.94, z: 6.58 }; const P_BL = { x: 19.86, z: -11.47 };
         const x3d = (1 - u) * (1 - v) * P_TL.x + u * (1 - v) * P_TR.x + u * v * P_BR.x + (1 - u) * v * P_BL.x;
         const z3d = (1 - u) * (1 - v) * P_TL.z + u * (1 - v) * P_TR.z + u * v * P_BR.z + (1 - u) * v * P_BL.z;
-
         pos = `${x3d} ${h} ${z3d}`;
       }
 
@@ -755,12 +754,16 @@
       btn.className = 'hotspot-pin';
       btn.slot = `hotspot-${item.id}`;
       btn.dataset.position = pos;
-      btn.innerHTML = `📍<span>${item.floor} (${item.tag_no})</span>`;
+      
+      // 3D 핀에도 사진 썸네일 적용
+      if (item.image_data) {
+        btn.style.backgroundImage = `url(${item.image_data})`;
+        btn.innerHTML = `<span>${item.floor} (${item.tag_no})</span>`;
+      } else {
+        btn.innerHTML = `📍<span>${item.floor} (${item.tag_no})</span>`;
+      }
 
-      btn.onclick = (e) => {
-        e.stopPropagation();
-        showDetail(item);
-      };
+      btn.onclick = (e) => { e.stopPropagation(); showDetail(item); };
       viewer.appendChild(btn);
     });
   }
@@ -768,17 +771,29 @@
   function showDetail(item) {
     activeTargetId = item.id;
     document.getElementById('infoTitle').innerText = `[${item.tag_no}] ${item.name}`;
+    
+    // 상세창 상단에 원본 등록사진 표시
+    const mainImg = document.getElementById('infoMainImg');
+    if (item.image_data) {
+      mainImg.src = item.image_data;
+      mainImg.style.display = 'block';
+    } else {
+      mainImg.style.display = 'none';
+    }
+
     document.getElementById('infoBody').innerHTML = `
-      <div><b>배치 층수:</b> <span style="color:#0284c7; font-weight:bold;">${item.floor}</span></div>
+      <div><b>배치:</b> <span style="color:#0284c7; font-weight:bold;">${item.floor}</span></div>
       <div><b>모델명:</b> ${item.model || '-'}</div>
-      <div><b>측정범위/신호:</b> ${item.signal_range || '-'}</div>
+      <div><b>측정범위:</b> ${item.signal_range || '-'}</div>
     `;
 
+    // 이력 렌더링 (이력에 남긴 현장 사진 포함)
     const logs = Array.isArray(item.history_logs) ? item.history_logs : [];
     let histHtml = logs.length > 0 ? logs.map(h => `
       <div class="history-item">
-        <div style="color:#64748b; font-size:11px;">${h.date} (${h.author})</div>
-        <div style="color:#111;">${h.content}</div>
+        <div style="color:#64748b; font-size:11px; margin-bottom:4px;">${h.date} | 👤 ${h.author}</div>
+        <div style="color:#111; font-weight:bold;">${h.content}</div>
+        ${h.photo ? `<img src="${h.photo}" class="hist-img">` : ''}
       </div>
     `).join('') : '<div style="color:#94a3b8; font-size:11px;">등록된 점검 이력이 없습니다.</div>';
     document.getElementById('infoHistoryList').innerHTML = histHtml;
@@ -789,11 +804,16 @@
       document.getElementById('histDate').value = new Date().toISOString().slice(0, 10);
       document.getElementById('histAuthor').value = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '';
       document.getElementById('histContent').value = '';
+      
+      currentHistPhotoBase64 = '';
+      document.getElementById('histPhoto').value = '';
+      document.getElementById('histPhotoPreview').style.display = 'none';
+      
       document.getElementById('history-modal').style.display = 'block';
     };
 
     document.getElementById('btnDeletePin').onclick = async () => {
-      if (!confirm('정말 삭제하시겠습니까?')) return;
+      if (!confirm('해당 계측기와 모든 이력을 완전히 삭제하시겠습니까?')) return;
       await supabaseClient.from('instruments').delete().eq('id', item.id);
       document.getElementById('info-modal').style.display = 'none';
       fetchInstruments();
@@ -802,11 +822,12 @@
     document.getElementById('info-modal').style.display = 'block';
   }
 
+  // 이력 관리 저장 (조치 현장 사진 포함)
   document.getElementById('btnSaveHist').addEventListener('click', async () => {
     const text = document.getElementById('histContent').value.trim();
     const workerName = document.getElementById('histAuthor').value.trim();
     if (!workerName) { alert('작업자 성명을 입력하세요.'); return; }
-    if (!text) { alert('점검 내용을 입력하세요.'); return; }
+    if (!text) { alert('점검/조치 내용을 입력하세요.'); return; }
 
     localStorage.setItem('jeju_worker_name', workerName);
     currentUserInfo.name = workerName;
@@ -817,7 +838,8 @@
     const newEntry = {
       date: document.getElementById('histDate').value,
       author: workerName,
-      content: text
+      content: text,
+      photo: currentHistPhotoBase64 // 이력에 포함된 현장 사진
     };
     const updated = [newEntry, ...logs];
 
@@ -825,8 +847,10 @@
     if (!error) {
       target.history_logs = updated;
       document.getElementById('history-modal').style.display = 'none';
-      alert(`✅ [${workerName}] 님의 점검 이력이 저장되었습니다.`);
+      alert(`✅ 점검 이력이 성공적으로 저장되었습니다.`);
       fetchInstruments();
+    } else {
+      alert('❌ 이력 저장 실패: ' + error.message);
     }
   });
 
