@@ -516,18 +516,18 @@
     const name = document.getElementById('name').value.trim();
     if (!tag || !name) { alert('Tag No와 기기명을 입력하세요.'); return; }
 
-    const { error } = await supabaseClient.from('instruments').insert([{
-      location_key: 'boiler_integrated',
-      floor: selectedFloor,
+    const insertData = {
       tag_no: tag,
       name: name,
-      model: document.getElementById('model').value.trim(),
-      signal_range: document.getElementById('range').value.trim(),
+      model: document.getElementById('model').value.trim() || 'EMPTY',
+      signal_range: document.getElementById('range').value.trim() || 'EMPTY',
+      floor: selectedFloor,
       coord_x: clickedFloorCoord.x,
       coord_y: clickedFloorCoord.y,
-      model_position: '0 0 0',
       history_logs: []
-    }]);
+    };
+
+    const { error } = await supabaseClient.from('instruments').insert([insertData]);
 
     if (!error) {
       document.getElementById('modal').style.display = 'none';
@@ -537,16 +537,31 @@
     }
   });
 
+  // DB에서 데이터 강제 필터링 및 6층 고정 세팅
   async function fetchInstruments() {
     const { data, error } = await supabaseClient.from('instruments').select('*');
     if (!error) {
-      currentInstruments = (data || []).map(item => ({
-        ...item,
-        floor: item.floor || '6층',
-        coord_x: item.coord_x ?? 300,
-        coord_y: item.coord_y ?? 300,
-        history_logs: item.history_logs || []
-      }));
+      currentInstruments = (data || []).map(item => {
+        let f = item.floor;
+        // DB에 층 정보가 없거나, 문자가 아니거나, "층"이라는 글자가 안들어가면 강제로 6층 배정
+        if (!f || typeof f !== 'string' || !f.includes('층')) {
+          f = '6층';
+        }
+        
+        let cx = parseFloat(item.coord_x);
+        let cy = parseFloat(item.coord_y);
+        // DB에 좌표가 비어있거나, 0이거나 잘못된 글자면 도면 중앙 부근(400, 400)으로 강제 배정
+        if (isNaN(cx) || cx === 0) cx = 400;
+        if (isNaN(cy) || cy === 0) cy = 400;
+
+        return {
+          ...item,
+          floor: f,
+          coord_x: cx,
+          coord_y: cy,
+          history_logs: Array.isArray(item.history_logs) ? item.history_logs : []
+        };
+      });
       renderFloorPins();
       render3DHotspots();
     }
@@ -557,7 +572,6 @@
 
     currentInstruments.forEach(item => {
       if (item.floor !== selectedFloor) return;
-      if (item.coord_x === undefined || item.coord_x === null) return;
 
       const pin = document.createElement('div');
       pin.className = 'floor-inst-pin';
@@ -597,7 +611,7 @@
     activeTargetId = item.id;
     document.getElementById('infoTitle').innerText = `[${item.tag_no}] ${item.name}`;
     document.getElementById('infoBody').innerHTML = `
-      <div><b>배치 층수:</b> <span style="color:#0284c7; font-weight:bold;">${item.floor || '1층'}</span></div>
+      <div><b>배치 층수:</b> <span style="color:#0284c7; font-weight:bold;">${item.floor}</span></div>
       <div><b>모델명:</b> ${item.model || '-'}</div>
       <div><b>측정범위/신호:</b> ${item.signal_range || '-'}</div>
     `;
