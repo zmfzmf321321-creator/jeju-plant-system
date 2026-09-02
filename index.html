@@ -343,7 +343,7 @@
   <button class="floor-btn" onclick="openFloorRoom('7층', 'floor_7f.jpg', this)">7층</button>
 </div>
 
-<!-- 등록 모달: 최초 생성 시 이력 추가 기능 통합 -->
+<!-- 등록 모달 -->
 <div id="modal">
   <h3>계측기 등록 (<span id="modalFloorText" style="color:#00b4d8; font-weight:bold;">1층</span>)</h3>
   <div class="form-group"><label>Tag No.</label><input type="text" id="tagNo" placeholder="예: 20-PT-101"></div>
@@ -684,7 +684,6 @@
     document.getElementById('instPhoto').value = '';
     document.getElementById('photoPreview').style.display = 'none';
 
-    // 신규 등록 시 최초 이력 입력창 초기화
     initHistPhotoBase64 = '';
     document.getElementById('initHistPhoto').value = '';
     document.getElementById('initHistPreview').style.display = 'none';
@@ -695,7 +694,6 @@
     document.getElementById('modal').style.display = 'block';
   });
 
-  // 신규 등록: 최초 이력이 함께 작성된 경우 포함하여 저장
   document.getElementById('btnSaveInst').addEventListener('click', async () => {
     const tag = document.getElementById('tagNo').value.trim();
     const name = document.getElementById('name').value.trim();
@@ -795,7 +793,7 @@
     });
   }
 
-  // 1번 코너(엘리베이터) ↔ 4번 코너 정렬 대칭 보정 공식 적용
+  // 1층 핀이 아래쪽 코너로 향하도록 90도 회전 재배치
   function render3DHotspots() {
     viewer.querySelectorAll('.hotspot-pin').forEach(el => el.remove());
     currentInstruments.forEach(item => {
@@ -803,17 +801,13 @@
       if (!pos || pos === '0 0 0') {
         const h = floor3DHeights[item.floor] !== undefined ? floor3DHeights[item.floor] : 26;
         
-        // 2D 평면도 핀 위치 비율 (0.0 ~ 1.0)
         const u = item.coord_x / 1400; 
         const v = item.coord_y / 1000;
 
-        // 1번 꼭지점(엘리베이터 코너): P1(12.93, 17.94)
-        // 4번 꼭지점(엘리베이터 대각 반대 코너): P4(1.96, -0.61)
-        // 도면 기준 X/Y 투영 축을 일치시키도록 4개 모서리 매핑 반전 교정
-        const P_TL = { x: 19.86, z: -11.47 }; // 3번
-        const P_TR = { x: 1.96,  z: -0.61 };  // 4번 코너 (엘리베이터 반대편)
-        const P_BR = { x: 12.93, z: 17.94 };  // 1번 코너 (엘리베이터 측)
-        const P_BL = { x: 30.94, z: 6.58 };   // 2번
+        const P_TL = { x: 30.94, z: 6.58 };   // 2번 꼭지점
+        const P_TR = { x: 19.86, z: -11.47 }; // 3번 꼭지점
+        const P_BR = { x: 1.96,  z: -0.61 };  // 4번 꼭지점 (화면 아래쪽/앞쪽 코너)
+        const P_BL = { x: 12.93, z: 17.94 };  // 1번 꼭지점 (엘리베이터 코너)
 
         const x3d = (1 - u) * (1 - v) * P_TL.x + u * (1 - v) * P_TR.x + u * v * P_BR.x + (1 - u) * v * P_BL.x;
         const z3d = (1 - u) * (1 - v) * P_TL.z + u * (1 - v) * P_TR.z + u * v * P_BR.z + (1 - u) * v * P_BL.z;
