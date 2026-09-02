@@ -94,20 +94,26 @@
 
     #floor-canvas-wrap {
       width: 100%; height: 100%; position: absolute; top: 0; left: 0;
-      cursor: grab; overflow: hidden;
+      cursor: grab; overflow: hidden; touch-action: none;
     }
     
-    /* 실제 업로드된 층별 도면 이미지가 표시되는 보드 */
+    /* 도면 보드: 어두운 테마 기본 바탕 및 도면 로딩 실패 시 안내 메시지 지원 */
     #floor-board {
-      width: 1200px; height: 900px; position: absolute;
-      top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.8);
+      width: 1400px; height: 1000px; position: absolute;
+      top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.65);
       transform-origin: center center;
-      background-color: #ffffff;
+      background-color: #111827;
       background-repeat: no-repeat;
       background-position: center center;
       background-size: contain;
       border: 2px solid #0284c7; border-radius: 12px;
       box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .no-img-notice {
+      color: #64748b; font-size: 16px; font-weight: bold; pointer-events: none;
+      background: rgba(15, 23, 42, 0.85); padding: 12px 20px; border-radius: 8px; border: 1px dashed #334155;
     }
 
     .floor-inst-pin {
@@ -125,15 +131,16 @@
     }
 
     .canvas-zoom-ctrl {
-      position: absolute; right: 14px; bottom: 20px; display: flex; flex-direction: column; gap: 6px; z-index: 40;
+      position: absolute; right: 14px; bottom: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 40;
     }
     .zoom-btn {
-      width: 42px; height: 42px; border-radius: 8px; background: rgba(15, 23, 42, 0.9);
-      border: 1px solid #38bdf8; color: #fff; font-size: 18px; font-weight: bold;
+      width: 44px; height: 44px; border-radius: 10px; background: rgba(15, 23, 42, 0.92);
+      border: 1px solid #38bdf8; color: #fff; font-size: 20px; font-weight: bold;
       display: flex; align-items: center; justify-content: center; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
+    .zoom-btn:active { background: #0284c7; }
 
-    /* 11개 층 전용 선택 바 (파일명과 100% 매칭) */
     #floor-bar {
       position: fixed; bottom: 0; left: 0; width: 100vw; height: 65px;
       background: #111a33; border-top: 2px solid #3a506b; display: flex;
@@ -241,26 +248,25 @@
     <div id="floor-room-header">
       <div>
         <div class="room-title" id="roomTitleText">📍 1층 도면 공간</div>
-        <div class="room-desc">도면을 터치하여 계측기 등록 | 드래그로 평면 이동 및 확대</div>
+        <div class="room-desc">두 손가락 핀치 줌 | 드래그 이동 | 터치 시 핀 등록</div>
       </div>
       <button class="btn-exit-room" onclick="exitToOverall()">🌐 조감도로 나가기</button>
     </div>
 
     <div id="floor-canvas-wrap">
       <div id="floor-board">
-        <!-- 층별 도면 배경 이미지 표시 영역 -->
+        <div class="no-img-notice" id="noImgNotice" style="display:none;">도면 이미지를 업로드 중입니다...</div>
       </div>
     </div>
 
     <div class="canvas-zoom-ctrl">
-      <button class="zoom-btn" onclick="zoomCanvas(0.2)">＋</button>
-      <button class="zoom-btn" onclick="zoomCanvas(-0.2)">－</button>
-      <button class="zoom-btn" onclick="resetCanvasView()" style="font-size: 13px;">리셋</button>
+      <button class="zoom-btn" onclick="zoomCanvas(0.25)">＋</button>
+      <button class="zoom-btn" onclick="zoomCanvas(-0.25)">－</button>
+      <button class="zoom-btn" onclick="resetCanvasView()" style="font-size: 12px;">리셋</button>
     </div>
   </div>
 </div>
 
-<!-- 준비하신 실제 파일명과 정확히 매칭된 11개 층 버튼 -->
 <div id="floor-bar">
   <button class="floor-btn active" id="btn-ALL" onclick="exitToOverall()">전체</button>
   <button class="floor-btn" onclick="openFloorRoom('1층', 'floor_1f.png', this)">1층</button>
@@ -270,7 +276,7 @@
   <button class="floor-btn" onclick="openFloorRoom('3.1/3층', 'floor_3_1_3f.png', this)">3.1/3층</button>
   <button class="floor-btn" onclick="openFloorRoom('3.2/3층', 'floor_3_2_3f.png', this)">3.2/3층</button>
   <button class="floor-btn" onclick="openFloorRoom('4층', 'floor_4f.png', this)">4층</button>
-  <button class="floor-btn" onclick="openFloorRoom('4.5층', 'floor_4_5f.png', this)">4.5층</button>
+  <button class="floor-btn" onclick="openFloorRoom('4.5층', 'floor_4_5.png', this)">4.5층</button>
   <button class="floor-btn" onclick="openFloorRoom('5층', 'floor_5f.png', this)">5층</button>
   <button class="floor-btn" onclick="openFloorRoom('5.5층', 'floor_5_5f.png', this)">5.5층</button>
   <button class="floor-btn" onclick="openFloorRoom('6층', 'floor_6f.png', this)">6층</button>
@@ -328,10 +334,13 @@
   let activeTargetId = null;
   let clickedFloorCoord = { x: 0, y: 0 };
 
-  let scale = 0.8;
+  // 제스처 및 줌/팬 상태 관리
+  let scale = 0.65;
   let panX = 0, panY = 0;
-  let isPanning = false;
-  let startX = 0, startY = 0;
+  let isDragging = false;
+  let dragStartX = 0, dragStartY = 0;
+  let initialPinchDist = 0;
+  let initialScale = 0.65;
 
   function unlock(name, email = 'user@jeju.com') {
     currentUserInfo = { name: name, email: email };
@@ -370,8 +379,8 @@
 
   const canvasWrap = document.getElementById('floor-canvas-wrap');
   const board = document.getElementById('floor-board');
+  const notice = document.getElementById('noImgNotice');
 
-  // 층 도면 공간 전환
   window.openFloorRoom = function(floor, imgFile, btn) {
     selectedFloor = floor;
     document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
@@ -381,10 +390,20 @@
     document.getElementById('floor-room-view').style.display = 'block';
 
     document.getElementById('currentFloorTag').innerText = `보일러 ${floor}`;
-    document.getElementById('roomTitleText').innerText = `📍 [보일러 ${floor}] 도면 작업 공간`;
+    document.getElementById('roomTitleText').innerText = `📍 [보일러 ${floor}] 도면 공간`;
 
-    // 층별 도면 배경 적용 (이미지가 없거나 로딩 전이어도 안정적으로 표시)
-    board.style.backgroundImage = `url('./${imgFile}')`;
+    // 이미지 로드 검증
+    const testImg = new Image();
+    testImg.src = `./${imgFile}`;
+    testImg.onload = () => {
+      board.style.backgroundImage = `url('./${imgFile}')`;
+      notice.style.display = 'none';
+    };
+    testImg.onerror = () => {
+      board.style.backgroundImage = 'none';
+      notice.innerText = `⚠️ [${imgFile}] 파일이 GitHub에 없습니다. 업로드해 주세요.`;
+      notice.style.display = 'block';
+    };
 
     resetCanvasView();
     renderFloorPins();
@@ -405,34 +424,80 @@
   }
 
   window.zoomCanvas = function(delta) {
-    scale = Math.max(0.4, Math.min(2.5, scale + delta));
+    scale = Math.max(0.3, Math.min(3.5, scale + delta));
     updateTransform();
   };
 
   window.resetCanvasView = function() {
-    scale = 0.8; panX = 0; panY = 0;
+    scale = 0.65; panX = 0; panY = 0;
     updateTransform();
   };
 
-  canvasWrap.addEventListener('pointerdown', (e) => {
-    if (e.target.classList.contains('floor-inst-pin')) return;
-    isPanning = true;
-    startX = e.clientX - panX;
-    startY = e.clientY - panY;
+  // 모바일 터치(핀치 줌 & 드래그) 이벤트 리스너
+  canvasWrap.addEventListener('touchstart', (e) => {
+    if (e.target.closest('.floor-inst-pin')) return;
+    if (e.touches.length === 1) {
+      isDragging = true;
+      dragStartX = e.touches[0].clientX - panX;
+      dragStartY = e.touches[0].clientY - panY;
+    } else if (e.touches.length === 2) {
+      isDragging = false;
+      initialPinchDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      initialScale = scale;
+    }
+  }, { passive: false });
+
+  canvasWrap.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (e.touches.length === 1 && isDragging) {
+      panX = e.touches[0].clientX - dragStartX;
+      panY = e.touches[0].clientY - dragStartY;
+      updateTransform();
+    } else if (e.touches.length === 2) {
+      const currentDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      if (initialPinchDist > 0) {
+        const factor = currentDist / initialPinchDist;
+        scale = Math.max(0.3, Math.min(3.5, initialScale * factor));
+        updateTransform();
+      }
+    }
+  }, { passive: false });
+
+  canvasWrap.addEventListener('touchend', (e) => {
+    if (e.touches.length === 0) isDragging = false;
+  });
+
+  // PC 마우스 드래그 및 휠 줌
+  canvasWrap.addEventListener('mousedown', (e) => {
+    if (e.target.closest('.floor-inst-pin')) return;
+    isDragging = true;
+    dragStartX = e.clientX - panX;
+    dragStartY = e.clientY - panY;
     canvasWrap.style.cursor = 'grabbing';
   });
 
-  window.addEventListener('pointermove', (e) => {
-    if (!isPanning) return;
-    panX = e.clientX - startX;
-    panY = e.clientY - startY;
+  window.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    panX = e.clientX - dragStartX;
+    panY = e.clientY - dragStartY;
     updateTransform();
   });
 
-  window.addEventListener('pointerup', () => {
-    isPanning = false;
+  window.addEventListener('mouseup', () => {
+    isDragging = false;
     canvasWrap.style.cursor = 'grab';
   });
+
+  canvasWrap.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    zoomCanvas(e.deltaY < 0 ? 0.15 : -0.15);
+  }, { passive: false });
 
   // 도면 터치 시 신규 핀 등록
   board.addEventListener('click', (e) => {
