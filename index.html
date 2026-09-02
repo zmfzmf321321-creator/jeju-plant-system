@@ -228,6 +228,7 @@
     <span class="location-tag" id="currentFloorTag">보일러 전체</span>
   </div>
   <div class="header-btns">
+    <span id="loginUserBadge" style="font-size:11px; color:#38bdf8; font-weight:bold; margin-right:4px;"></span>
     <button class="btn-bio-reg" id="btnRegisterBio">👆 지문 등록</button>
     <button class="btn-logout" id="btnLogout">로그아웃</button>
   </div>
@@ -320,7 +321,7 @@
   <h3>📋 정비/점검 이력 추가</h3>
   <div style="font-size: 13px; color: #0284c7; font-weight: bold; margin-bottom: 12px;" id="histTargetTag"></div>
   <div class="form-group"><label>작업일자</label><input type="date" id="histDate"></div>
-  <div class="form-group"><label>작업자</label><input type="text" id="histAuthor"></div>
+  <div class="form-group"><label>작업자 성명</label><input type="text" id="histAuthor" placeholder="작업자 이름을 입력하세요"></div>
   <div class="form-group"><label>내용</label><textarea id="histContent" rows="3" placeholder="점검 내역 입력"></textarea></div>
   <div class="btn-wrap">
     <button class="btn-save" id="btnSaveHist">이력 저장</button>
@@ -352,9 +353,14 @@
     '4층': 15, '4.5층': 25, '5층': 35, '5.5층': 45, '6층': 55, '7층': 70
   };
 
+  // 로그인 상태 동기화 및 사용자 실명 유지
   function unlock(name, email = 'user@jeju.com') {
-    currentUserInfo = { name: name, email: email };
+    const savedName = localStorage.getItem('jeju_worker_name');
+    const finalName = savedName || name;
+    currentUserInfo = { name: finalName, email: email };
+    
     document.getElementById('auth-overlay').style.display = 'none';
+    document.getElementById('loginUserBadge').innerText = `👤 ${finalName}`;
     fetchInstruments();
   }
 
@@ -374,14 +380,27 @@
     document.getElementById('register-box').style.display = 'none';
     document.getElementById('login-box').style.display = 'block';
   });
+
+  // 관리자 모드 접속 시 실명 입력 가능
   document.getElementById('btnAdminSubmit').addEventListener('click', () => {
     if (document.getElementById('adminPassInput').value.trim() === ADMIN_MASTER_PASS) {
       sessionStorage.setItem('jeju_admin_auth', 'true');
-      unlock('👑 최고관리자', 'admin@jeju.com');
+      const defaultName = localStorage.getItem('jeju_worker_name') || '관리자';
+      unlock(defaultName, 'admin@jeju.com');
     } else {
       document.getElementById('adminErrorMsg').style.display = 'block';
     }
   });
+
+  // 팀원 로그인
+  document.getElementById('btnMemberLogin').addEventListener('click', () => {
+    const email = document.getElementById('loginEmail').value.trim();
+    if (!email) { alert('사번(이메일)을 입력해 주세요.'); return; }
+    const namePart = email.split('@')[0];
+    localStorage.setItem('jeju_worker_name', namePart);
+    unlock(namePart, email);
+  });
+
   document.getElementById('btnLogout').addEventListener('click', () => {
     sessionStorage.removeItem('jeju_admin_auth');
     location.reload();
@@ -556,8 +575,6 @@
     if (!error) {
       currentInstruments = (data || []).map(item => {
         let f = item.floor;
-        
-        // 데이터베이스에 입력된 값이 숫자형태(int4)인 경우를 대비하여 문자열화 후 '층'을 붙임
         if (f !== null && f !== undefined) {
           f = String(f);
           if (!f.includes('층')) {
@@ -631,6 +648,7 @@
     });
   }
 
+  // 상세 모달 표시
   function showDetail(item) {
     activeTargetId = item.id;
     document.getElementById('infoTitle').innerText = `[${item.tag_no}] ${item.name}`;
@@ -653,7 +671,8 @@
       document.getElementById('info-modal').style.display = 'none';
       document.getElementById('histTargetTag').innerText = `[${item.tag_no}] ${item.name}`;
       document.getElementById('histDate').value = new Date().toISOString().slice(0, 10);
-      document.getElementById('histAuthor').value = currentUserInfo.name || '';
+      // 로그인한 실명으로 기본 지정 (수정 가능)
+      document.getElementById('histAuthor').value = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '';
       document.getElementById('histContent').value = '';
       document.getElementById('history-modal').style.display = 'block';
     };
@@ -668,15 +687,22 @@
     document.getElementById('info-modal').style.display = 'block';
   }
 
+  // 이력 저장 시 입력한 작업자 성명으로 반영
   document.getElementById('btnSaveHist').addEventListener('click', async () => {
     const text = document.getElementById('histContent').value.trim();
-    if (!text) { alert('내용을 입력하세요.'); return; }
+    const workerName = document.getElementById('histAuthor').value.trim();
+    if (!workerName) { alert('작업자 성명을 입력하세요.'); return; }
+    if (!text) { alert('점검 내용을 입력하세요.'); return; }
+
+    localStorage.setItem('jeju_worker_name', workerName);
+    currentUserInfo.name = workerName;
+    document.getElementById('loginUserBadge').innerText = `👤 ${workerName}`;
 
     const target = currentInstruments.find(i => i.id === activeTargetId);
     const logs = Array.isArray(target.history_logs) ? target.history_logs : [];
     const newEntry = {
       date: document.getElementById('histDate').value,
-      author: document.getElementById('histAuthor').value || '작업자',
+      author: workerName,
       content: text
     };
     const updated = [newEntry, ...logs];
@@ -685,12 +711,14 @@
     if (!error) {
       target.history_logs = updated;
       document.getElementById('history-modal').style.display = 'none';
-      alert('✅ 이력이 저장되었습니다.');
+      alert(`✅ [${workerName}] 님의 점검 이력이 저장되었습니다.`);
+      fetchInstruments();
     }
   });
 
   if (sessionStorage.getItem('jeju_admin_auth') === 'true') {
-    unlock('👑 최고관리자', 'admin@jeju.com');
+    const savedWorker = localStorage.getItem('jeju_worker_name') || '관리자';
+    unlock(savedWorker, 'admin@jeju.com');
   }
 </script>
 </body>
