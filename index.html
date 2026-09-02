@@ -74,49 +74,26 @@
       --poster-color: transparent;
     }
 
-    /* 실시간 3D 축 & 수동 회전 컨트롤 패널 */
-    #axis-control-hud {
-      position: absolute; top: 10px; left: 10px; right: 10px;
-      background: rgba(11, 19, 43, 0.94); border: 1px solid #00b4d8;
-      border-radius: 12px; padding: 10px; font-size: 12px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.7); z-index: 20;
-    }
-    .hud-info {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 8px; border-bottom: 1px solid #334155; padding-bottom: 6px;
-    }
-    .hud-val { color: #facc15; font-family: monospace; font-weight: bold; }
-
-    .axis-btn-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 6px;
-    }
-    .axis-control-btn {
-      background: #1e293b; color: #90e0ef; border: 1px solid #38bdf8;
-      border-radius: 6px; padding: 7px 0; font-size: 11px; font-weight: bold; cursor: pointer;
-      text-align: center;
-    }
-    .axis-control-btn:active { background: #0284c7; color: #fff; }
-
-    .util-btn-row {
-      display: flex; gap: 6px;
-    }
-    .util-btn {
-      flex: 1; background: #334155; color: #fff; border: 1px solid #64748b;
-      border-radius: 6px; padding: 6px 0; font-size: 11px; font-weight: bold; cursor: pointer;
+    .guide-box {
+      position: absolute; top: 12px; left: 12px;
+      background: rgba(11, 19, 43, 0.85); border: 1px solid #00b4d8;
+      color: #90e0ef; padding: 6px 12px; border-radius: 8px; font-size: 11px; pointer-events: none;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5); z-index: 20;
     }
 
-    /* 하단 층 바 */
+    /* 하단 층수 스크롤 바 */
     #floor-bar {
       position: fixed; bottom: 0; left: 0; width: 100vw; height: 65px;
       background: #111a33; border-top: 2px solid #3a506b; display: flex;
-      align-items: center; padding: 0 10px; gap: 8px; z-index: 5000;
-      overflow-x: auto; scrollbar-width: none;
+      align-items: center; padding: 0 10px; gap: 6px; z-index: 5000;
+      overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
     }
     #floor-bar::-webkit-scrollbar { display: none; }
     .floor-btn {
-      flex-shrink: 0; height: 42px; min-width: 52px; padding: 0 10px;
+      flex-shrink: 0; height: 42px; min-width: 58px; padding: 0 10px;
       background: #1c2541; color: #94a3b8; border: 1px solid #3a506b;
-      border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer;
+      border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer;
+      white-space: nowrap;
     }
     .floor-btn.active {
       background: #00b4d8; color: #0b132b; border-color: #90e0ef;
@@ -193,7 +170,7 @@
 <div id="header">
   <div class="brand">
     <span>⚡ 보일러 3D 계측관리</span>
-    <span class="location-tag" id="currentFloorTag">전체 뷰</span>
+    <span class="location-tag" id="currentFloorTag">보일러 전체</span>
   </div>
   <div class="header-btns">
     <button class="btn-bio-reg" id="btnRegisterBio">👆 지문 등록</button>
@@ -202,58 +179,41 @@
 </div>
 
 <div id="viewer-container">
-  <!-- 실시간 회전 축 컨트롤 패널 -->
-  <div id="axis-control-hud">
-    <div class="hud-info">
-      <span>📐 회전축(Orientation): <b class="hud-val" id="hudOrientationVal">0° 0° 90°</b></span>
-      <span>🎥 거리: <b class="hud-val" id="hudDistanceVal">100%</b></span>
-    </div>
-    
-    <!-- 축별 회전 버튼 -->
-    <div class="axis-btn-grid">
-      <button class="axis-control-btn" onclick="rotateAxis('x', 15)">X축 +15°</button>
-      <button class="axis-control-btn" onclick="rotateAxis('y', 15)">Y축 +15°</button>
-      <button class="axis-control-btn" onclick="rotateAxis('z', 15)">Z축 +15°</button>
-      <button class="axis-control-btn" onclick="rotateAxis('x', -15)">X축 -15°</button>
-      <button class="axis-control-btn" onclick="rotateAxis('y', -15)">Y축 -15°</button>
-      <button class="axis-control-btn" onclick="rotateAxis('z', -15)">Z축 -15°</button>
-    </div>
-
-    <!-- 줌 및 초기화 버튼 -->
-    <div class="util-btn-row">
-      <button class="util-btn" onclick="zoomView(0.85)">🔍 확대 (+)</button>
-      <button class="util-btn" onclick="zoomView(1.15)">🔎 축소 (-)</button>
-      <button class="util-btn" onclick="resetOrientation()" style="background:#0284c7; border-color:#38bdf8;">🔄 정립 리셋</button>
-    </div>
-  </div>
-
+  <div class="guide-box">🎮 회전(드래그) | 줌(핀치) | 표면 터치 시 핀 등록</div>
+  
+  <!-- 요청하신 최적 회전각 (-75deg -45deg 135deg) 및 거리 (380m)를 기본값으로 고정 -->
   <model-viewer id="boilerViewer" src="./boiler.glb"
-    orientation="0deg 0deg 90deg"
-    camera-orbit="45deg 70deg 105%"
+    orientation="-75deg -45deg 135deg"
+    camera-orbit="0deg 90deg 380m"
     camera-target="auto auto auto"
     camera-controls
-    touch-action="none"
+    touch-action="pan-y"
     interpolation-decay="150"
     environment-image="neutral"
     shadow-intensity="1.5"
     shadow-softness="0.5"
     exposure="1.0"
-    min-camera-orbit="auto auto 5%"
-    max-camera-orbit="auto auto 350%">
+    min-camera-orbit="auto auto 30m"
+    max-camera-orbit="auto auto 600m">
   </model-viewer>
 </div>
 
-<!-- 층 선택 바 -->
+<!-- 요청하신 13개 세부 층수 버튼 바 -->
 <div id="floor-bar">
-  <button class="floor-btn active" onclick="selectFloor('ALL', this)">전체</button>
-  <button class="floor-btn" onclick="selectFloor('1F', this)">1F</button>
-  <button class="floor-btn" onclick="selectFloor('2F', this)">2F</button>
-  <button class="floor-btn" onclick="selectFloor('3F', this)">3F</button>
-  <button class="floor-btn" onclick="selectFloor('4F', this)">4F</button>
-  <button class="floor-btn" onclick="selectFloor('5F', this)">5F</button>
-  <button class="floor-btn" onclick="selectFloor('6F', this)">6F</button>
-  <button class="floor-btn" onclick="selectFloor('7F', this)">7F</button>
-  <button class="floor-btn" onclick="selectFloor('8F', this)">8F</button>
+  <button class="floor-btn active" onclick="selectFloor('ALL', 0.5, this)">전체</button>
+  <button class="floor-btn" onclick="selectFloor('1층', 0.05, this)">1층</button>
+  <button class="floor-btn" onclick="selectFloor('2층', 0.12, this)">2층</button>
+  <button class="floor-btn" onclick="selectFloor('2.5층', 0.18, this)">2.5층</button>
+  <button class="floor-btn" onclick="selectFloor('3층', 0.25, this)">3층</button>
+  <button class="floor-btn" onclick="selectFloor('3.1/3층', 0.31, this)">3.1/3층</button>
+  <button class="floor-btn" onclick="selectFloor('3.2/3층', 0.38, this)">3.2/3층</button>
+  <button class="floor-btn" onclick="selectFloor('4층', 0.46, this)">4층</button>
+  <button class="floor-btn" onclick="selectFloor('4.5층', 0.54, this)">4.5층</button>
+  <button class="floor-btn" onclick="selectFloor('5층', 0.62, this)">5층</button>
+  <button class="floor-btn" onclick="selectFloor('5.5층', 0.70, this)">5.5층</button>
+  <button class="floor-btn" onclick="selectFloor('6층', 0.78, this)">6층</button>
+  <button class="floor-btn" onclick="selectFloor('7층', 0.88, this)">7층</button>
+  <button class="floor-btn" onclick="selectFloor('루프탑', 0.98, this)">루프탑</button>
 </div>
 
 <!-- 계측기 등록 모달 -->
@@ -309,11 +269,6 @@
   let activeTargetId = null;
   let selectedFloor = 'ALL';
 
-  // 현재 모델 축 각도 상태
-  let rotX = 0;
-  let rotY = 0;
-  let rotZ = 90;
-
   function unlock(name, email = 'user@jeju.com') {
     currentUserInfo = { name: name, email: email };
     document.getElementById('auth-overlay').style.display = 'none';
@@ -351,43 +306,8 @@
 
   const viewer = document.getElementById('boilerViewer');
 
-  // 축별 회전 함수
-  window.rotateAxis = function(axis, deg) {
-    if (axis === 'x') rotX = (rotX + deg) % 360;
-    if (axis === 'y') rotY = (rotY + deg) % 360;
-    if (axis === 'z') rotZ = (rotZ + deg) % 360;
-
-    const oriStr = `${rotX}deg ${rotY}deg ${rotZ}deg`;
-    viewer.orientation = oriStr;
-    document.getElementById('hudOrientationVal').innerText = `${rotX}° ${rotY}° ${rotZ}°`;
-  };
-
-  window.resetOrientation = function() {
-    rotX = 0; rotY = 0; rotZ = 90;
-    viewer.orientation = '0deg 0deg 90deg';
-    viewer.cameraOrbit = '45deg 70deg 105%';
-    viewer.cameraTarget = 'auto auto auto';
-    document.getElementById('hudOrientationVal').innerText = '0° 0° 90°';
-  };
-
-  window.zoomView = function(scale) {
-    const orbit = viewer.getCameraOrbit();
-    if (orbit) {
-      const theta = orbit.theta * (180 / Math.PI);
-      const phi = orbit.phi * (180 / Math.PI);
-      const newRadius = orbit.radius * scale;
-      viewer.cameraOrbit = `${theta}deg ${phi}deg ${newRadius}m`;
-    }
-  };
-
-  viewer.addEventListener('camera-change', () => {
-    const orbit = viewer.getCameraOrbit();
-    if (orbit) {
-      document.getElementById('hudDistanceVal').innerText = `${orbit.radius.toFixed(1)}m`;
-    }
-  });
-
-  window.selectFloor = function(floor, btn) {
+  // 층수 선택 시 해당 층 높이로 부드럽게 타겟팅
+  window.selectFloor = function(floor, heightRatio, btn) {
     selectedFloor = floor;
     document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
@@ -395,12 +315,11 @@
 
     if (floor === 'ALL') {
       viewer.cameraTarget = 'auto auto auto';
-      viewer.cameraOrbit = '45deg 70deg 105%';
+      viewer.cameraOrbit = '0deg 90deg 380m';
     } else {
-      const floorNum = parseInt(floor);
-      const percentY = ((floorNum - 1) / 7.0); 
-      viewer.cameraTarget = `auto ${percentY * 100}% auto`;
-      viewer.cameraOrbit = `30deg 75deg 60%`;
+      // 층수 비율(0.0 ~ 1.0)에 따라 높이 타겟과 줌 조절
+      viewer.cameraTarget = `auto ${Math.round(heightRatio * 100)}% auto`;
+      viewer.cameraOrbit = `0deg 90deg 220m`;
     }
     renderHotspots();
   };
