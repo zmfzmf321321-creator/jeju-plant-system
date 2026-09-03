@@ -454,7 +454,7 @@
     '6층': 38.50, '7층': 44.80
   };
 
-  // 실측 기준점 (1번 코너: 엘리베이터 측, 4번 코너: 대각 맞은편)
+  // 각 층별 실측 기준점 데이터 (1번 코너: 엘리베이터 측, 4번 코너: 대각 맞은편)
   const floorCorners2D = {
     '1층':     { c1: { x: 397, y: 216 }, c4: { x: 1118, y: 928 } },
     '2층':     { c1: { x: 372, y: 216 }, c4: { x: 1016, y: 838 } },
@@ -605,7 +605,6 @@
     }
   });
 
-  // 3D 뷰 계측 처리
   viewer.addEventListener('click', (event) => {
     if (!isMeasureMode) return;
     const rect = viewer.getBoundingClientRect();
@@ -709,7 +708,6 @@
   window.addEventListener('mouseup', () => { isDragging = false; canvasWrap.style.cursor = 'grab'; });
   canvasWrap.addEventListener('wheel', (e) => { e.preventDefault(); zoomCanvas(e.deltaY < 0 ? 0.15 : -0.15); }, { passive: false });
 
-  // 2D 도면 클릭: 계측 모드 ON/OFF 분기
   board.addEventListener('click', (e) => {
     if (e.target.closest('.floor-inst-pin')) return;
     const rect = board.getBoundingClientRect();
@@ -720,7 +718,6 @@
     const u = (curX / 1400).toFixed(3);
     const v = (curY / 1000).toFixed(3);
 
-    // 계측 모드 ON: 클릭 좌표 측정 및 클립보드 복사
     if (isMeasureMode) {
       let marker2d = board.querySelector('#temp-measure-marker-2d');
       if (!marker2d) {
@@ -738,7 +735,6 @@
       return;
     }
 
-    // 일반 등록 모드
     clickedFloorCoord = { x: curX, y: curY };
 
     document.getElementById('tagNo').value = '';
@@ -874,23 +870,26 @@
         const minY = bounds.c1.y;
         const maxY = bounds.c4.y;
 
-        // 실측 1번-4번 코너 영역 기준으로 u, v (0.0 ~ 1.0) 정밀 정규화
+        // 실측 1번-4번 코너 범위 기준으로 u, v (0.0 ~ 1.0) 정밀 정규화
         const spanX = maxX - minX || 1;
         const spanY = maxY - minY || 1;
-        const u = Math.max(0, Math.min(1, (item.coord_x - minX) / spanX));
-        const v = Math.max(0, Math.min(1, (item.coord_y - minY) / spanY));
+        const u = (item.coord_x - minX) / spanX;
+        const v = (item.coord_y - minY) / spanY;
 
         // 3D 모델 실측 앵커 포인트
-        // P1: 1번 코너 (엘리베이터 측, 도면상 좌상단 u=0, v=0)
-        // P4: 4번 코너 (엘리베이터 대각 맞은편, 도면상 우하단 u=1, v=1)
-        const P1 = { x: 12.93, z: 17.94 };  // 1번 코너
-        const P2 = { x: 30.94, z: 6.58 };   // 2번 코너 (우상단 u=1, v=0)
-        const P3 = { x: 19.86, z: -11.47 }; // 3번 코너 (좌하단 u=0, v=1)
-        const P4 = { x: 1.96,  z: -0.61 };  // 4번 코너
+        // P_TL: 1번 코너 (엘리베이터 측, 도면상 좌상단 u=0, v=0)
+        // P_TR: 2번 코너 (도면상 우상단 u=1, v=0)
+        // P_BL: 3번 코너 (도면상 좌하단 u=0, v=1)
+        // P_BR: 4번 코너 (엘리베이터 대각 맞은편, 도면상 우하단 u=1, v=1)
+        const P_TL = { x: 12.93, z: 17.94 };  // 1번 코너
+        const P_TR = { x: 30.94, z: 6.58 };   // 2번 코너
+        const P_BL = { x: 1.96,  z: -0.61 };  // 3번 코너 
+        const P_BR = { x: 19.86, z: -11.47 }; // 4번 코너
 
-        // Bilinear 보간 연산
-        const x3d = (1 - u) * (1 - v) * P1.x + u * (1 - v) * P2.x + (1 - u) * v * P3.x + u * v * P4.x;
-        const z3d = (1 - u) * (1 - v) * P1.z + u * (1 - v) * P2.z + (1 - u) * v * P3.z + u * v * P4.z;
+        // 직사각형 기반 Bilinear 보간 연산 (기하학적 대각선 완벽 대응)
+        const x3d = (1 - u) * (1 - v) * P_TL.x + u * (1 - v) * P_TR.x + (1 - u) * v * P_BL.x + u * v * P_BR.x;
+        const z3d = (1 - u) * (1 - v) * P_TL.z + u * (1 - v) * P_TR.z + (1 - u) * v * P_BL.z + u * v * P_BR.z;
+        
         pos = `${x3d.toFixed(2)} ${h} ${z3d.toFixed(2)}`;
       }
 
