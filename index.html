@@ -57,7 +57,7 @@
     #header {
       position: fixed; top: 0; left: 0; width: 100vw; height: 50px;
       background: #1c2541; display: flex; align-items: center; justify-content: space-between;
-      padding: 0 12px; border-bottom: 2px solid #3a506b; z-index: 5000;
+      padding: 0 12px; border-bottom: 1px solid #3a506b; z-index: 5000;
     }
     .brand { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
     .location-tag { background: #48cae4; color: #0b132b; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
@@ -67,8 +67,25 @@
     .btn-bio-reg { background: #065f46; border: 1px solid #10b981; color: #a7f3d0; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
     .btn-logout { background: transparent; border: 1px solid #64748b; color: #cbd5e1; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; }
 
+    /* 대분류 호기 선택 탭바 */
+    #unit-selector-bar {
+      position: fixed; top: 50px; left: 0; width: 100vw; height: 40px;
+      background: #0f172a; border-bottom: 2px solid #3a506b; display: flex;
+      align-items: center; justify-content: center; gap: 12px; z-index: 4900;
+    }
+    .unit-tab-btn {
+      flex: 1; max-width: 170px; height: 32px; border: 1px solid #334155;
+      background: #1e293b; color: #94a3b8; font-size: 13px; font-weight: bold;
+      border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: all 0.2s;
+    }
+    .unit-tab-btn.active {
+      background: #0284c7; color: #ffffff; border-color: #38bdf8;
+      box-shadow: 0 0 12px rgba(2, 132, 199, 0.6);
+    }
+
     #measure-info-hud {
-      display: none; position: absolute; top: 60px; left: 50%; transform: translateX(-50%);
+      display: none; position: absolute; top: 96px; left: 50%; transform: translateX(-50%);
       background: rgba(15, 23, 42, 0.95); border: 2px solid #f59e0b; padding: 8px 16px;
       border-radius: 20px; font-size: 12px; font-weight: bold; color: #fde68a; z-index: 6000;
       box-shadow: 0 4px 16px rgba(0,0,0,0.6); pointer-events: none; text-align: center;
@@ -76,7 +93,7 @@
     }
 
     #main-viewport {
-      position: fixed; top: 50px; bottom: 65px; left: 0; width: 100vw;
+      position: fixed; top: 90px; bottom: 65px; left: 0; width: 100vw;
       background: radial-gradient(circle at center, #1b2838 0%, #080d1a 100%);
       z-index: 10; overflow: hidden;
     }
@@ -303,8 +320,8 @@
 
 <div id="header">
   <div class="brand">
-    <span>⚡ 제주 보일러 계측관리</span>
-    <span class="location-tag" id="currentFloorTag">보일러 전체</span>
+    <span>⚡ 제주 보일러 제어</span>
+    <span class="location-tag" id="currentFloorTag">기력 2호기 전체</span>
   </div>
   <div class="header-btns">
     <span id="loginUserBadge" style="font-size:11px; color:#38bdf8; font-weight:bold; margin-right:4px;"></span>
@@ -312,6 +329,12 @@
     <button class="btn-bio-reg" id="btnRegisterBio">👆 지문 등록</button>
     <button class="btn-logout" id="btnLogout">로그아웃</button>
   </div>
+</div>
+
+<!-- 대분류: 기력 2호기 / 기력 3호기 선택 탭 -->
+<div id="unit-selector-bar">
+  <button class="unit-tab-btn active" id="tab-unit-2" onclick="switchUnit('2호기')">⚡ 기력 2호기</button>
+  <button class="unit-tab-btn" id="tab-unit-3" onclick="switchUnit('3호기')">⚡ 기력 3호기</button>
 </div>
 
 <div id="measure-info-hud">📐 모델 위 모서리를 터치하면 좌표가 자동 복사됩니다.</div>
@@ -337,7 +360,7 @@
     <div id="floor-room-header">
       <div>
         <div class="room-title" id="roomTitleText">📍 1층 도면 공간</div>
-        <div class="room-desc">2초간 길게 누르면 핀 이동 모드 | 일반 터치 시 정보 확인</div>
+        <div class="room-desc">2초간 길게 누르면 핀 이동 | 짧게 터치 시 정보 확인</div>
       </div>
       <button class="btn-exit-room" onclick="exitToOverall()">🌐 조감도로 나가기</button>
     </div>
@@ -374,7 +397,7 @@
 
 <!-- 등록 모달 -->
 <div id="modal">
-  <h3>계측기 등록 (<span id="modalFloorText" style="color:#00b4d8; font-weight:bold;">1층</span>)</h3>
+  <h3>계측기 등록 (<span id="modalUnitText" style="color:#0284c7; font-weight:bold;">2호기</span> <span id="modalFloorText" style="color:#00b4d8; font-weight:bold;">1층</span>)</h3>
   <div class="form-group"><label>Tag No.</label><input type="text" id="tagNo" placeholder="예: 20-PT-101"></div>
   <div class="form-group"><label>기기명</label><input type="text" id="name" placeholder="예: 급수 압력 전송기"></div>
   <div class="form-group"><label>모델명</label><input type="text" id="model"></div>
@@ -453,6 +476,7 @@
 
   let currentInstruments = [];
   let currentUserInfo = { name: '', email: '' };
+  let selectedUnit = '2호기'; // 기본 대분류: 기력 2호기
   let selectedFloor = 'ALL';
   let activeTargetId = null;
   let clickedFloorCoord = { x: 0, y: 0 };
@@ -469,7 +493,6 @@
   let initialPinchDist = 0;
   let initialScale = 0.65;
 
-  // 핀 이동 상태 변수
   let activeDraggingPin = null;
   let activeDraggingItem = null;
   let isPinMoving = false;
@@ -494,6 +517,126 @@
     '6층':     { c1: { x: 554, y: 170 }, c4: { x: 993,  y: 822 } },
     '7층':     { c1: { x: 132, y: 242 }, c4: { x: 569,  y: 855 } }
   };
+
+  /* --- WebAuthn 생체인식(지문/FaceID) 기능 구현 --- */
+  function bufferToBase64(buffer) {
+    return btoa(String.fromCharCode(...new Uint8Array(buffer)));
+  }
+  function base64ToBuffer(base64) {
+    return Uint8Array.from(atob(base64), c => c.charCodeAt(0)).buffer;
+  }
+
+  // 지문 등록
+  document.getElementById('btnRegisterBio').addEventListener('click', async () => {
+    if (!window.PublicKeyCredential) {
+      alert('⚠️ 현재 브라우저나 기기에서 생체인식(WebAuthn)을 지원하지 않습니다.');
+      return;
+    }
+    const workerName = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자';
+    try {
+      const challenge = new Uint8Array(32);
+      window.crypto.getRandomValues(challenge);
+      const userId = new Uint8Array(16);
+      window.crypto.getRandomValues(userId);
+
+      const credential = await navigator.credentials.create({
+        publicKey: {
+          challenge: challenge,
+          rp: { name: '제주 보일러 관리 시스템', id: window.location.hostname },
+          user: {
+            id: userId,
+            name: workerName,
+            displayName: workerName
+          },
+          pubKeyCredParams: [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
+          authenticatorSelection: {
+            authenticatorAttachment: 'platform',
+            userVerification: 'required'
+          },
+          timeout: 60000
+        }
+      });
+
+      if (credential) {
+        const rawIdBase64 = bufferToBase64(credential.rawId);
+        localStorage.setItem('jeju_bio_credential_id', rawIdBase64);
+        localStorage.setItem('jeju_bio_user_name', workerName);
+        alert(`✅ [${workerName}] 님의 기기 지문/생체 인증이 성공적으로 등록되었습니다!\n다음부터 지문 버튼으로 즉시 로그인할 수 있습니다.`);
+      }
+    } catch (err) {
+      console.error(err);
+      alert('❌ 지문 등록 실패 또는 취소되었습니다: ' + err.message);
+    }
+  });
+
+  // 지문 로그인
+  document.getElementById('btnBioLogin').addEventListener('click', async () => {
+    const credIdBase64 = localStorage.getItem('jeju_bio_credential_id');
+    const savedName = localStorage.getItem('jeju_bio_user_name') || '작업자';
+    const msgEl = document.getElementById('bioLoginMsg');
+    msgEl.style.display = 'none';
+
+    if (!credIdBase64) {
+      msgEl.innerText = '⚠️ 등록된 지문 정보가 없습니다. 먼저 사번 로그인 후 [지문 등록]을 진행해 주세요.';
+      msgEl.style.display = 'block';
+      return;
+    }
+
+    try {
+      const challenge = new Uint8Array(32);
+      window.crypto.getRandomValues(challenge);
+
+      const assertion = await navigator.credentials.get({
+        publicKey: {
+          challenge: challenge,
+          allowCredentials: [{
+            id: base64ToBuffer(credIdBase64),
+            type: 'public-key'
+          }],
+          userVerification: 'required',
+          timeout: 60000
+        }
+      });
+
+      if (assertion) {
+        unlock(savedName, `${savedName}@jeju.com`);
+      }
+    } catch (err) {
+      console.error(err);
+      msgEl.innerText = '⚠️ 생체 인증에 실패하였거나 취소되었습니다.';
+      msgEl.style.display = 'block';
+    }
+  });
+
+  // 호기 전환 (기력 2호기 / 기력 3호기)
+  window.switchUnit = function(unit) {
+    selectedUnit = unit;
+    document.getElementById('tab-unit-2').classList.toggle('active', unit === '2호기');
+    document.getElementById('tab-unit-3').classList.toggle('active', unit === '3호기');
+    
+    // 호기별 3D 모델 교체 (현재는 2/3호기 모두 boiler.glb 연결, 추후 3호기 모델 파일명 매핑 가능)
+    const viewer = document.getElementById('boilerViewer');
+    if (unit === '3호기') {
+      viewer.src = './boiler.glb'; // 3호기 전용 모델이 있을 경우 './boiler_3.glb' 등으로 교체 가능
+    } else {
+      viewer.src = './boiler.glb';
+    }
+
+    updateFloorTitle();
+    renderFloorPins();
+    render3DHotspots();
+  };
+
+  function updateFloorTitle() {
+    const floorTag = document.getElementById('currentFloorTag');
+    const roomTitle = document.getElementById('roomTitleText');
+    if (selectedFloor === 'ALL') {
+      floorTag.innerText = `기력 ${selectedUnit} 전체`;
+    } else {
+      floorTag.innerText = `기력 ${selectedUnit} ${selectedFloor}`;
+      roomTitle.innerText = `📍 [기력 ${selectedUnit} - ${selectedFloor}] 도면 공간`;
+    }
+  }
 
   function compressImage(file, callback) {
     if (!file) return;
@@ -607,9 +750,9 @@
     }
     measureHud.style.display = 'block';
     if (selectedFloor === 'ALL') {
-      measureHud.innerText = '📐 3D 모델 표면 터치 시 좌표가 측정·복사됩니다.';
+      measureHud.innerText = `📐 [기력 ${selectedUnit}] 3D 모델 표면 터치 시 좌표가 측정·복사됩니다.`;
     } else {
-      measureHud.innerText = `📐 [${selectedFloor} 도면] 터치 지점의 2D 도면 좌표가 측정·복사됩니다.`;
+      measureHud.innerText = `📐 [기력 ${selectedUnit} - ${selectedFloor} 도면] 터치 지점의 2D 도면 좌표가 측정·복사됩니다.`;
     }
   }
 
@@ -669,8 +812,7 @@
 
     document.getElementById('overall-3d-view').style.display = 'none';
     document.getElementById('floor-room-view').style.display = 'block';
-    document.getElementById('currentFloorTag').innerText = `보일러 ${floor}`;
-    document.getElementById('roomTitleText').innerText = `📍 [보일러 ${floor}] 도면 공간`;
+    updateFloorTitle();
 
     const testImg = new Image();
     testImg.src = `./${imgFile}`;
@@ -695,7 +837,7 @@
     document.getElementById('btn-ALL').classList.add('active');
     document.getElementById('floor-room-view').style.display = 'none';
     document.getElementById('overall-3d-view').style.display = 'block';
-    document.getElementById('currentFloorTag').innerText = '보일러 전체';
+    updateFloorTitle();
     render3DHotspots();
     updateMeasureHudPrompt();
   };
@@ -704,7 +846,6 @@
   window.zoomCanvas = function(delta) { scale = Math.max(0.3, Math.min(3.5, scale + delta)); updateTransform(); };
   window.resetCanvasView = function() { scale = 0.65; panX = 0; panY = 0; updateTransform(); };
 
-  // 캔버스 드래그 및 줌 (핀 이동 중일 때는 캔버스 이동 정지)
   canvasWrap.addEventListener('touchstart', (e) => {
     if (isPinMoving || e.target.closest('.floor-inst-pin')) return;
     if (e.touches.length === 1) {
@@ -726,8 +867,8 @@
     }
   }, { passive: false });
 
-  canvasWrap.addEventListener('touchend', (e) => {
-    if (e.touches.length === 0) isDragging = false;
+  canvasWrap.addEventListener('touchend', () => {
+    isDragging = false;
   });
 
   canvasWrap.addEventListener('mousedown', (e) => {
@@ -746,7 +887,7 @@
 
   canvasWrap.addEventListener('wheel', (e) => { e.preventDefault(); zoomCanvas(e.deltaY < 0 ? 0.15 : -0.15); }, { passive: false });
 
-  // 2D 도면 빈 공간 클릭 시 등록 모달
+  // 2D 도면 클릭: 신규 핀 등록
   board.addEventListener('click', (e) => {
     if (isPinMoving || e.target.closest('.floor-inst-pin')) return;
     const rect = board.getBoundingClientRect();
@@ -789,6 +930,7 @@
     document.getElementById('initHistAuthor').value = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '';
     document.getElementById('initHistContent').value = '';
 
+    document.getElementById('modalUnitText').innerText = selectedUnit;
     document.getElementById('modalFloorText').innerText = selectedFloor;
     document.getElementById('modal').style.display = 'block';
   });
@@ -820,6 +962,7 @@
       model: document.getElementById('model').value.trim() || 'EMPTY',
       signal_range: document.getElementById('range').value.trim() || 'EMPTY',
       floor: selectedFloor,
+      unit: selectedUnit, // 선택된 호기 저장
       coord_x: clickedFloorCoord.x,
       coord_y: clickedFloorCoord.y,
       x_coord: clickedFloorCoord.x,
@@ -855,9 +998,13 @@
 
         const img = item.photo_url || item.image_data || null;
 
+        // 기존 핀 데이터는 자동으로 '2호기'로 귀속
+        const u = item.unit || '2호기';
+
         return { 
           ...item, 
           floor: f, 
+          unit: u,
           coord_x: cx, 
           coord_y: cy, 
           photo_url: img,
@@ -870,11 +1017,11 @@
     }
   }
 
-  // 2초 롱프레스 핀 이동 로직 (Pointer Events 기반)
+  // 2D 도면 핀 렌더링 (호기 및 층 필터링)
   function renderFloorPins() {
     board.querySelectorAll('.floor-inst-pin').forEach(el => el.remove());
     currentInstruments.forEach(item => {
-      if (item.floor !== selectedFloor) return;
+      if (item.unit !== selectedUnit || item.floor !== selectedFloor) return;
       const pin = document.createElement('div');
       pin.className = 'floor-inst-pin';
       pin.style.left = `${item.coord_x}px`;
@@ -893,7 +1040,6 @@
       let startClientY = 0;
       let isLongPressed = false;
 
-      // 브라우저 기본 우클릭/길게누름 메뉴 차단
       pin.oncontextmenu = (e) => { e.preventDefault(); return false; };
 
       pin.addEventListener('pointerdown', (e) => {
@@ -906,7 +1052,7 @@
         
         pin.classList.add('pin-pressing');
         measureHud.style.display = 'block';
-        measureHud.innerText = `⏳ [${item.tag_no}] 핀을 2초간 누르고 있으면 이동할 수 있습니다...`;
+        measureHud.innerText = `⏳ [${item.tag_no}] 2초간 누르고 있으면 이동할 수 있습니다...`;
 
         pressTimer = setTimeout(() => {
           isLongPressed = true;
@@ -933,7 +1079,6 @@
           pin.style.left = `${curX}px`;
           pin.style.top = `${curY}px`;
         } else if (pressTimer) {
-          // 2초 채우기 전 손가락이 10px 이상 흔들리면 오동작 방지 위해 타이머 취소
           const dist = Math.hypot(e.clientX - startClientX, e.clientY - startClientY);
           if (dist > 10) {
             clearTimeout(pressTimer);
@@ -979,7 +1124,6 @@
           activeDraggingPin = null;
           activeDraggingItem = null;
         } else {
-          // 2초 미만 짧게 터치한 경우 -> 상세 모달 오픈
           if (!isMeasureMode) measureHud.style.display = 'none';
           showDetail(item);
         }
@@ -992,9 +1136,12 @@
     });
   }
 
+  // 3D 조감도 핀 렌더링 (선택된 호기 전용 핀 표시)
   function render3DHotspots() {
     viewer.querySelectorAll('.hotspot-pin').forEach(el => el.remove());
     currentInstruments.forEach(item => {
+      if (item.unit !== selectedUnit) return; // 선택된 호기 핀만 3D에 노출
+
       let pos = item.model_position;
       if (!pos || pos === '0 0 0') {
         const h = floor3DHeights[item.floor] !== undefined ? floor3DHeights[item.floor] : 26;
@@ -1010,7 +1157,7 @@
         const u = (item.coord_x - minX) / spanX; 
         const v = (item.coord_y - minY) / spanY; 
 
-        // 3D 모델 앵커 포인트
+        // 3D 모델 실측 앵커 포인트
         const P1 = { x: 19.96, z: -11.43 }; // 1번 코너
         const P2 = { x: 30.93, z: 6.89 };   // 2번 코너
         const P3 = { x: 1.65,  z: -0.47 };  // 3번 코너
@@ -1054,7 +1201,7 @@
     }
 
     document.getElementById('infoBody').innerHTML = `
-      <div><b>배치:</b> <span style="color:#0284c7; font-weight:bold;">${item.floor}</span></div>
+      <div><b>배치:</b> <span style="color:#0284c7; font-weight:bold;">${item.unit || '2호기'} ${item.floor}</span></div>
       <div><b>모델명:</b> ${item.model || '-'}</div>
       <div><b>측정범위:</b> ${item.signal_range || '-'}</div>
     `;
