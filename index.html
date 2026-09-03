@@ -57,17 +57,17 @@
     #header {
       position: fixed; top: 0; left: 0; width: 100vw; height: 50px;
       background: #1c2541; display: flex; align-items: center; justify-content: space-between;
-      padding: 0 12px; border-bottom: 1px solid #3a506b; z-index: 5000;
+      padding: 0 10px; border-bottom: 1px solid #3a506b; z-index: 5000;
     }
-    .brand { font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
-    .location-tag { background: #48cae4; color: #0b132b; padding: 4px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
-    .header-btns { display: flex; gap: 6px; align-items: center; }
-    .btn-measure { background: #334155; border: 1px solid #64748b; color: #f8fafc; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
+    .brand { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+    .location-tag { background: #48cae4; color: #0b132b; padding: 3px 6px; border-radius: 10px; font-size: 11px; font-weight: bold; }
+    .header-btns { display: flex; gap: 5px; align-items: center; }
+    .btn-search-top { background: #0284c7; border: 1px solid #38bdf8; color: #fff; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
+    .btn-measure { background: #334155; border: 1px solid #64748b; color: #f8fafc; padding: 5px 7px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
     .btn-measure.active { background: #f59e0b; border-color: #fbbf24; color: #111827; }
-    .btn-bio-reg { background: #065f46; border: 1px solid #10b981; color: #a7f3d0; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
-    .btn-logout { background: transparent; border: 1px solid #64748b; color: #cbd5e1; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; }
+    .btn-bio-reg { background: #065f46; border: 1px solid #10b981; color: #a7f3d0; padding: 5px 7px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
+    .btn-logout { background: transparent; border: 1px solid #64748b; color: #cbd5e1; padding: 5px 7px; border-radius: 6px; cursor: pointer; font-size: 11px; }
 
-    /* 대분류: 기력 2호기 / 3호기 선택 탭바 */
     #unit-selector-bar {
       position: fixed; top: 50px; left: 0; width: 100vw; height: 40px;
       background: #0f172a; border-bottom: 2px solid #3a506b; display: flex;
@@ -103,37 +103,17 @@
     model-viewer::part(default-progress-bar), model-viewer::part(prompt) { display: none !important; }
 
     .hotspot-pin {
-      background: #00b4d8;
-      border: 2px solid #ffffff;
-      border-radius: 50%;
-      width: 28px;
-      height: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      font-weight: bold;
-      color: #0b132b;
-      cursor: pointer;
+      background: #00b4d8; border: 2px solid #ffffff; border-radius: 50%;
+      width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: bold; color: #0b132b; cursor: pointer;
       box-shadow: 0 0 10px rgba(0, 180, 216, 0.9);
       transform: translate(-50%, -50%) scale(var(--pin-scale, 1));
-      transition: transform 0.1s ease-out;
-      background-size: cover;
-      background-position: center;
+      transition: transform 0.1s ease-out; background-size: cover; background-position: center;
     }
     .hotspot-pin span {
-      position: absolute;
-      top: -24px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(11, 19, 43, 0.92);
-      color: #38bdf8;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 10px;
-      white-space: nowrap;
-      border: 1px solid #38bdf8;
-      pointer-events: none;
+      position: absolute; top: -24px; left: 50%; transform: translateX(-50%);
+      background: rgba(11, 19, 43, 0.92); color: #38bdf8; padding: 2px 6px;
+      border-radius: 4px; font-size: 10px; white-space: nowrap; border: 1px solid #38bdf8; pointer-events: none;
     }
 
     .measure-marker {
@@ -143,8 +123,7 @@
     }
 
     .measure-marker-2d {
-      position: absolute;
-      background: #f59e0b; border: 2px solid #ffffff; border-radius: 50%;
+      position: absolute; background: #f59e0b; border: 2px solid #ffffff; border-radius: 50%;
       width: 14px; height: 14px; transform: translate(-50%, -50%);
       box-shadow: 0 0 10px #f59e0b; pointer-events: none; z-index: 99;
     }
@@ -200,29 +179,28 @@
       color: #0b132b; font-size: 14px; font-weight: bold; cursor: grab;
       transform: translate(-50%, -50%); z-index: 50;
       background-size: cover; background-position: center;
-      touch-action: none;
-      user-select: none;
-      -webkit-user-select: none;
-      -webkit-touch-callout: none;
+      touch-action: none; user-select: none; -webkit-user-select: none;
       transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
     }
     .floor-inst-pin.pin-pressing {
-      transform: translate(-50%, -50%) scale(1.15);
-      border-color: #facc15;
+      transform: translate(-50%, -50%) scale(1.15); border-color: #facc15;
       box-shadow: 0 0 20px rgba(250, 204, 21, 0.9);
     }
     .floor-inst-pin.pin-dragging {
-      border-color: #f59e0b;
-      box-shadow: 0 0 25px rgba(245, 158, 11, 1), 0 0 45px rgba(245, 158, 11, 0.7);
-      transform: translate(-50%, -50%) scale(1.45) !important;
-      z-index: 9999 !important;
-      cursor: grabbing !important;
+      border-color: #f59e0b; box-shadow: 0 0 25px rgba(245, 158, 11, 1), 0 0 45px rgba(245, 158, 11, 0.7);
+      transform: translate(-50%, -50%) scale(1.45) !important; z-index: 9999 !important; cursor: grabbing !important;
+    }
+    .floor-inst-pin.pin-highlight {
+      animation: pinPulse 1.2s infinite alternate; border-color: #ec4899 !important;
+    }
+    @keyframes pinPulse {
+      0% { transform: translate(-50%, -50%) scale(1.0); box-shadow: 0 0 10px #ec4899; }
+      100% { transform: translate(-50%, -50%) scale(1.5); box-shadow: 0 0 35px #ec4899; }
     }
     .floor-inst-pin span {
       position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%);
       background: rgba(11, 19, 43, 0.9); color: #fff; padding: 2px 6px;
-      border-radius: 4px; font-size: 11px; white-space: nowrap; border: 1px solid #38bdf8;
-      pointer-events: none;
+      border-radius: 4px; font-size: 11px; white-space: nowrap; border: 1px solid #38bdf8; pointer-events: none;
     }
 
     .canvas-zoom-ctrl {
@@ -245,18 +223,17 @@
     .floor-btn {
       flex-shrink: 0; height: 42px; min-width: 58px; padding: 0 10px;
       background: #1c2541; color: #94a3b8; border: 1px solid #3a506b;
-      border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer;
-      white-space: nowrap;
+      border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; white-space: nowrap;
     }
     .floor-btn.active { background: #00b4d8; color: #0b132b; border-color: #90e0ef; }
 
-    #modal, #info-modal, #history-modal {
+    #modal, #info-modal, #history-modal, #search-modal {
       display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
       background: #ffffff; padding: 20px; border-radius: 12px; z-index: 999999;
-      width: 90%; max-width: 360px; color: #333; max-height: 88vh; overflow-y: auto;
+      width: 92%; max-width: 380px; color: #333; max-height: 88vh; overflow-y: auto;
       box-shadow: 0 10px 40px rgba(0,0,0,0.8);
     }
-    #modal h3, #info-modal h3, #history-modal h3 { margin: 0 0 12px 0; font-size: 16px; color: #0b132b; }
+    #modal h3, #info-modal h3, #history-modal h3, #search-modal h3 { margin: 0 0 12px 0; font-size: 16px; color: #0b132b; }
     .form-group { margin-bottom: 10px; }
     .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #334155; }
     .form-group input, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; font-family: inherit; color: #111; }
@@ -273,12 +250,26 @@
 
     .history-section { margin-top: 12px; padding-top: 10px; border-top: 1px dashed #cbd5e1; }
     .history-title { font-size: 13px; font-weight: bold; color: #0284c7; margin-bottom: 8px; }
-    .history-list { max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
-    .history-item { background: #f8fafc; border-left: 3px solid #0284c7; padding: 8px; border-radius: 4px; font-size: 12px; }
+    .history-list { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+    .history-item { background: #f8fafc; border-left: 3px solid #0284c7; padding: 8px; border-radius: 4px; font-size: 12px; position: relative; }
+    .history-item-header { display: flex; justify-content: space-between; align-items: center; color: #64748b; font-size: 11px; margin-bottom: 4px; }
+    .history-actions { display: flex; gap: 6px; }
+    .btn-hist-action { background: transparent; border: none; cursor: pointer; font-size: 11px; font-weight: bold; padding: 2px 4px; border-radius: 3px; }
+    .btn-hist-edit { color: #0284c7; }
+    .btn-hist-del { color: #ef4444; }
     .hist-img { width: 100%; max-height: 100px; object-fit: cover; border-radius: 4px; margin-top: 6px; }
     
     .btn-add-history-quick { width: 100%; padding: 9px; background: #0284c7; color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; margin-bottom: 6px; }
     .btn-delete-pin { width: 100%; padding: 8px; background: #ef4444; border: none; border-radius: 6px; color: #fff; font-size: 12px; font-weight: bold; cursor: pointer; }
+
+    /* 검색 모달 스타일 */
+    .search-input-box { width: 100%; padding: 10px 12px; border: 2px solid #00b4d8; border-radius: 8px; font-size: 14px; outline: none; margin-bottom: 12px; }
+    .search-results-list { max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+    .search-result-item { background: #f1f5f9; padding: 10px; border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border: 1px solid #cbd5e1; }
+    .search-result-item:hover { background: #e2e8f0; border-color: #0284c7; }
+    .search-item-main { font-size: 13px; font-weight: bold; color: #0b132b; }
+    .search-item-sub { font-size: 11px; color: #64748b; margin-top: 2px; }
+    .search-item-badge { background: #0284c7; color: #fff; padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; white-space: nowrap; }
   </style>
 </head>
 <body>
@@ -324,14 +315,14 @@
     <span class="location-tag" id="currentFloorTag">기력 2호기 전체</span>
   </div>
   <div class="header-btns">
-    <span id="loginUserBadge" style="font-size:11px; color:#38bdf8; font-weight:bold; margin-right:4px;"></span>
-    <button class="btn-measure" id="btnToggleMeasure">📐 계측 모드</button>
-    <button class="btn-bio-reg" id="btnRegisterBio">👆 지문 등록</button>
+    <span id="loginUserBadge" style="font-size:11px; color:#38bdf8; font-weight:bold; margin-right:2px;"></span>
+    <button class="btn-search-top" id="btnOpenSearch">🔍 검색</button>
+    <button class="btn-measure" id="btnToggleMeasure">📐 계측</button>
+    <button class="btn-bio-reg" id="btnRegisterBio">👆 지문</button>
     <button class="btn-logout" id="btnLogout">로그아웃</button>
   </div>
 </div>
 
-<!-- 대분류: 기력 2호기 / 기력 3호기 선택 탭 -->
 <div id="unit-selector-bar">
   <button class="unit-tab-btn active" id="tab-unit-2" onclick="switchUnit('2호기')">⚡ 기력 2호기</button>
   <button class="unit-tab-btn" id="tab-unit-3" onclick="switchUnit('3호기')">⚡ 기력 3호기</button>
@@ -395,6 +386,18 @@
   <button class="floor-btn" onclick="openFloorRoom('7층', 'floor_7f.jpg', this)">7층</button>
 </div>
 
+<!-- 검색 모달 -->
+<div id="search-modal">
+  <h3>🔍 계측기 검색 및 바로가기</h3>
+  <input type="text" id="searchInput" class="search-input-box" placeholder="Tag No 또는 기기명 검색 (예: 20-PT-101)">
+  <div class="search-results-list" id="searchResultsList">
+    <div style="color: #94a3b8; font-size: 12px; text-align: center; padding: 20px;">검색어를 입력하세요.</div>
+  </div>
+  <div class="btn-wrap" style="margin-top: 14px;">
+    <button class="btn-cancel" onclick="document.getElementById('search-modal').style.display='none'">닫기</button>
+  </div>
+</div>
+
 <!-- 등록 모달 -->
 <div id="modal">
   <h3>계측기 등록 (<span id="modalUnitText" style="color:#0284c7; font-weight:bold;">2호기</span> <span id="modalFloorText" style="color:#00b4d8; font-weight:bold;">1층</span>)</h3>
@@ -431,7 +434,7 @@
   </div>
 </div>
 
-<!-- 정보 모달 -->
+<!-- 계측기 상세 정보 모달 -->
 <div id="info-modal">
   <h3 id="infoTitle">계측기 상세</h3>
   <img id="infoMainImg" class="preview-img" style="margin-bottom:10px;">
@@ -447,9 +450,9 @@
   </div>
 </div>
 
-<!-- 이력 추가 모달 -->
+<!-- 이력 추가 / 수정 모달 -->
 <div id="history-modal">
-  <h3>📋 정비/점검 이력 추가</h3>
+  <h3 id="histModalTitle">📋 정비/점검 이력 관리</h3>
   <div style="font-size: 13px; color: #0284c7; font-weight: bold; margin-bottom: 12px;" id="histTargetTag"></div>
   <div class="form-group"><label>작업일자</label><input type="date" id="histDate"></div>
   <div class="form-group"><label>작업자 성명</label><input type="text" id="histAuthor" placeholder="홍길동"></div>
@@ -476,9 +479,10 @@
 
   let currentInstruments = [];
   let currentUserInfo = { name: '', email: '' };
-  let selectedUnit = '2호기'; // 기본 대분류: 기력 2호기
+  let selectedUnit = '2호기';
   let selectedFloor = 'ALL';
   let activeTargetId = null;
+  let editingHistoryIndex = null; // null: 신규, 숫자: 수정 인덱스
   let clickedFloorCoord = { x: 0, y: 0 };
   let isMeasureMode = false;
   
@@ -518,58 +522,35 @@
     '7층':     { c1: { x: 132, y: 242 }, c4: { x: 569,  y: 855 } }
   };
 
-  /* --- WebAuthn 생체인식(지문/FaceID) 기능 구현 --- */
-  function bufferToBase64(buffer) {
-    return btoa(String.fromCharCode(...new Uint8Array(buffer)));
-  }
-  function base64ToBuffer(base64) {
-    return Uint8Array.from(atob(base64), c => c.charCodeAt(0)).buffer;
-  }
+  /* --- WebAuthn 생체인식 --- */
+  function bufferToBase64(buffer) { return btoa(String.fromCharCode(...new Uint8Array(buffer))); }
+  function base64ToBuffer(base64) { return Uint8Array.from(atob(base64), c => c.charCodeAt(0)).buffer; }
 
-  // 지문 등록
   document.getElementById('btnRegisterBio').addEventListener('click', async () => {
-    if (!window.PublicKeyCredential) {
-      alert('⚠️ 현재 브라우저나 기기에서 생체인식(WebAuthn)을 지원하지 않습니다.');
-      return;
-    }
+    if (!window.PublicKeyCredential) { alert('⚠️ 브라우저/기기가 WebAuthn 생체인식을 지원하지 않습니다.'); return; }
     const workerName = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자';
     try {
-      const challenge = new Uint8Array(32);
-      window.crypto.getRandomValues(challenge);
-      const userId = new Uint8Array(16);
-      window.crypto.getRandomValues(userId);
-
+      const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
+      const userId = new Uint8Array(16); window.crypto.getRandomValues(userId);
       const credential = await navigator.credentials.create({
         publicKey: {
-          challenge: challenge,
-          rp: { name: '제주 보일러 관리 시스템', id: window.location.hostname },
-          user: {
-            id: userId,
-            name: workerName,
-            displayName: workerName
-          },
+          challenge, rp: { name: '제주 보일러 계측관리', id: window.location.hostname },
+          user: { id: userId, name: workerName, displayName: workerName },
           pubKeyCredParams: [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
-          authenticatorSelection: {
-            authenticatorAttachment: 'platform',
-            userVerification: 'required'
-          },
+          authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
           timeout: 60000
         }
       });
-
       if (credential) {
-        const rawIdBase64 = bufferToBase64(credential.rawId);
-        localStorage.setItem('jeju_bio_credential_id', rawIdBase64);
+        localStorage.setItem('jeju_bio_credential_id', bufferToBase64(credential.rawId));
         localStorage.setItem('jeju_bio_user_name', workerName);
-        alert(`✅ [${workerName}] 님의 기기 지문/생체 인증이 성공적으로 등록되었습니다!\n다음부터 지문 버튼으로 즉시 로그인할 수 있습니다.`);
+        alert(`✅ [${workerName}] 님의 기기 생체인증이 등록되었습니다.`);
       }
     } catch (err) {
-      console.error(err);
-      alert('❌ 지문 등록 실패 또는 취소되었습니다: ' + err.message);
+      alert('❌ 지문 등록 실패: ' + err.message);
     }
   });
 
-  // 지문 로그인
   document.getElementById('btnBioLogin').addEventListener('click', async () => {
     const credIdBase64 = localStorage.getItem('jeju_bio_credential_id');
     const savedName = localStorage.getItem('jeju_bio_user_name') || '작업자';
@@ -577,43 +558,26 @@
     msgEl.style.display = 'none';
 
     if (!credIdBase64) {
-      msgEl.innerText = '⚠️ 등록된 지문 정보가 없습니다. 먼저 사번 로그인 후 [지문 등록]을 진행해 주세요.';
-      msgEl.style.display = 'block';
-      return;
+      msgEl.innerText = '⚠️ 등록된 지문 정보가 없습니다. 먼저 사번 로그인 후 지문 등록을 해주세요.';
+      msgEl.style.display = 'block'; return;
     }
-
     try {
-      const challenge = new Uint8Array(32);
-      window.crypto.getRandomValues(challenge);
-
+      const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
       const assertion = await navigator.credentials.get({
-        publicKey: {
-          challenge: challenge,
-          allowCredentials: [{
-            id: base64ToBuffer(credIdBase64),
-            type: 'public-key'
-          }],
-          userVerification: 'required',
-          timeout: 60000
-        }
+        publicKey: { challenge, allowCredentials: [{ id: base64ToBuffer(credIdBase64), type: 'public-key' }], userVerification: 'required', timeout: 60000 }
       });
-
-      if (assertion) {
-        unlock(savedName, `${savedName}@jeju.com`);
-      }
+      if (assertion) unlock(savedName, `${savedName}@jeju.com`);
     } catch (err) {
-      console.error(err);
       msgEl.innerText = '⚠️ 생체 인증에 실패하였거나 취소되었습니다.';
       msgEl.style.display = 'block';
     }
   });
 
-  // 대분류 호기 전환
+  /* --- 대분류 호기 전환 --- */
   window.switchUnit = function(unit) {
     selectedUnit = unit;
     document.getElementById('tab-unit-2').classList.toggle('active', unit === '2호기');
     document.getElementById('tab-unit-3').classList.toggle('active', unit === '3호기');
-    
     updateFloorTitle();
     renderFloorPins();
     render3DHotspots();
@@ -644,8 +608,7 @@
         canvas.width = width; canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
-        callback(dataUrl);
+        callback(canvas.toDataURL('image/jpeg', 0.6));
       };
       img.src = e.target.result;
     };
@@ -656,8 +619,7 @@
     compressImage(e.target.files[0], (base64) => {
       currentInstPhotoBase64 = base64;
       const preview = document.getElementById('photoPreview');
-      preview.src = base64;
-      preview.style.display = 'block';
+      preview.src = base64; preview.style.display = 'block';
     });
   });
 
@@ -665,8 +627,7 @@
     compressImage(e.target.files[0], (base64) => {
       initHistPhotoBase64 = base64;
       const preview = document.getElementById('initHistPreview');
-      preview.src = base64;
-      preview.style.display = 'block';
+      preview.src = base64; preview.style.display = 'block';
     });
   });
 
@@ -674,15 +635,14 @@
     compressImage(e.target.files[0], (base64) => {
       currentHistPhotoBase64 = base64;
       const preview = document.getElementById('histPhotoPreview');
-      preview.src = base64;
-      preview.style.display = 'block';
+      preview.src = base64; preview.style.display = 'block';
     });
   });
 
   function unlock(name, email = 'user@jeju.com') {
     const savedName = localStorage.getItem('jeju_worker_name');
     const finalName = savedName || name;
-    currentUserInfo = { name: finalName, email: email };
+    currentUserInfo = { name: finalName, email };
     document.getElementById('auth-overlay').style.display = 'none';
     document.getElementById('loginUserBadge').innerText = `👤 ${finalName}`;
     fetchInstruments();
@@ -736,10 +696,7 @@
   const btnMeasure = document.getElementById('btnToggleMeasure');
 
   function updateMeasureHudPrompt() {
-    if (!isMeasureMode) {
-      measureHud.style.display = 'none';
-      return;
-    }
+    if (!isMeasureMode) { measureHud.style.display = 'none'; return; }
     measureHud.style.display = 'block';
     if (selectedFloor === 'ALL') {
       measureHud.innerText = `📐 [기력 ${selectedUnit}] 3D 모델 표면 터치 시 좌표가 측정·복사됩니다.`;
@@ -756,7 +713,7 @@
       updateMeasureHudPrompt();
     } else {
       btnMeasure.classList.remove('active');
-      btnMeasure.innerText = '📐 계측 모드';
+      btnMeasure.innerText = '📐 계측';
       measureHud.style.display = 'none';
       const tempMarker = viewer.querySelector('#temp-measure-marker');
       if (tempMarker) tempMarker.remove();
@@ -859,27 +816,18 @@
     }
   }, { passive: false });
 
-  canvasWrap.addEventListener('touchend', () => {
-    isDragging = false;
-  });
-
+  canvasWrap.addEventListener('touchend', () => { isDragging = false; });
   canvasWrap.addEventListener('mousedown', (e) => {
     if (isPinMoving || e.target.closest('.floor-inst-pin')) return;
     isDragging = true; dragStartX = e.clientX - panX; dragStartY = e.clientY - panY; canvasWrap.style.cursor = 'grabbing';
   });
-
   window.addEventListener('mousemove', (e) => {
     if (isPinMoving || !isDragging) return;
     panX = e.clientX - dragStartX; panY = e.clientY - dragStartY; updateTransform();
   });
-
-  window.addEventListener('mouseup', () => {
-    isDragging = false; canvasWrap.style.cursor = 'grab';
-  });
-
+  window.addEventListener('mouseup', () => { isDragging = false; canvasWrap.style.cursor = 'grab'; });
   canvasWrap.addEventListener('wheel', (e) => { e.preventDefault(); zoomCanvas(e.deltaY < 0 ? 0.15 : -0.15); }, { passive: false });
 
-  // 2D 도면 클릭: 신규 핀 등록
   board.addEventListener('click', (e) => {
     if (isPinMoving || e.target.closest('.floor-inst-pin')) return;
     const rect = board.getBoundingClientRect();
@@ -898,7 +846,6 @@
       }
       marker2d.style.left = `${curX}px`;
       marker2d.style.top = `${curY}px`;
-
       const coordMsg = `X: ${curX}, Y: ${curY}`;
       measureHud.innerHTML = `📍 2D 도면 좌표: <b style="color:#38bdf8;">${coordMsg}</b> (복사됨)`;
       navigator.clipboard.writeText(`X:${curX} Y:${curY}`).catch(() => {});
@@ -906,28 +853,23 @@
     }
 
     clickedFloorCoord = { x: curX, y: curY };
-
     document.getElementById('tagNo').value = '';
     document.getElementById('name').value = '';
     document.getElementById('model').value = '';
     document.getElementById('range').value = '';
-    
     currentInstPhotoBase64 = '';
     document.getElementById('instPhoto').value = '';
     document.getElementById('photoPreview').style.display = 'none';
-
     initHistPhotoBase64 = '';
     document.getElementById('initHistPhoto').value = '';
     document.getElementById('initHistPreview').style.display = 'none';
     document.getElementById('initHistAuthor').value = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '';
     document.getElementById('initHistContent').value = '';
-
     document.getElementById('modalUnitText').innerText = selectedUnit;
     document.getElementById('modalFloorText').innerText = selectedFloor;
     document.getElementById('modal').style.display = 'block';
   });
 
-  // 저장 로직 (unit 컬럼 미존재 시 자동 안전 폴백 탑재)
   document.getElementById('btnSaveInst').addEventListener('click', async () => {
     const tag = document.getElementById('tagNo').value.trim();
     const name = document.getElementById('name').value.trim();
@@ -968,7 +910,6 @@
 
     let { error } = await supabaseClient.from('instruments').insert([insertData]);
 
-    // DB에 unit 컬럼이 아직 없을 때 자동 대체 저장
     if (error && error.message && error.message.toLowerCase().includes('unit')) {
       delete insertData.unit;
       insertData.floor = `${selectedUnit}_${selectedFloor}`;
@@ -982,7 +923,6 @@
       fetchInstruments();
     } else {
       alert('❌ 저장 실패!\n' + error.message);
-      console.error(error);
     }
   });
 
@@ -993,7 +933,6 @@
         let f = item.floor;
         let u = item.unit || '2호기';
 
-        // floor에 '3호기_1층' 형태로 폴백 저장된 경우 분리 복원
         if (typeof f === 'string' && f.includes('_')) {
           const parts = f.split('_');
           u = parts[0];
@@ -1030,12 +969,12 @@
     }
   }
 
-  // 2D 도면 핀 렌더링 (호기 및 층 필터링)
   function renderFloorPins() {
     board.querySelectorAll('.floor-inst-pin').forEach(el => el.remove());
     currentInstruments.forEach(item => {
       if (item.unit !== selectedUnit || item.floor !== selectedFloor) return;
       const pin = document.createElement('div');
+      pin.id = `floor-pin-${item.id}`;
       pin.className = 'floor-inst-pin';
       pin.style.left = `${item.coord_x}px`;
       pin.style.top = `${item.coord_y}px`;
@@ -1058,7 +997,6 @@
       pin.addEventListener('pointerdown', (e) => {
         if (e.button !== 0 && e.pointerType === 'mouse') return;
         e.stopPropagation();
-        
         startClientX = e.clientX;
         startClientY = e.clientY;
         isLongPressed = false;
@@ -1084,8 +1022,7 @@
 
       pin.addEventListener('pointermove', (e) => {
         if (isLongPressed && isPinMoving) {
-          e.preventDefault();
-          e.stopPropagation();
+          e.preventDefault(); e.stopPropagation();
           const rect = board.getBoundingClientRect();
           const curX = Math.round(Math.max(0, Math.min(1400, (e.clientX - rect.left) / scale)));
           const curY = Math.round(Math.max(0, Math.min(1000, (e.clientY - rect.top) / scale)));
@@ -1103,10 +1040,7 @@
       });
 
       const handlePointerUpOrCancel = async (e) => {
-        if (pressTimer) {
-          clearTimeout(pressTimer);
-          pressTimer = null;
-        }
+        if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
         pin.classList.remove('pin-pressing');
 
         if (isLongPressed && isPinMoving) {
@@ -1149,7 +1083,6 @@
     });
   }
 
-  // 3D 조감도 핀 렌더링 (선택된 호기 전용)
   function render3DHotspots() {
     viewer.querySelectorAll('.hotspot-pin').forEach(el => el.remove());
     currentInstruments.forEach(item => {
@@ -1170,11 +1103,10 @@
         const u = (item.coord_x - minX) / spanX; 
         const v = (item.coord_y - minY) / spanY; 
 
-        // 3D 모델 실측 앵커 포인트
-        const P1 = { x: 19.96, z: -11.43 }; // 1번 코너
-        const P2 = { x: 30.93, z: 6.89 };   // 2번 코너
-        const P3 = { x: 1.65,  z: -0.47 };  // 3번 코너
-        const P4 = { x: 12.61, z: 17.85 };  // 4번 코너
+        const P1 = { x: 19.96, z: -11.43 };
+        const P2 = { x: 30.93, z: 6.89 };
+        const P3 = { x: 1.65,  z: -0.47 };
+        const P4 = { x: 12.61, z: 17.85 };
 
         const x3d = P1.x + (u * (P2.x - P1.x)) + (v * (P3.x - P1.x));
         const z3d = P1.z + (u * (P2.z - P1.z)) + (v * (P3.z - P1.z));
@@ -1220,27 +1152,19 @@
       <div><b>측정범위:</b> ${item.signal_range || '-'}</div>
     `;
 
-    const logs = Array.isArray(item.history_logs) ? item.history_logs : [];
-    let histHtml = logs.length > 0 ? logs.map(h => `
-      <div class="history-item">
-        <div style="color:#64748b; font-size:11px; margin-bottom:4px;">${h.date} | 👤 ${h.author}</div>
-        <div style="color:#111; font-weight:bold;">${h.content}</div>
-        ${h.photo ? `<img src="${h.photo}" class="hist-img">` : ''}
-      </div>
-    `).join('') : '<div style="color:#94a3b8; font-size:11px;">등록된 점검 이력이 없습니다.</div>';
-    document.getElementById('infoHistoryList').innerHTML = histHtml;
+    renderHistoryList(item);
 
     document.getElementById('btnAddHistBtn').onclick = () => {
+      editingHistoryIndex = null;
       document.getElementById('info-modal').style.display = 'none';
+      document.getElementById('histModalTitle').innerText = '📋 새 점검/정비 이력 추가';
       document.getElementById('histTargetTag').innerText = `[${item.tag_no}] ${item.name}`;
       document.getElementById('histDate').value = new Date().toISOString().slice(0, 10);
       document.getElementById('histAuthor').value = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '';
       document.getElementById('histContent').value = '';
-      
       currentHistPhotoBase64 = '';
       document.getElementById('histPhoto').value = '';
       document.getElementById('histPhotoPreview').style.display = 'none';
-      
       document.getElementById('history-modal').style.display = 'block';
     };
 
@@ -1254,6 +1178,73 @@
     document.getElementById('info-modal').style.display = 'block';
   }
 
+  /* --- 점검 이력 목록 렌더링 및 개별 수정/삭제 기능 --- */
+  function renderHistoryList(item) {
+    const logs = Array.isArray(item.history_logs) ? item.history_logs : [];
+    const listEl = document.getElementById('infoHistoryList');
+    if (logs.length === 0) {
+      listEl.innerHTML = '<div style="color:#94a3b8; font-size:11px;">등록된 점검 이력이 없습니다.</div>';
+      return;
+    }
+
+    listEl.innerHTML = logs.map((h, idx) => `
+      <div class="history-item">
+        <div class="history-item-header">
+          <span>${h.date} | 👤 ${h.author}</span>
+          <div class="history-actions">
+            <button class="btn-hist-action btn-hist-edit" onclick="openEditHistory(${idx})">✏️ 수정</button>
+            <button class="btn-hist-action btn-hist-del" onclick="deleteHistoryItem(${idx})">🗑️ 삭제</button>
+          </div>
+        </div>
+        <div style="color:#111; font-weight:bold; font-size:12px; margin-top:2px;">${h.content}</div>
+        ${h.photo ? `<img src="${h.photo}" class="hist-img">` : ''}
+      </div>
+    `).join('');
+  }
+
+  // 이력 수정 모달 열기
+  window.openEditHistory = function(idx) {
+    const target = currentInstruments.find(i => i.id === activeTargetId);
+    if (!target || !target.history_logs[idx]) return;
+    const h = target.history_logs[idx];
+    editingHistoryIndex = idx;
+
+    document.getElementById('info-modal').style.display = 'none';
+    document.getElementById('histModalTitle').innerText = '✏️ 점검/정비 이력 수정';
+    document.getElementById('histTargetTag').innerText = `[${target.tag_no}] ${target.name}`;
+    document.getElementById('histDate').value = h.date || new Date().toISOString().slice(0, 10);
+    document.getElementById('histAuthor').value = h.author || '';
+    document.getElementById('histContent').value = h.content || '';
+    
+    currentHistPhotoBase64 = h.photo || '';
+    const preview = document.getElementById('histPhotoPreview');
+    if (currentHistPhotoBase64) {
+      preview.src = currentHistPhotoBase64;
+      preview.style.display = 'block';
+    } else {
+      preview.style.display = 'none';
+    }
+    document.getElementById('histPhoto').value = '';
+    document.getElementById('history-modal').style.display = 'block';
+  };
+
+  // 이력 삭제
+  window.deleteHistoryItem = async function(idx) {
+    if (!confirm('해당 점검 이력을 삭제하시겠습니까?')) return;
+    const target = currentInstruments.find(i => i.id === activeTargetId);
+    if (!target) return;
+
+    target.history_logs.splice(idx, 1);
+    const { error } = await supabaseClient.from('instruments').update({ history_logs: target.history_logs }).eq('id', activeTargetId);
+    if (!error) {
+      renderHistoryList(target);
+      alert('✅ 이력이 삭제되었습니다.');
+    } else {
+      alert('❌ 삭제 실패: ' + error.message);
+    }
+  };
+
+  // 이력 저장 (신규 추가 또는 수정 반영)
   document.getElementById('btnSaveHist').addEventListener('click', async () => {
     const text = document.getElementById('histContent').value.trim();
     const workerName = document.getElementById('histAuthor').value.trim();
@@ -1265,25 +1256,126 @@
     document.getElementById('loginUserBadge').innerText = `👤 ${workerName}`;
 
     const target = currentInstruments.find(i => i.id === activeTargetId);
-    const logs = Array.isArray(target.history_logs) ? target.history_logs : [];
-    const newEntry = {
+    if (!target) return;
+    const logs = Array.isArray(target.history_logs) ? [...target.history_logs] : [];
+
+    const entryData = {
       date: document.getElementById('histDate').value,
       author: workerName,
       content: text,
-      photo: currentHistPhotoBase64
+      photo: currentHistPhotoBase64 || null
     };
-    const updated = [newEntry, ...logs];
 
-    const { error } = await supabaseClient.from('instruments').update({ history_logs: updated }).eq('id', activeTargetId);
+    if (editingHistoryIndex !== null) {
+      logs[editingHistoryIndex] = entryData;
+    } else {
+      logs.unshift(entryData);
+    }
+
+    const { error } = await supabaseClient.from('instruments').update({ history_logs: logs }).eq('id', activeTargetId);
     if (!error) {
-      target.history_logs = updated;
+      target.history_logs = logs;
       document.getElementById('history-modal').style.display = 'none';
-      alert(`✅ 점검 이력이 성공적으로 저장되었습니다.`);
-      fetchInstruments();
+      renderHistoryList(target);
+      document.getElementById('info-modal').style.display = 'block';
+      alert(editingHistoryIndex !== null ? '✅ 점검 이력이 수정되었습니다.' : '✅ 새 점검 이력이 저장되었습니다.');
+      editingHistoryIndex = null;
     } else {
       alert('❌ 이력 저장 실패: ' + error.message);
     }
   });
+
+  /* --- 통합 검색 기능 및 해당 핀으로 순간이동 --- */
+  const searchModal = document.getElementById('search-modal');
+  const searchInput = document.getElementById('searchInput');
+  const searchResultsList = document.getElementById('searchResultsList');
+
+  document.getElementById('btnOpenSearch').addEventListener('click', () => {
+    searchInput.value = '';
+    renderSearchResults('');
+    searchModal.style.display = 'block';
+    setTimeout(() => searchInput.focus(), 100);
+  });
+
+  searchInput.addEventListener('input', (e) => {
+    renderSearchResults(e.target.value.trim());
+  });
+
+  function renderSearchResults(query) {
+    if (!query) {
+      searchResultsList.innerHTML = '<div style="color: #94a3b8; font-size: 12px; text-align: center; padding: 20px;">검색어를 입력하세요.</div>';
+      return;
+    }
+    const filtered = currentInstruments.filter(item => {
+      const q = query.toLowerCase();
+      const tag = (item.tag_no || '').toLowerCase();
+      const name = (item.name || '').toLowerCase();
+      const model = (item.model || '').toLowerCase();
+      return tag.includes(q) || name.includes(q) || model.includes(q);
+    });
+
+    if (filtered.length === 0) {
+      searchResultsList.innerHTML = '<div style="color: #ef4444; font-size: 12px; text-align: center; padding: 20px;">일치하는 계측기가 없습니다.</div>';
+      return;
+    }
+
+    searchResultsList.innerHTML = filtered.map(item => `
+      <div class="search-result-item" onclick="jumpToInstrument(${item.id})">
+        <div>
+          <div class="search-item-main">[${item.tag_no}] ${item.name}</div>
+          <div class="search-item-sub">모델: ${item.model || '-'} | 범위: ${item.signal_range || '-'}</div>
+        </div>
+        <div class="search-item-badge">기력 ${item.unit || '2호기'} ${item.floor}</div>
+      </div>
+    `).join('');
+  }
+
+  // 검색된 계측기 위치로 즉시 이동
+  window.jumpToInstrument = function(instId) {
+    const item = currentInstruments.find(i => i.id === instId);
+    if (!item) return;
+
+    searchModal.style.display = 'none';
+
+    // 1. 호기가 다르면 해당 호기로 자동 전환
+    if (selectedUnit !== (item.unit || '2호기')) {
+      switchUnit(item.unit || '2호기');
+    }
+
+    // 2. 층별 도면 공간으로 진입
+    const floorFileNameMap = {
+      '1층': 'floor_1f.jpg', '2층': 'floor_2f.jpg', '2.5층': 'floor_2_5f.jpg',
+      '3층': 'floor_3f.jpg', '3.1/3층': 'floor_3_1_3f.jpg', '3.2/3층': 'floor_3_2_3f.jpg',
+      '4층': 'floor_4f.jpg', '4.5층': 'floor_4_5f.jpg', '5층': 'floor_5f.jpg',
+      '5.5층': 'floor_5_5f.jpg', '6층': 'floor_6f.jpg', '7층': 'floor_7f.jpg'
+    };
+    const imgFile = floorFileNameMap[item.floor] || 'floor_1f.jpg';
+
+    // 하단 층별 버튼 활성화
+    const floorBtns = document.querySelectorAll('.floor-btn');
+    floorBtns.forEach(b => {
+      if (b.innerText === item.floor) b.classList.add('active');
+      else b.classList.remove('active');
+    });
+
+    openFloorRoom(item.floor, imgFile, null);
+
+    // 3. 해당 핀이 화면 중앙에 오도록 도면 위치 이동 (Pan & Zoom)
+    scale = 1.0; // 확대 포커스
+    panX = (700 - item.coord_x) * scale;
+    panY = (500 - item.coord_y) * scale;
+    updateTransform();
+
+    // 4. 핀 강조(Pulse 효과) 및 상세 모달 팝업
+    setTimeout(() => {
+      const pinEl = document.getElementById(`floor-pin-${item.id}`);
+      if (pinEl) {
+        pinEl.classList.add('pin-highlight');
+        setTimeout(() => pinEl.classList.remove('pin-highlight'), 3500);
+      }
+      showDetail(item);
+    }, 200);
+  };
 
   if (sessionStorage.getItem('jeju_admin_auth') === 'true') {
     const savedWorker = localStorage.getItem('jeju_worker_name') || '관리자';
