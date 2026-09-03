@@ -454,6 +454,22 @@
     '6층': 38.50, '7층': 44.80
   };
 
+  // 실측 기준점 (1번 코너: 엘리베이터 측, 4번 코너: 대각 맞은편)
+  const floorCorners2D = {
+    '1층':     { c1: { x: 397, y: 216 }, c4: { x: 1118, y: 928 } },
+    '2층':     { c1: { x: 372, y: 216 }, c4: { x: 1016, y: 838 } },
+    '2.5층':   { c1: { x: 493, y: 230 }, c4: { x: 1130, y: 856 } },
+    '3층':     { c1: { x: 374, y: 245 }, c4: { x: 1058, y: 929 } },
+    '3.1/3층': { c1: { x: 425, y: 199 }, c4: { x: 1100, y: 859 } },
+    '3.2/3층': { c1: { x: 402, y: 219 }, c4: { x: 1047, y: 829 } },
+    '4층':     { c1: { x: 466, y: 168 }, c4: { x: 1155, y: 821 } },
+    '4.5층':   { c1: { x: 589, y: 185 }, c4: { x: 1039, y: 838 } },
+    '5층':     { c1: { x: 535, y: 187 }, c4: { x: 962,  y: 816 } },
+    '5.5층':   { c1: { x: 591, y: 174 }, c4: { x: 1044, y: 844 } },
+    '6층':     { c1: { x: 554, y: 170 }, c4: { x: 993,  y: 822 } },
+    '7층':     { c1: { x: 132, y: 242 }, c4: { x: 569,  y: 855 } }
+  };
+
   function compressImage(file, callback) {
     if (!file) return;
     const reader = new FileReader();
@@ -704,7 +720,7 @@
     const u = (curX / 1400).toFixed(3);
     const v = (curY / 1000).toFixed(3);
 
-    // 계측 모드가 켜져 있는 경우: 모달을 열지 않고 현재 2D 위치 측정 및 표시
+    // 계측 모드 ON: 클릭 좌표 측정 및 클립보드 복사
     if (isMeasureMode) {
       let marker2d = board.querySelector('#temp-measure-marker-2d');
       if (!marker2d) {
@@ -843,6 +859,7 @@
     });
   }
 
+  // 실측 1번-4번 코너 기반 1:1 정밀 3D 핫스팟 렌더링
   function render3DHotspots() {
     viewer.querySelectorAll('.hotspot-pin').forEach(el => el.remove());
     currentInstruments.forEach(item => {
@@ -850,16 +867,30 @@
       if (!pos || pos === '0 0 0') {
         const h = floor3DHeights[item.floor] !== undefined ? floor3DHeights[item.floor] : 26;
         
-        const u = item.coord_x / 1400; 
-        const v = item.coord_y / 1000;
+        // 층별 실측 코너 데이터 가져오기 (기본값 1층)
+        const bounds = floorCorners2D[item.floor] || floorCorners2D['1층'];
+        const minX = bounds.c1.x;
+        const maxX = bounds.c4.x;
+        const minY = bounds.c1.y;
+        const maxY = bounds.c4.y;
 
-        const P_TL = { x: 12.93, z: 17.94 };  // 좌상단: 엘리베이터 코너
-        const P_BL = { x: 1.96,  z: -0.61 };  // 좌하단: 테스트3 핀 코너
-        const P_TR = { x: 30.94, z: 6.58 };   // 우상단
-        const P_BR = { x: 19.86, z: -11.47 }; // 우하단
+        // 실측 1번-4번 코너 영역 기준으로 u, v (0.0 ~ 1.0) 정밀 정규화
+        const spanX = maxX - minX || 1;
+        const spanY = maxY - minY || 1;
+        const u = Math.max(0, Math.min(1, (item.coord_x - minX) / spanX));
+        const v = Math.max(0, Math.min(1, (item.coord_y - minY) / spanY));
 
-        const x3d = (1 - u) * ((1 - v) * P_TL.x + v * P_BL.x) + u * ((1 - v) * P_TR.x + v * P_BR.x);
-        const z3d = (1 - u) * ((1 - v) * P_TL.z + v * P_BL.z) + u * ((1 - v) * P_TR.z + v * P_BR.z);
+        // 3D 모델 실측 앵커 포인트
+        // P1: 1번 코너 (엘리베이터 측, 도면상 좌상단 u=0, v=0)
+        // P4: 4번 코너 (엘리베이터 대각 맞은편, 도면상 우하단 u=1, v=1)
+        const P1 = { x: 12.93, z: 17.94 };  // 1번 코너
+        const P2 = { x: 30.94, z: 6.58 };   // 2번 코너 (우상단 u=1, v=0)
+        const P3 = { x: 19.86, z: -11.47 }; // 3번 코너 (좌하단 u=0, v=1)
+        const P4 = { x: 1.96,  z: -0.61 };  // 4번 코너
+
+        // Bilinear 보간 연산
+        const x3d = (1 - u) * (1 - v) * P1.x + u * (1 - v) * P2.x + (1 - u) * v * P3.x + u * v * P4.x;
+        const z3d = (1 - u) * (1 - v) * P1.z + u * (1 - v) * P2.z + (1 - u) * v * P3.z + u * v * P4.z;
         pos = `${x3d.toFixed(2)} ${h} ${z3d.toFixed(2)}`;
       }
 
