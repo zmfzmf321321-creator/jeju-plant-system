@@ -180,11 +180,20 @@
       color: #0b132b; font-size: 14px; font-weight: bold; cursor: pointer;
       transform: translate(-50%, -50%); z-index: 50;
       background-size: cover; background-position: center;
+      transition: box-shadow 0.2s, transform 0.1s;
+    }
+    .floor-inst-pin.pin-dragging {
+      border-color: #f59e0b;
+      box-shadow: 0 0 24px rgba(245, 158, 11, 1), 0 0 40px rgba(245, 158, 11, 0.6);
+      transform: translate(-50%, -50%) scale(1.35);
+      z-index: 1000;
+      cursor: grabbing;
     }
     .floor-inst-pin span {
       position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%);
       background: rgba(11, 19, 43, 0.9); color: #fff; padding: 2px 6px;
       border-radius: 4px; font-size: 11px; white-space: nowrap; border: 1px solid #38bdf8;
+      pointer-events: none;
     }
 
     .canvas-zoom-ctrl {
@@ -316,7 +325,7 @@
     <div id="floor-room-header">
       <div>
         <div class="room-title" id="roomTitleText">📍 1층 도면 공간</div>
-        <div class="room-desc">두 손가락 핀치 줌 | 드래그 이동 | 터치 시 핀 등록</div>
+        <div class="room-desc">2초간 길게 누르면 핀 이동 | 핀치 줌 | 드래그 이동</div>
       </div>
       <button class="btn-exit-room" onclick="exitToOverall()">🌐 조감도로 나가기</button>
     </div>
@@ -448,13 +457,18 @@
   let initialPinchDist = 0;
   let initialScale = 0.65;
 
+  // 핀 드래그 이동 관련 상태
+  let activeDraggingPin = null;
+  let activeDraggingItem = null;
+  let pinLongPressTimer = null;
+  let isPinMoving = false;
+
   const floor3DHeights = {
     '1층': 8.14, '2층': 11.50, '2.5층': 14.50, '3층': 17.50, '3.1/3층': 20.50,
     '3.2/3층': 23.50, '4층': 26.50, '4.5층': 29.50, '5층': 32.50, '5.5층': 35.50,
     '6층': 38.50, '7층': 44.80
   };
 
-  // 1번(엘리베이터) - 4번(대각선 맞은편) 각 층별 2D 도면 실측 좌표 적용
   const floorCorners2D = {
     '1층':     { c1: { x: 397, y: 216 }, c4: { x: 1118, y: 928 } },
     '2층':     { c1: { x: 372, y: 216 }, c4: { x: 1016, y: 838 } },
@@ -679,7 +693,9 @@
   window.zoomCanvas = function(delta) { scale = Math.max(0.3, Math.min(3.5, scale + delta)); updateTransform(); };
   window.resetCanvasView = function() { scale = 0.65; panX = 0; panY = 0; updateTransform(); };
 
+  // 캔버스 팬/줌 및 핀 드래그 이동 연동
   canvasWrap.addEventListener('touchstart', (e) => {
+    if (isPinMoving) return;
     if (e.target.closest('.floor-inst-pin')) return;
     if (e.touches.length === 1) {
       isDragging = true; dragStartX = e.touches[0].clientX - panX; dragStartY = e.touches[0].clientY - panY;
@@ -691,6 +707,15 @@
 
   canvasWrap.addEventListener('touchmove', (e) => {
     e.preventDefault();
+    if (isPinMoving && activeDraggingPin) {
+      const rect = board.getBoundingClientRect();
+      const curX = Math.round(Math.max(0, Math.min(1400, (e.touches[0].clientX - rect.left) / scale)));
+      const curY = Math.round(Math.max(0, Math.min(1000, (e.touches[0].clientY - rect.top) / scale)));
+      activeDraggingPin.style.left = `${curX}px`;
+      activeDraggingPin.style.top = `${curY}px`;
+      return;
+    }
+
     if (e.touches.length === 1 && isDragging) {
       panX = e.touches[0].clientX - dragStartX; panY = e.touches[0].clientY - dragStartY; updateTransform();
     } else if (e.touches.length === 2) {
@@ -699,13 +724,78 @@
     }
   }, { passive: false });
 
-  canvasWrap.addEventListener('touchend', (e) => { if (e.touches.length === 0) isDragging = false; });
+  canvasWrap.addEventListener('touchend', async (e) => {
+    if (isPinMoving && activeDraggingPin && activeDraggingItem) {
+      const finalX = parseInt(activeDraggingPin.style.left);
+      const finalY = parseInt(activeDraggingPin.style.top);
+      activeDraggingPin.classList.remove('pin-dragging');
+      isPinMoving = false;
+      
+      activeDraggingItem.coord_x = finalX;
+      activeDraggingItem.coord_y = finalY;
+      activeDraggingItem.x_coord = finalX;
+      activeDraggingItem.y_coord = finalY;
+
+      await supabaseClient.from('instruments').update({
+        coord_x: finalX,
+        coord_y: finalY,
+        x_coord: finalX,
+        y_coord: finalY
+      }).eq('id', activeDraggingItem.id);
+
+      render3DHotspots();
+      activeDraggingPin = null;
+      activeDraggingItem = null;
+      return;
+    }
+    if (e.touches.length === 0) isDragging = false;
+  });
+
   canvasWrap.addEventListener('mousedown', (e) => {
+    if (isPinMoving) return;
     if (e.target.closest('.floor-inst-pin')) return;
     isDragging = true; dragStartX = e.clientX - panX; dragStartY = e.clientY - panY; canvasWrap.style.cursor = 'grabbing';
   });
-  window.addEventListener('mousemove', (e) => { if (!isDragging) return; panX = e.clientX - dragStartX; panY = e.clientY - dragStartY; updateTransform(); });
-  window.addEventListener('mouseup', () => { isDragging = false; canvasWrap.style.cursor = 'grab'; });
+
+  window.addEventListener('mousemove', (e) => {
+    if (isPinMoving && activeDraggingPin) {
+      const rect = board.getBoundingClientRect();
+      const curX = Math.round(Math.max(0, Math.min(1400, (e.clientX - rect.left) / scale)));
+      const curY = Math.round(Math.max(0, Math.min(1000, (e.clientY - rect.top) / scale)));
+      activeDraggingPin.style.left = `${curX}px`;
+      activeDraggingPin.style.top = `${curY}px`;
+      return;
+    }
+    if (!isDragging) return;
+    panX = e.clientX - dragStartX; panY = e.clientY - dragStartY; updateTransform();
+  });
+
+  window.addEventListener('mouseup', async (e) => {
+    if (isPinMoving && activeDraggingPin && activeDraggingItem) {
+      const finalX = parseInt(activeDraggingPin.style.left);
+      const finalY = parseInt(activeDraggingPin.style.top);
+      activeDraggingPin.classList.remove('pin-dragging');
+      isPinMoving = false;
+
+      activeDraggingItem.coord_x = finalX;
+      activeDraggingItem.coord_y = finalY;
+      activeDraggingItem.x_coord = finalX;
+      activeDraggingItem.y_coord = finalY;
+
+      await supabaseClient.from('instruments').update({
+        coord_x: finalX,
+        coord_y: finalY,
+        x_coord: finalX,
+        y_coord: finalY
+      }).eq('id', activeDraggingItem.id);
+
+      render3DHotspots();
+      activeDraggingPin = null;
+      activeDraggingItem = null;
+    }
+    isDragging = false; canvasWrap.style.cursor = 'grab';
+  });
+
   canvasWrap.addEventListener('wheel', (e) => { e.preventDefault(); zoomCanvas(e.deltaY < 0 ? 0.15 : -0.15); }, { passive: false });
 
   board.addEventListener('click', (e) => {
@@ -833,6 +923,7 @@
     }
   }
 
+  // 2초 롱프레스 시 핀 이동 로직 탑재
   function renderFloorPins() {
     board.querySelectorAll('.floor-inst-pin').forEach(el => el.remove());
     currentInstruments.forEach(item => {
@@ -850,12 +941,64 @@
         pin.innerHTML = `📍<span>${item.tag_no}</span>`;
       }
 
-      pin.onclick = (e) => { e.stopPropagation(); showDetail(item); };
+      let pressTimer = null;
+      let isMoved = false;
+
+      function startLongPress(e) {
+        isMoved = false;
+        pressTimer = setTimeout(() => {
+          isPinMoving = true;
+          activeDraggingPin = pin;
+          activeDraggingItem = item;
+          pin.classList.add('pin-dragging');
+          if (navigator.vibrate) navigator.vibrate(100);
+        }, 2000); // 2초 유지 시 드래그 활성화
+      }
+
+      function cancelLongPress() {
+        if (pressTimer) {
+          clearTimeout(pressTimer);
+          pressTimer = null;
+        }
+      }
+
+      // 마우스 이벤트
+      pin.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return;
+        e.stopPropagation();
+        startLongPress(e);
+      });
+      pin.addEventListener('mouseup', (e) => {
+        cancelLongPress();
+      });
+      pin.addEventListener('mouseleave', () => {
+        cancelLongPress();
+      });
+
+      // 터치 이벤트
+      pin.addEventListener('touchstart', (e) => {
+        e.stopPropagation();
+        startLongPress(e);
+      }, { passive: true });
+      pin.addEventListener('touchend', () => {
+        cancelLongPress();
+      });
+      pin.addEventListener('touchcancel', () => {
+        cancelLongPress();
+      });
+
+      // 2초 미만 단순 클릭 시 상세정보 모달 호출
+      pin.onclick = (e) => {
+        e.stopPropagation();
+        if (!isPinMoving && !isMoved) {
+          showDetail(item);
+        }
+      };
+
       board.appendChild(pin);
     });
   }
 
-  // 수학적 기하 변환: 1번~4번 코너를 직사각형 박스로 완벽 매핑
   function render3DHotspots() {
     viewer.querySelectorAll('.hotspot-pin').forEach(el => el.remove());
     currentInstruments.forEach(item => {
@@ -869,19 +1012,17 @@
         const minY = bounds.c1.y;
         const maxY = bounds.c4.y;
 
-        // 해당 층의 코너 영역 대비 핀의 위치 비율 계산 (좌표 제한 없이 자유롭게 투영)
         const spanX = maxX - minX || 1;
         const spanY = maxY - minY || 1;
         const u = (item.coord_x - minX) / spanX; 
         const v = (item.coord_y - minY) / spanY; 
 
-        // 3D 모델 실측 기준점
-        const P1 = { x: 19.96, z: -11.43 }; // 1번 코너 (엘리베이터 측)
-        const P2 = { x: 30.93, z: 6.89 };   // 2번 코너 (우상단)
-        const P3 = { x: 1.65,  z: -0.47 };  // 3번 코너 (좌하단 - 테스트3 방향)
-        const P4 = { x: 12.61, z: 17.85 };  // 4번 코너 (대각 맞은편)
+        // 3D 모델 실측 앵커 포인트
+        const P1 = { x: 19.96, z: -11.43 }; // 1번 코너
+        const P2 = { x: 30.93, z: 6.89 };   // 2번 코너
+        const P3 = { x: 1.65,  z: -0.47 };  // 3번 코너
+        const P4 = { x: 12.61, z: 17.85 };  // 4번 코너
 
-        // 2D 비율(u, v)을 3D 평면 백터 방향으로 정밀 환산
         const x3d = P1.x + (u * (P2.x - P1.x)) + (v * (P3.x - P1.x));
         const z3d = P1.z + (u * (P2.z - P1.z)) + (v * (P3.z - P1.z));
         
