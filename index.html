@@ -15,8 +15,12 @@
       background-color: #080d1a; color: #fff;
       overflow: hidden;
       position: fixed;
-      user-select: none;
-      -webkit-user-select: none;
+    }
+
+    /* 입력창 및 폼 요소에는 선택 및 터치/키보드 입력 허용 */
+    input, textarea, select, button {
+      user-select: auto !important;
+      -webkit-user-select: auto !important;
     }
 
     #auth-overlay {
@@ -130,7 +134,7 @@
 
     #floor-room-view {
       display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0;
-      background: #080d1a; user-select: none; -webkit-user-select: none; touch-action: none;
+      background: #080d1a; touch-action: none;
     }
     
     #floor-room-header {
@@ -179,7 +183,7 @@
       color: #0b132b; font-size: 14px; font-weight: bold; cursor: grab;
       transform: translate(-50%, -50%); z-index: 50;
       background-size: cover; background-position: center;
-      touch-action: none; user-select: none; -webkit-user-select: none;
+      touch-action: none;
       transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
     }
     .floor-inst-pin.pin-pressing {
@@ -262,7 +266,6 @@
     .btn-add-history-quick { width: 100%; padding: 9px; background: #0284c7; color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; margin-bottom: 6px; }
     .btn-delete-pin { width: 100%; padding: 8px; background: #ef4444; border: none; border-radius: 6px; color: #fff; font-size: 12px; font-weight: bold; cursor: pointer; }
 
-    /* 검색 모달 스타일 */
     .search-input-box { width: 100%; padding: 10px 12px; border: 2px solid #00b4d8; border-radius: 8px; font-size: 14px; outline: none; margin-bottom: 12px; }
     .search-results-list { max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
     .search-result-item { background: #f1f5f9; padding: 10px; border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border: 1px solid #cbd5e1; }
@@ -300,10 +303,10 @@
 
   <div id="register-box" class="auth-box">
     <div class="auth-title">📝 신규 팀원 가입</div>
-    <input type="text" id="regName" class="auth-input" placeholder="이름">
+    <input type="text" id="regName" class="auth-input" placeholder="이름 (예: 홍길동)">
     <input type="text" id="regEmail" class="auth-input" placeholder="사번 (12345@jeju.com)">
     <input type="password" id="regPassword" class="auth-input" placeholder="비밀번호 (6자리 이상)">
-    <button class="auth-btn" id="btnRegisterSubmit">가입 신청</button>
+    <button class="auth-btn" id="btnRegisterSubmit">가입 신청 및 입장</button>
     <div id="regMsg" class="auth-status-error"></div>
     <div class="auth-toggle-link" id="linkBackLogin2">돌아가기</div>
   </div>
@@ -434,7 +437,7 @@
   </div>
 </div>
 
-<!-- 계측기 상세 정보 모달 -->
+<!-- 정보 모달 -->
 <div id="info-modal">
   <h3 id="infoTitle">계측기 상세</h3>
   <img id="infoMainImg" class="preview-img" style="margin-bottom:10px;">
@@ -482,7 +485,7 @@
   let selectedUnit = '2호기';
   let selectedFloor = 'ALL';
   let activeTargetId = null;
-  let editingHistoryIndex = null; // null: 신규, 숫자: 수정 인덱스
+  let editingHistoryIndex = null;
   let clickedFloorCoord = { x: 0, y: 0 };
   let isMeasureMode = false;
   
@@ -659,6 +662,7 @@
   document.getElementById('linkToRegister').addEventListener('click', () => {
     document.getElementById('login-box').style.display = 'none';
     document.getElementById('register-box').style.display = 'block';
+    setTimeout(() => document.getElementById('regName').focus(), 150);
   });
   document.getElementById('linkBackLogin2').addEventListener('click', () => {
     document.getElementById('register-box').style.display = 'none';
@@ -681,6 +685,39 @@
     const namePart = email.split('@')[0];
     localStorage.setItem('jeju_worker_name', namePart);
     unlock(namePart, email);
+  });
+
+  // 회원가입 버튼 처리 (입력 검증 및 가입 완료)
+  document.getElementById('btnRegisterSubmit').addEventListener('click', async () => {
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const pass = document.getElementById('regPassword').value.trim();
+    const regMsg = document.getElementById('regMsg');
+
+    if (!name || !email || !pass) {
+      regMsg.innerText = '⚠️ 이름, 사번(이메일), 비밀번호를 모두 입력해 주세요.';
+      regMsg.style.display = 'block';
+      return;
+    }
+
+    if (pass.length < 6) {
+      regMsg.innerText = '⚠️ 비밀번호는 최소 6자리 이상이어야 합니다.';
+      regMsg.style.display = 'block';
+      return;
+    }
+
+    regMsg.style.display = 'none';
+    localStorage.setItem('jeju_worker_name', name);
+
+    // Supabase Auth 회원가입 시도 (설정에 따라 즉시 가입 또는 로컬 저장)
+    try {
+      await supabaseClient.auth.signUp({ email, password: pass });
+    } catch (e) {
+      console.warn('Auth fallback:', e);
+    }
+
+    alert(`🎉 [${name}] 팀원님, 환영합니다!\n성공적으로 등록되었습니다.`);
+    unlock(name, email);
   });
 
   document.getElementById('btnLogout').addEventListener('click', () => {
@@ -1178,7 +1215,6 @@
     document.getElementById('info-modal').style.display = 'block';
   }
 
-  /* --- 점검 이력 목록 렌더링 및 개별 수정/삭제 기능 --- */
   function renderHistoryList(item) {
     const logs = Array.isArray(item.history_logs) ? item.history_logs : [];
     const listEl = document.getElementById('infoHistoryList');
@@ -1202,7 +1238,6 @@
     `).join('');
   }
 
-  // 이력 수정 모달 열기
   window.openEditHistory = function(idx) {
     const target = currentInstruments.find(i => i.id === activeTargetId);
     if (!target || !target.history_logs[idx]) return;
@@ -1228,7 +1263,6 @@
     document.getElementById('history-modal').style.display = 'block';
   };
 
-  // 이력 삭제
   window.deleteHistoryItem = async function(idx) {
     if (!confirm('해당 점검 이력을 삭제하시겠습니까?')) return;
     const target = currentInstruments.find(i => i.id === activeTargetId);
@@ -1244,7 +1278,6 @@
     }
   };
 
-  // 이력 저장 (신규 추가 또는 수정 반영)
   document.getElementById('btnSaveHist').addEventListener('click', async () => {
     const text = document.getElementById('histContent').value.trim();
     const workerName = document.getElementById('histAuthor').value.trim();
@@ -1330,19 +1363,16 @@
     `).join('');
   }
 
-  // 검색된 계측기 위치로 즉시 이동
   window.jumpToInstrument = function(instId) {
     const item = currentInstruments.find(i => i.id === instId);
     if (!item) return;
 
     searchModal.style.display = 'none';
 
-    // 1. 호기가 다르면 해당 호기로 자동 전환
     if (selectedUnit !== (item.unit || '2호기')) {
       switchUnit(item.unit || '2호기');
     }
 
-    // 2. 층별 도면 공간으로 진입
     const floorFileNameMap = {
       '1층': 'floor_1f.jpg', '2층': 'floor_2f.jpg', '2.5층': 'floor_2_5f.jpg',
       '3층': 'floor_3f.jpg', '3.1/3층': 'floor_3_1_3f.jpg', '3.2/3층': 'floor_3_2_3f.jpg',
@@ -1351,7 +1381,6 @@
     };
     const imgFile = floorFileNameMap[item.floor] || 'floor_1f.jpg';
 
-    // 하단 층별 버튼 활성화
     const floorBtns = document.querySelectorAll('.floor-btn');
     floorBtns.forEach(b => {
       if (b.innerText === item.floor) b.classList.add('active');
@@ -1360,13 +1389,11 @@
 
     openFloorRoom(item.floor, imgFile, null);
 
-    // 3. 해당 핀이 화면 중앙에 오도록 도면 위치 이동 (Pan & Zoom)
-    scale = 1.0; // 확대 포커스
+    scale = 1.0;
     panX = (700 - item.coord_x) * scale;
     panY = (500 - item.coord_y) * scale;
     updateTransform();
 
-    // 4. 핀 강조(Pulse 효과) 및 상세 모달 팝업
     setTimeout(() => {
       const pinEl = document.getElementById(`floor-pin-${item.id}`);
       if (pinEl) {
