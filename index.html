@@ -7,45 +7,76 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
   <style>
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    html, body {
-      margin: 0; padding: 0; width: 100vw; height: 100vh;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background-color: #080d1a; color: #fff; overflow: hidden; position: fixed;
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
-    input, textarea, select, button { user-select: auto !important; -webkit-user-select: auto !important; }
+
+    html, body {
+      margin: 0; padding: 0;
+      width: 100vw; height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #080d1a; color: #fff;
+      overflow: hidden; position: fixed;
+    }
+
+    input, textarea, select, button, a {
+      user-select: auto !important;
+      -webkit-user-select: auto !important;
+      pointer-events: auto !important;
+      cursor: pointer;
+    }
 
     #auth-overlay {
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: #0b132b; display: flex; align-items: center; justify-content: center; z-index: 99999;
+      background: #0b132b; display: flex; align-items: center; justify-content: center;
+      z-index: 999999;
+      pointer-events: auto;
     }
+
     .auth-box {
       background: #1c2541; padding: 28px 24px; border-radius: 16px;
       border: 1px solid #3a506b; width: 90%; max-width: 340px; text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+      position: relative;
+      z-index: 1000000;
     }
     .auth-title { font-size: 20px; font-weight: bold; margin-bottom: 6px; color: #48cae4; }
     .auth-desc { font-size: 13px; color: #94a3b8; margin-bottom: 20px; line-height: 1.4; }
     .auth-input {
       width: 100%; padding: 12px; background: #0b132b; border: 1px solid #3a506b;
       border-radius: 8px; color: #fff; font-size: 15px; margin-bottom: 12px; outline: none;
+      -webkit-appearance: none;
     }
     .auth-btn {
-      width: 100%; padding: 12px; background: #00b4d8; color: #0b132b;
+      width: 100%; padding: 14px; background: #00b4d8; color: #0b132b;
       border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 6px;
+      display: block;
     }
+    .auth-btn:active { background: #0096c7; }
+    
     .btn-biometric {
-      width: 100%; padding: 12px; background: #10b981; color: #fff;
+      width: 100%; padding: 14px; background: #10b981; color: #fff;
       border: none; border-radius: 8px; font-size: 15px; font-weight: bold;
       cursor: pointer; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;
     }
+    .btn-biometric:active { background: #059669; }
+
     .auth-divider { display: flex; align-items: center; margin: 16px 0; color: #64748b; font-size: 12px; }
     .auth-divider::before, .auth-divider::after { content: ''; flex: 1; border-bottom: 1px solid #334155; }
     .auth-divider span { padding: 0 10px; }
+    
     .btn-admin-pass {
-      width: 100%; padding: 11px; background: #111a33; border: 1px solid #3b82f6;
+      width: 100%; padding: 12px; background: #111a33; border: 1px solid #3b82f6;
       color: #93c5fd; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer;
     }
-    .auth-toggle-link { margin-top: 14px; font-size: 13px; color: #94a3b8; cursor: pointer; text-decoration: underline; }
+    .btn-admin-pass:active { background: #1e3a8a; }
+
+    .auth-toggle-link {
+      margin-top: 16px; font-size: 13px; color: #94a3b8; cursor: pointer; text-decoration: underline;
+      padding: 6px; display: inline-block;
+    }
     .auth-status-error { color: #ef4444; font-size: 12px; margin-top: 10px; display: none; line-height: 1.4; }
     #admin-login-box, #register-box { display: none; }
 
@@ -200,9 +231,10 @@
 
     #modal, #info-modal, #history-modal, #search-modal {
       display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      background: #ffffff; padding: 20px; border-radius: 12px; z-index: 999999;
+      background: #ffffff; padding: 20px; border-radius: 12px; z-index: 9999999;
       width: 92%; max-width: 380px; color: #333; max-height: 88vh; overflow-y: auto;
       box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+      pointer-events: auto;
     }
     #modal h3, #info-modal h3, #history-modal h3, #search-modal h3 { margin: 0 0 12px 0; font-size: 16px; color: #0b132b; }
     .form-group { margin-bottom: 10px; }
@@ -249,22 +281,22 @@
   <div id="login-box" class="auth-box">
     <div class="auth-title">🔐 시스템 로그인</div>
     <div class="auth-desc">보일러 계측제어 관리 시스템</div>
-    <button class="btn-biometric" id="btnBioLogin">👆 기기 생체/지문 즉시 로그인</button>
+    <button class="btn-biometric" id="btnBioLogin" type="button">👆 기기 생체/지문 즉시 로그인</button>
     <div id="bioLoginMsg" class="auth-status-error"></div>
     <div class="auth-divider"><span>또는 사번 로그인</span></div>
     <input type="text" id="loginEmail" class="auth-input" placeholder="사번(이메일: 12345@jeju.com)">
     <input type="password" id="loginPassword" class="auth-input" placeholder="비밀번호">
-    <button class="auth-btn" id="btnMemberLogin">팀원 로그인</button>
+    <button class="auth-btn" id="btnMemberLogin" type="button">팀원 로그인</button>
     <div id="loginMsg" class="auth-status-error"></div>
     <div class="auth-toggle-link" id="linkToRegister">신규 팀원 계정 신청</div>
     <div class="auth-divider"><span>또는</span></div>
-    <button class="btn-admin-pass" id="btnGoAdmin">👑 최고관리자 즉시 입장</button>
+    <button class="btn-admin-pass" id="btnGoAdmin" type="button">👑 최고관리자 즉시 입장</button>
   </div>
 
   <div id="admin-login-box" class="auth-box">
     <div class="auth-title" style="color: #38bdf8;">👑 최고관리자 모드</div>
     <input type="password" id="adminPassInput" class="auth-input" placeholder="마스터 비밀번호">
-    <button class="auth-btn" style="background: #38bdf8;" id="btnAdminSubmit">관리자 접속</button>
+    <button class="auth-btn" style="background: #38bdf8;" id="btnAdminSubmit" type="button">관리자 접속</button>
     <div id="adminErrorMsg" class="auth-status-error">⚠️ 비밀번호가 틀렸습니다.</div>
     <div class="auth-toggle-link" id="linkBackLogin">돌아가기</div>
   </div>
@@ -274,7 +306,7 @@
     <input type="text" id="regName" class="auth-input" placeholder="이름 (예: 홍길동)">
     <input type="text" id="regEmail" class="auth-input" placeholder="사번 (12345@jeju.com)">
     <input type="password" id="regPassword" class="auth-input" placeholder="비밀번호 (6자리 이상)">
-    <button class="auth-btn" id="btnRegisterSubmit">가입 신청 및 입장</button>
+    <button class="auth-btn" id="btnRegisterSubmit" type="button">가입 신청 및 입장</button>
     <div id="regMsg" class="auth-status-error"></div>
     <div class="auth-toggle-link" id="linkBackLogin2">돌아가기</div>
   </div>
@@ -369,7 +401,7 @@
   </div>
 </div>
 
-<!-- 계측기 등록 모달 -->
+<!-- 등록 모달 -->
 <div id="modal">
   <h3>계측기 등록 (<span id="modalUnitText" style="color:#0284c7; font-weight:bold;">2호기</span> <span id="modalFloorText" style="color:#00b4d8; font-weight:bold;">1층</span>)</h3>
   <div class="form-group"><label>Tag No.</label><input type="text" id="tagNo" placeholder="예: 20-PT-101"></div>
@@ -378,7 +410,7 @@
   <div class="form-group"><label>측정범위 / 신호</label><input type="text" id="range"></div>
   
   <div class="form-group">
-    <label>기기 사진 첨부 (기본: 카메라 촬영)</label>
+    <label>기기 사진 첨부</label>
     <div class="photo-btn-group">
       <div class="file-input-wrapper">
         <div class="btn-file-upload">📷 즉시 촬영</div>
@@ -500,8 +532,6 @@
   let activeDraggingPin = null;
   let activeDraggingItem = null;
   let isPinMoving = false;
-  let bioAbortController = null;
-  let isBioProcessing = false;
 
   const floor3DHeights = {
     '1층': 8.14, '2층': 11.50, '2.5층': 14.50, '3층': 17.50, '3.1/3층': 20.50,
@@ -524,24 +554,23 @@
     '7층':     { c1: { x: 132, y: 242 }, c4: { x: 569,  y: 855 } }
   };
 
-  // 1. 지문/생체 등록 (표준 credential.id 사용)
-  document.getElementById('btnRegisterBio').addEventListener('click', async () => {
-    if (isBioProcessing) { alert('⏳ 생체 인증이 이미 진행 중입니다.'); return; }
-    if (!window.PublicKeyCredential) { alert('⚠️ 브라우저에서 생체인증(WebAuthn)을 지원하지 않습니다.'); return; }
-    
-    if (bioAbortController) bioAbortController.abort();
-    bioAbortController = new AbortController();
-    isBioProcessing = true;
-
+  // 1. 생체인증 등록 (표준 WebAuthn API)
+  async function registerBiometrics() {
+    if (!window.PublicKeyCredential) {
+      alert('⚠️ 현재 브라우저에서 생체인식을 지원하지 않습니다.');
+      return;
+    }
     const workerName = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자';
+
     try {
-      const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
-      const userId = new TextEncoder().encode(workerName);
-      
+      const challenge = new Uint8Array(32);
+      window.crypto.getRandomValues(challenge);
+      const userId = new TextEncoder().encode(workerName + '_' + Date.now());
+
       const credential = await navigator.credentials.create({
         publicKey: {
           challenge,
-          rp: { name: '제주 보일러 관리 시스템' },
+          rp: { name: '제주 보일러 제어 시스템' },
           user: { id: userId, name: workerName, displayName: workerName },
           pubKeyCredParams: [
             { alg: -7, type: 'public-key' },
@@ -552,46 +581,39 @@
             userVerification: 'preferred'
           },
           timeout: 60000
-        },
-        signal: bioAbortController.signal
+        }
       });
 
       if (credential) {
-        // 브라우저가 자동 생성한 Base64URL credential.id를 직접 보관
         localStorage.setItem('jeju_bio_credential_id', credential.id);
         localStorage.setItem('jeju_bio_user_name', workerName);
-        alert(`✅ [${workerName}] 님의 기기 생체인증이 등록되었습니다.\n이제 로그인 화면에서 지문 버튼으로 입장할 수 있습니다.`);
+        alert(`✅ [${workerName}] 님의 기기 생체인증이 등록되었습니다.\n이제 로그인 화면에서 지문 버튼으로 입장 가능합니다.`);
       }
     } catch (err) {
-      if (err.name !== 'AbortError') {
-        alert(`❌ 지문 등록 실패: ${err.message || '인증이 취소되었습니다.'}`);
+      console.error(err);
+      if (err.name !== 'NotAllowedError') {
+        alert('❌ 등록 실패: ' + (err.message || '인증이 취소되었습니다.'));
       }
-    } finally {
-      isBioProcessing = false; bioAbortController = null;
     }
-  });
+  }
 
-  // 2. 지문/생체 로그인
-  document.getElementById('btnBioLogin').addEventListener('click', async () => {
-    if (isBioProcessing) return;
+  // 2. 생체인증 로그인
+  async function loginBiometrics() {
     const credId = localStorage.getItem('jeju_bio_credential_id');
     const savedName = localStorage.getItem('jeju_bio_user_name') || '작업자';
     const msgEl = document.getElementById('bioLoginMsg');
     msgEl.style.display = 'none';
 
     if (!credId) {
-      msgEl.innerText = '⚠️ 등록된 지문 정보가 없습니다. 먼저 사번 로그인 후 우측 상단의 [지문] 버튼으로 등록해 주세요.';
-      msgEl.style.display = 'block'; return;
+      msgEl.innerText = '⚠️ 등록된 지문 정보가 없습니다. 먼저 팀원 로그인 후 우측 상단의 [지문] 버튼으로 등록해 주세요.';
+      msgEl.style.display = 'block';
+      return;
     }
 
-    if (bioAbortController) bioAbortController.abort();
-    bioAbortController = new AbortController();
-    isBioProcessing = true;
-
     try {
-      const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
-      
-      // raw id 디코딩
+      const challenge = new Uint8Array(32);
+      window.crypto.getRandomValues(challenge);
+
       let b64 = credId.replace(/-/g, '+').replace(/_/g, '/');
       while (b64.length % 4) b64 += '=';
       const binary = atob(b64);
@@ -601,28 +623,30 @@
       const assertion = await navigator.credentials.get({
         publicKey: {
           challenge,
-          allowCredentials: [{
-            id: rawIdBuffer.buffer,
-            type: 'public-key'
-          }],
+          allowCredentials: [{ id: rawIdBuffer.buffer, type: 'public-key' }],
           userVerification: 'preferred',
           timeout: 60000
-        },
-        signal: bioAbortController.signal
+        }
       });
 
       if (assertion) {
         unlock(savedName, `${savedName}@jeju.com`);
       }
     } catch (err) {
-      if (err.name !== 'AbortError') {
+      console.error(err);
+      if (err.name !== 'NotAllowedError') {
         msgEl.innerText = '⚠️ 생체 인증에 실패했거나 취소되었습니다. 사번으로 로그인하세요.';
         msgEl.style.display = 'block';
       }
-    } finally {
-      isBioProcessing = false; bioAbortController = null;
     }
-  });
+  }
+
+  // 터치 및 클릭 이벤트 리스너 바인딩
+  const btnBioLoginEl = document.getElementById('btnBioLogin');
+  btnBioLoginEl.addEventListener('click', (e) => { e.preventDefault(); loginBiometrics(); });
+  
+  const btnRegisterBioEl = document.getElementById('btnRegisterBio');
+  btnRegisterBioEl.addEventListener('click', (e) => { e.preventDefault(); registerBiometrics(); });
 
   window.switchUnit = function(unit) {
     selectedUnit = unit;
@@ -719,25 +743,30 @@
     fetchInstruments();
   }
 
-  document.getElementById('btnGoAdmin').addEventListener('click', () => {
+  document.getElementById('btnGoAdmin').addEventListener('click', (e) => {
+    e.preventDefault();
     document.getElementById('login-box').style.display = 'none';
     document.getElementById('admin-login-box').style.display = 'block';
   });
-  document.getElementById('linkBackLogin').addEventListener('click', () => {
+  document.getElementById('linkBackLogin').addEventListener('click', (e) => {
+    e.preventDefault();
     document.getElementById('admin-login-box').style.display = 'none';
     document.getElementById('login-box').style.display = 'block';
   });
-  document.getElementById('linkToRegister').addEventListener('click', () => {
+  document.getElementById('linkToRegister').addEventListener('click', (e) => {
+    e.preventDefault();
     document.getElementById('login-box').style.display = 'none';
     document.getElementById('register-box').style.display = 'block';
     setTimeout(() => document.getElementById('regName').focus(), 150);
   });
-  document.getElementById('linkBackLogin2').addEventListener('click', () => {
+  document.getElementById('linkBackLogin2').addEventListener('click', (e) => {
+    e.preventDefault();
     document.getElementById('register-box').style.display = 'none';
     document.getElementById('login-box').style.display = 'block';
   });
 
-  document.getElementById('btnAdminSubmit').addEventListener('click', () => {
+  document.getElementById('btnAdminSubmit').addEventListener('click', (e) => {
+    e.preventDefault();
     if (document.getElementById('adminPassInput').value.trim() === ADMIN_MASTER_PASS) {
       sessionStorage.setItem('jeju_admin_auth', 'true');
       const defaultName = localStorage.getItem('jeju_worker_name') || '관리자';
@@ -747,7 +776,8 @@
     }
   });
 
-  document.getElementById('btnMemberLogin').addEventListener('click', () => {
+  document.getElementById('btnMemberLogin').addEventListener('click', (e) => {
+    e.preventDefault();
     const email = document.getElementById('loginEmail').value.trim();
     if (!email) { alert('사번(이메일)을 입력해 주세요.'); return; }
     const namePart = email.split('@')[0];
@@ -755,7 +785,8 @@
     unlock(namePart, email);
   });
 
-  document.getElementById('btnRegisterSubmit').addEventListener('click', async () => {
+  document.getElementById('btnRegisterSubmit').addEventListener('click', async (e) => {
+    e.preventDefault();
     const name = document.getElementById('regName').value.trim();
     const email = document.getElementById('regEmail').value.trim();
     const pass = document.getElementById('regPassword').value.trim();
@@ -769,7 +800,7 @@
     }
     regMsg.style.display = 'none';
     localStorage.setItem('jeju_worker_name', name);
-    try { await supabaseClient.auth.signUp({ email, password: pass }); } catch (e) {}
+    try { await supabaseClient.auth.signUp({ email, password: pass }); } catch (err) {}
     alert(`🎉 [${name}] 팀원님 등록 완료!`);
     unlock(name, email);
   });
