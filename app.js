@@ -27,7 +27,7 @@ let activeDraggingPin = null;
 let activeDraggingItem = null;
 let isPinMoving = false;
 
-// WebAuthn 중복 호출 방지 및 기존 대기 요청 취소용 컨트롤러
+// WebAuthn 제어 변수
 let bioAbortController = null;
 let isBioProcessing = false;
 
@@ -52,7 +52,13 @@ const floorCorners2D = {
   '7층':     { c1: { x: 132, y: 242 }, c4: { x: 569,  y: 855 } }
 };
 
-/* --- WebAuthn 생체인식 (중복 요청 및 ID 완벽 교정) --- */
+/* --- 전역 모달 제어 함수 --- */
+window.closeModal = function(modalId) {
+  const m = document.getElementById(modalId);
+  if (m) m.style.display = 'none';
+};
+
+/* --- WebAuthn 생체인식 인코딩 유틸 --- */
 function bufferToBase64URL(buffer) {
   const bytes = new Uint8Array(buffer);
   let binary = '';
@@ -74,152 +80,150 @@ function base64URLToBuffer(base64url) {
 }
 
 // 1. 지문 등록
-document.getElementById('btnRegisterBio').addEventListener('click', async () => {
-  if (isBioProcessing) {
-    alert('⏳ 이미 생체 인증 요청이 진행 중입니다. 잠시 후 다시 시도해 주세요.');
-    return;
-  }
-
-  if (!window.PublicKeyCredential) {
-    alert('⚠️ 브라우저/기기가 WebAuthn 생체인식을 지원하지 않습니다.');
-    return;
-  }
-
-  try {
-    const isAvailable = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-    if (!isAvailable) {
-      alert('⚠️ 기기에 등록된 지문 또는 화면 잠금(PIN/패턴)이 없습니다.\n스마트폰 설정에서 지문을 먼저 등록해 주세요.');
+const btnRegisterBio = document.getElementById('btnRegisterBio');
+if (btnRegisterBio) {
+  btnRegisterBio.addEventListener('click', async () => {
+    if (isBioProcessing) {
+      alert('⏳ 이미 생체 인증 요청이 진행 중입니다. 잠시 후 다시 시도해 주세요.');
       return;
     }
-  } catch (e) {
-    console.warn(e);
-  }
 
-  // 이전 대기 요청 취소
-  if (bioAbortController) {
-    bioAbortController.abort();
-  }
-  bioAbortController = new AbortController();
-  isBioProcessing = true;
-
-  const workerName = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자';
-
-  try {
-    const challenge = new Uint8Array(32);
-    window.crypto.getRandomValues(challenge);
-
-    // 사용자 ID 바이트 생성
-    const enc = new TextEncoder();
-    const userId = enc.encode('jeju_' + workerName);
-
-    const credential = await navigator.credentials.create({
-      publicKey: {
-        challenge,
-        rp: {
-          name: '제주 보일러 계측관리',
-          id: window.location.hostname
-        },
-        user: {
-          id: userId,
-          name: workerName,
-          displayName: workerName
-        },
-        pubKeyCredParams: [
-          { alg: -7, type: 'public-key' },
-          { alg: -257, type: 'public-key' }
-        ],
-        authenticatorSelection: {
-          authenticatorAttachment: 'platform',
-          userVerification: 'preferred',
-          residentKey: 'preferred'
-        },
-        timeout: 60000
-      },
-      signal: bioAbortController.signal
-    });
-
-    if (credential) {
-      const rawIdString = bufferToBase64URL(credential.rawId);
-      localStorage.setItem('jeju_bio_credential_id', rawIdString);
-      localStorage.setItem('jeju_bio_user_name', workerName);
-      alert(`✅ [${workerName}] 님의 생체인증이 등록되었습니다!\n로그아웃 후 지문 버튼으로 즉시 로그인할 수 있습니다.`);
+    if (!window.PublicKeyCredential) {
+      alert('⚠️ 브라우저/기기가 WebAuthn 생체인식을 지원하지 않습니다.');
+      return;
     }
-  } catch (err) {
-    console.error('생체 등록 상세:', err);
-    if (err.name === 'NotAllowedError') {
-      alert('⚠️ 인증이 취소되었거나 화면 잠금이 해제되지 않았습니다.');
-    } else if (err.name === 'AbortError') {
-      console.log('이전 요청 취소됨');
-    } else {
-      alert(`❌ 지문 등록 실패: ${err.message}`);
+
+    try {
+      const isAvailable = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+      if (!isAvailable) {
+        alert('⚠️ 기기에 등록된 지문 또는 화면 잠금(PIN/패턴)이 없습니다.\n스마트폰 설정에서 지문을 먼저 등록해 주세요.');
+        return;
+      }
+    } catch (e) {
+      console.warn(e);
     }
-  } finally {
-    isBioProcessing = false;
-    bioAbortController = null;
-  }
-});
+
+    if (bioAbortController) bioAbortController.abort();
+    bioAbortController = new AbortController();
+    isBioProcessing = true;
+
+    const workerName = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자';
+
+    try {
+      const challenge = new Uint8Array(32);
+      window.crypto.getRandomValues(challenge);
+      const userId = new TextEncoder().encode('jeju_' + workerName);
+
+      const credential = await navigator.credentials.create({
+        publicKey: {
+          challenge,
+          rp: {
+            name: '제주 보일러 계측관리',
+            id: window.location.hostname
+          },
+          user: {
+            id: userId,
+            name: workerName,
+            displayName: workerName
+          },
+          pubKeyCredParams: [
+            { alg: -7, type: 'public-key' },
+            { alg: -257, type: 'public-key' }
+          ],
+          authenticatorSelection: {
+            authenticatorAttachment: 'platform',
+            userVerification: 'preferred',
+            residentKey: 'preferred'
+          },
+          timeout: 60000
+        },
+        signal: bioAbortController.signal
+      });
+
+      if (credential) {
+        const rawIdString = bufferToBase64URL(credential.rawId);
+        localStorage.setItem('jeju_bio_credential_id', rawIdString);
+        localStorage.setItem('jeju_bio_user_name', workerName);
+        alert(`✅ [${workerName}] 님의 생체인증이 등록되었습니다!\n로그아웃 후 지문 버튼으로 즉시 로그인할 수 있습니다.`);
+      }
+    } catch (err) {
+      console.error('생체 등록 상세:', err);
+      if (err.name === 'NotAllowedError') {
+        alert('⚠️ 인증이 취소되었거나 화면 잠금이 해제되지 않았습니다.');
+      } else if (err.name !== 'AbortError') {
+        alert(`❌ 지문 등록 실패: ${err.message}`);
+      }
+    } finally {
+      isBioProcessing = false;
+      bioAbortController = null;
+    }
+  });
+}
 
 // 2. 지문 로그인
-document.getElementById('btnBioLogin').addEventListener('click', async () => {
-  if (isBioProcessing) {
-    return;
-  }
+const btnBioLogin = document.getElementById('btnBioLogin');
+if (btnBioLogin) {
+  btnBioLogin.addEventListener('click', async () => {
+    if (isBioProcessing) return;
 
-  const credIdString = localStorage.getItem('jeju_bio_credential_id');
-  const savedName = localStorage.getItem('jeju_bio_user_name') || '작업자';
-  const msgEl = document.getElementById('bioLoginMsg');
-  msgEl.style.display = 'none';
+    const credIdString = localStorage.getItem('jeju_bio_credential_id');
+    const savedName = localStorage.getItem('jeju_bio_user_name') || '작업자';
+    const msgEl = document.getElementById('bioLoginMsg');
+    if (msgEl) msgEl.style.display = 'none';
 
-  if (!credIdString) {
-    msgEl.innerText = '⚠️ 등록된 지문 정보가 없습니다. 먼저 사번 로그인 후 우측 상단의 [지문] 버튼으로 등록해 주세요.';
-    msgEl.style.display = 'block';
-    return;
-  }
-
-  if (bioAbortController) {
-    bioAbortController.abort();
-  }
-  bioAbortController = new AbortController();
-  isBioProcessing = true;
-
-  try {
-    const challenge = new Uint8Array(32);
-    window.crypto.getRandomValues(challenge);
-
-    const assertion = await navigator.credentials.get({
-      publicKey: {
-        challenge,
-        rpId: window.location.hostname,
-        allowCredentials: [{
-          id: base64URLToBuffer(credIdString),
-          type: 'public-key'
-        }],
-        userVerification: 'preferred',
-        timeout: 60000
-      },
-      signal: bioAbortController.signal
-    });
-
-    if (assertion) {
-      unlock(savedName, `${savedName}@jeju.com`);
+    if (!credIdString) {
+      if (msgEl) {
+        msgEl.innerText = '⚠️ 등록된 지문 정보가 없습니다. 먼저 사번 로그인 후 우측 상단의 [지문] 버튼으로 등록해 주세요.';
+        msgEl.style.display = 'block';
+      }
+      return;
     }
-  } catch (err) {
-    console.error('생체 로그인 상세:', err);
-    if (err.name !== 'AbortError') {
-      msgEl.innerText = '⚠️ 생체 인증이 취소되었거나 실패했습니다. 사번으로 로그인하세요.';
-      msgEl.style.display = 'block';
-    }
-  } finally {
-    isBioProcessing = false;
-    bioAbortController = null;
-  }
-});
 
-/* --- 대분류 호기 전환 --- */
+    if (bioAbortController) bioAbortController.abort();
+    bioAbortController = new AbortController();
+    isBioProcessing = true;
+
+    try {
+      const challenge = new Uint8Array(32);
+      window.crypto.getRandomValues(challenge);
+
+      const assertion = await navigator.credentials.get({
+        publicKey: {
+          challenge,
+          rpId: window.location.hostname,
+          allowCredentials: [{
+            id: base64URLToBuffer(credIdString),
+            type: 'public-key'
+          }],
+          userVerification: 'preferred',
+          timeout: 60000
+        },
+        signal: bioAbortController.signal
+      });
+
+      if (assertion) {
+        unlock(savedName, `${savedName}@jeju.com`);
+      }
+    } catch (err) {
+      console.error('생체 로그인 상세:', err);
+      if (err.name !== 'AbortError' && msgEl) {
+        msgEl.innerText = '⚠️ 생체 인증이 취소되었거나 실패했습니다. 사번으로 로그인하세요.';
+        msgEl.style.display = 'block';
+      }
+    } finally {
+      isBioProcessing = false;
+      bioAbortController = null;
+    }
+  });
+}
+
+/* --- 대분류 호기 전환 함수 (전역 등록) --- */
 window.switchUnit = function(unit) {
   selectedUnit = unit;
-  document.getElementById('tab-unit-2').classList.toggle('active', unit === '2호기');
-  document.getElementById('tab-unit-3').classList.toggle('active', unit === '3호기');
+  const tab2 = document.getElementById('tab-unit-2');
+  const tab3 = document.getElementById('tab-unit-3');
+  if (tab2) tab2.classList.toggle('active', unit === '2호기');
+  if (tab3) tab3.classList.toggle('active', unit === '3호기');
   updateFloorTitle();
   renderFloorPins();
   render3DHotspots();
@@ -229,10 +233,10 @@ function updateFloorTitle() {
   const floorTag = document.getElementById('currentFloorTag');
   const roomTitle = document.getElementById('roomTitleText');
   if (selectedFloor === 'ALL') {
-    floorTag.innerText = `기력 ${selectedUnit} 전체`;
+    if (floorTag) floorTag.innerText = `기력 ${selectedUnit} 전체`;
   } else {
-    floorTag.innerText = `기력 ${selectedUnit} ${selectedFloor}`;
-    roomTitle.innerText = `📍 [기력 ${selectedUnit} - ${selectedFloor}] 도면 공간`;
+    if (floorTag) floorTag.innerText = `기력 ${selectedUnit} ${selectedFloor}`;
+    if (roomTitle) roomTitle.innerText = `📍 [기력 ${selectedUnit} - ${selectedFloor}] 도면 공간`;
   }
 }
 
@@ -264,51 +268,71 @@ function compressImage(file, callback) {
   reader.readAsDataURL(file);
 }
 
-// 1. 등록 모달 - 카메라 촬영 & 앨범 선택 연동
+// 사진 첨부 이벤트 리스너 연결
+const instCam = document.getElementById('instPhotoCam');
+const instGal = document.getElementById('instPhotoGallery');
+if (instCam) instCam.addEventListener('change', (e) => handleInstPhoto(e.target.files[0]));
+if (instGal) instGal.addEventListener('change', (e) => handleInstPhoto(e.target.files[0]));
+
 function handleInstPhoto(file) {
   compressImage(file, (base64) => {
     currentInstPhotoBase64 = base64;
     const preview = document.getElementById('photoPreview');
-    preview.src = base64;
-    preview.style.display = 'block';
+    if (preview) {
+      preview.src = base64;
+      preview.style.display = 'block';
+    }
   });
 }
-document.getElementById('instPhotoCam').addEventListener('change', (e) => handleInstPhoto(e.target.files[0]));
-document.getElementById('instPhotoGallery').addEventListener('change', (e) => handleInstPhoto(e.target.files[0]));
 
-// 2. 최초 이력 사진 - 카메라 촬영 & 앨범 선택 연동
+const initCam = document.getElementById('initHistPhotoCam');
+const initGal = document.getElementById('initHistPhotoGallery');
+if (initCam) initCam.addEventListener('change', (e) => handleInitHistPhoto(e.target.files[0]));
+if (initGal) initGal.addEventListener('change', (e) => handleInitHistPhoto(e.target.files[0]));
+
 function handleInitHistPhoto(file) {
   compressImage(file, (base64) => {
     initHistPhotoBase64 = base64;
     const preview = document.getElementById('initHistPreview');
-    preview.src = base64;
-    preview.style.display = 'block';
+    if (preview) {
+      preview.src = base64;
+      preview.style.display = 'block';
+    }
   });
 }
-document.getElementById('initHistPhotoCam').addEventListener('change', (e) => handleInitHistPhoto(e.target.files[0]));
-document.getElementById('initHistPhotoGallery').addEventListener('change', (e) => handleInitHistPhoto(e.target.files[0]));
 
-// 3. 점검 이력 추가/수정 모달 - 카메라 촬영 & 앨범 선택 연동
+const histCam = document.getElementById('histPhotoCam');
+const histGal = document.getElementById('histPhotoGallery');
+if (histCam) histCam.addEventListener('change', (e) => handleHistPhoto(e.target.files[0]));
+if (histGal) histGal.addEventListener('change', (e) => handleHistPhoto(e.target.files[0]));
+
 function handleHistPhoto(file) {
   compressImage(file, (base64) => {
     currentHistPhotoBase64 = base64;
     const preview = document.getElementById('histPhotoPreview');
-    preview.src = base64;
-    preview.style.display = 'block';
+    if (preview) {
+      preview.src = base64;
+      preview.style.display = 'block';
+    }
   });
 }
-document.getElementById('histPhotoCam').addEventListener('change', (e) => handleHistPhoto(e.target.files[0]));
-document.getElementById('histPhotoGallery').addEventListener('change', (e) => handleHistPhoto(e.target.files[0]));
 
-// 4. 상세창 대표사진 변경 - 카메라 촬영 & 앨범 선택 연동
+const updateCam = document.getElementById('updateMainPhotoCam');
+const updateGal = document.getElementById('updateMainPhotoGallery');
+if (updateCam) updateCam.addEventListener('change', (e) => handleUpdateMainPhoto(e.target.files[0]));
+if (updateGal) updateGal.addEventListener('change', (e) => handleUpdateMainPhoto(e.target.files[0]));
+
 function handleUpdateMainPhoto(file) {
   compressImage(file, async (base64) => {
     const target = currentInstruments.find(i => i.id === activeTargetId);
     if (!target) return;
     target.photo_url = base64;
     target.image_data = base64;
-    document.getElementById('infoMainImg').src = base64;
-    document.getElementById('infoMainImg').style.display = 'block';
+    const mainImg = document.getElementById('infoMainImg');
+    if (mainImg) {
+      mainImg.src = base64;
+      mainImg.style.display = 'block';
+    }
 
     await supabaseClient.from('instruments').update({
       photo_url: base64,
@@ -320,92 +344,129 @@ function handleUpdateMainPhoto(file) {
     alert('✅ 기기 대표 사진이 업데이트되었습니다.');
   });
 }
-document.getElementById('updateMainPhotoCam').addEventListener('change', (e) => handleUpdateMainPhoto(e.target.files[0]));
-document.getElementById('updateMainPhotoGallery').addEventListener('change', (e) => handleUpdateMainPhoto(e.target.files[0]));
 
 function unlock(name, email = 'user@jeju.com') {
   const savedName = localStorage.getItem('jeju_worker_name');
   const finalName = savedName || name;
   currentUserInfo = { name: finalName, email };
-  document.getElementById('auth-overlay').style.display = 'none';
-  document.getElementById('loginUserBadge').innerText = `👤 ${finalName}`;
+  const authOverlay = document.getElementById('auth-overlay');
+  const userBadge = document.getElementById('loginUserBadge');
+  if (authOverlay) authOverlay.style.display = 'none';
+  if (userBadge) userBadge.innerText = `👤 ${finalName}`;
   fetchInstruments();
 }
 
-document.getElementById('btnGoAdmin').addEventListener('click', () => {
-  document.getElementById('login-box').style.display = 'none';
-  document.getElementById('admin-login-box').style.display = 'block';
-});
-document.getElementById('linkBackLogin').addEventListener('click', () => {
-  document.getElementById('admin-login-box').style.display = 'none';
-  document.getElementById('login-box').style.display = 'block';
-});
-document.getElementById('linkToRegister').addEventListener('click', () => {
-  document.getElementById('login-box').style.display = 'none';
-  document.getElementById('register-box').style.display = 'block';
-  setTimeout(() => document.getElementById('regName').focus(), 150);
-});
-document.getElementById('linkBackLogin2').addEventListener('click', () => {
-  document.getElementById('register-box').style.display = 'none';
-  document.getElementById('login-box').style.display = 'block';
-});
+// 관리자 & 팀원 로그인 폼 이벤트
+const btnGoAdmin = document.getElementById('btnGoAdmin');
+if (btnGoAdmin) {
+  btnGoAdmin.addEventListener('click', () => {
+    document.getElementById('login-box').style.display = 'none';
+    document.getElementById('admin-login-box').style.display = 'block';
+  });
+}
 
-document.getElementById('btnAdminSubmit').addEventListener('click', () => {
-  if (document.getElementById('adminPassInput').value.trim() === ADMIN_MASTER_PASS) {
-    sessionStorage.setItem('jeju_admin_auth', 'true');
-    const defaultName = localStorage.getItem('jeju_worker_name') || '관리자';
-    unlock(defaultName, 'admin@jeju.com');
-  } else {
-    document.getElementById('adminErrorMsg').style.display = 'block';
-  }
-});
+const linkBackLogin = document.getElementById('linkBackLogin');
+if (linkBackLogin) {
+  linkBackLogin.addEventListener('click', () => {
+    document.getElementById('admin-login-box').style.display = 'none';
+    document.getElementById('login-box').style.display = 'block';
+  });
+}
 
-document.getElementById('btnMemberLogin').addEventListener('click', () => {
-  const email = document.getElementById('loginEmail').value.trim();
-  if (!email) {
-    alert('사번(이메일)을 입력해 주세요.');
-    return;
-  }
-  const namePart = email.split('@')[0];
-  localStorage.setItem('jeju_worker_name', namePart);
-  unlock(namePart, email);
-});
+const linkToRegister = document.getElementById('linkToRegister');
+if (linkToRegister) {
+  linkToRegister.addEventListener('click', () => {
+    document.getElementById('login-box').style.display = 'none';
+    document.getElementById('register-box').style.display = 'block';
+    setTimeout(() => {
+      const regName = document.getElementById('regName');
+      if (regName) regName.focus();
+    }, 150);
+  });
+}
 
-document.getElementById('btnRegisterSubmit').addEventListener('click', async () => {
-  const name = document.getElementById('regName').value.trim();
-  const email = document.getElementById('regEmail').value.trim();
-  const pass = document.getElementById('regPassword').value.trim();
-  const regMsg = document.getElementById('regMsg');
+const linkBackLogin2 = document.getElementById('linkBackLogin2');
+if (linkBackLogin2) {
+  linkBackLogin2.addEventListener('click', () => {
+    document.getElementById('register-box').style.display = 'none';
+    document.getElementById('login-box').style.display = 'block';
+  });
+}
 
-  if (!name || !email || !pass) {
-    regMsg.innerText = '⚠️ 이름, 사번(이메일), 비밀번호를 모두 입력해 주세요.';
-    regMsg.style.display = 'block';
-    return;
-  }
-  if (pass.length < 6) {
-    regMsg.innerText = '⚠️ 비밀번호는 최소 6자리 이상이어야 합니다.';
-    regMsg.style.display = 'block';
-    return;
-  }
+const btnAdminSubmit = document.getElementById('btnAdminSubmit');
+if (btnAdminSubmit) {
+  btnAdminSubmit.addEventListener('click', () => {
+    const inputPass = document.getElementById('adminPassInput').value.trim();
+    if (inputPass === ADMIN_MASTER_PASS) {
+      sessionStorage.setItem('jeju_admin_auth', 'true');
+      const defaultName = localStorage.getItem('jeju_worker_name') || '관리자';
+      unlock(defaultName, 'admin@jeju.com');
+    } else {
+      document.getElementById('adminErrorMsg').style.display = 'block';
+    }
+  });
+}
 
-  regMsg.style.display = 'none';
-  localStorage.setItem('jeju_worker_name', name);
+const btnMemberLogin = document.getElementById('btnMemberLogin');
+if (btnMemberLogin) {
+  btnMemberLogin.addEventListener('click', () => {
+    const email = document.getElementById('loginEmail').value.trim();
+    if (!email) {
+      alert('사번(이메일)을 입력해 주세요.');
+      return;
+    }
+    const namePart = email.split('@')[0];
+    localStorage.setItem('jeju_worker_name', namePart);
+    unlock(namePart, email);
+  });
+}
 
-  try {
-    await supabaseClient.auth.signUp({ email, password: pass });
-  } catch (e) {
-    console.warn('Auth fallback:', e);
-  }
+const btnRegisterSubmit = document.getElementById('btnRegisterSubmit');
+if (btnRegisterSubmit) {
+  btnRegisterSubmit.addEventListener('click', async () => {
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const pass = document.getElementById('regPassword').value.trim();
+    const regMsg = document.getElementById('regMsg');
 
-  alert(`🎉 [${name}] 팀원님, 환영합니다!\n성공적으로 등록되었습니다.`);
-  unlock(name, email);
-});
+    if (!name || !email || !pass) {
+      if (regMsg) {
+        regMsg.innerText = '⚠️ 이름, 사번(이메일), 비밀번호를 모두 입력해 주세요.';
+        regMsg.style.display = 'block';
+      }
+      return;
+    }
+    if (pass.length < 6) {
+      if (regMsg) {
+        regMsg.innerText = '⚠️ 비밀번호는 최소 6자리 이상이어야 합니다.';
+        regMsg.style.display = 'block';
+      }
+      return;
+    }
 
-document.getElementById('btnLogout').addEventListener('click', () => {
-  sessionStorage.removeItem('jeju_admin_auth');
-  location.reload();
-});
+    if (regMsg) regMsg.style.display = 'none';
+    localStorage.setItem('jeju_worker_name', name);
 
+    try {
+      await supabaseClient.auth.signUp({ email, password: pass });
+    } catch (e) {
+      console.warn('Auth fallback:', e);
+    }
+
+    alert(`🎉 [${name}] 팀원님, 환영합니다!\n성공적으로 등록되었습니다.`);
+    unlock(name, email);
+  });
+}
+
+const btnLogout = document.getElementById('btnLogout');
+if (btnLogout) {
+  btnLogout.addEventListener('click', () => {
+    sessionStorage.removeItem('jeju_admin_auth');
+    location.reload();
+  });
+}
+
+/* --- 뷰어 및 캔버스 요소 제어 --- */
 const canvasWrap = document.getElementById('floor-canvas-wrap');
 const board = document.getElementById('floor-board');
 const notice = document.getElementById('noImgNotice');
@@ -414,8 +475,8 @@ const measureHud = document.getElementById('measure-info-hud');
 const btnMeasure = document.getElementById('btnToggleMeasure');
 
 function updateMeasureHudPrompt() {
-  if (!isMeasureMode) {
-    measureHud.style.display = 'none';
+  if (!isMeasureMode || !measureHud) {
+    if (measureHud) measureHud.style.display = 'none';
     return;
   }
   measureHud.style.display = 'block';
@@ -426,55 +487,62 @@ function updateMeasureHudPrompt() {
   }
 }
 
-btnMeasure.addEventListener('click', () => {
-  isMeasureMode = !isMeasureMode;
-  if (isMeasureMode) {
-    btnMeasure.classList.add('active');
-    btnMeasure.innerText = '📐 계측 ON';
-    updateMeasureHudPrompt();
-  } else {
-    btnMeasure.classList.remove('active');
-    btnMeasure.innerText = '📐 계측';
-    measureHud.style.display = 'none';
-    const tempMarker = viewer.querySelector('#temp-measure-marker');
-    if (tempMarker) tempMarker.remove();
-    const marker2d = board.querySelector('#temp-measure-marker-2d');
-    if (marker2d) marker2d.remove();
-  }
-});
-
-viewer.addEventListener('click', (event) => {
-  if (!isMeasureMode) return;
-  const rect = viewer.getBoundingClientRect();
-  const hit = viewer.positionAndNormalFromPoint(event.clientX - rect.left, event.clientY - rect.top);
-  if (hit) {
-    const posStr = `${hit.position.x.toFixed(2)} ${hit.position.y.toFixed(2)} ${hit.position.z.toFixed(2)}`;
-    let marker = viewer.querySelector('#temp-measure-marker');
-    if (!marker) {
-      marker = document.createElement('button');
-      marker.id = 'temp-measure-marker';
-      marker.className = 'measure-marker';
-      marker.slot = 'hotspot-measure-point';
-      viewer.appendChild(marker);
+if (btnMeasure) {
+  btnMeasure.addEventListener('click', () => {
+    isMeasureMode = !isMeasureMode;
+    if (isMeasureMode) {
+      btnMeasure.classList.add('active');
+      btnMeasure.innerText = '📐 계측 ON';
+      updateMeasureHudPrompt();
+    } else {
+      btnMeasure.classList.remove('active');
+      btnMeasure.innerText = '📐 계측';
+      if (measureHud) measureHud.style.display = 'none';
+      const tempMarker = viewer ? viewer.querySelector('#temp-measure-marker') : null;
+      if (tempMarker) tempMarker.remove();
+      const marker2d = board ? board.querySelector('#temp-measure-marker-2d') : null;
+      if (marker2d) marker2d.remove();
     }
-    marker.dataset.position = `${hit.position.x} ${hit.position.y} ${hit.position.z}`;
-    measureHud.innerHTML = `📍 3D 좌표: <b style="color:#38bdf8;">${posStr}</b> (복사됨)`;
-    navigator.clipboard.writeText(posStr).catch(() => {});
-  } else {
-    measureHud.innerText = '⚠️ 모델 표면 위를 터치해 주세요.';
-  }
-});
-
-viewer.addEventListener('camera-change', () => {
-  const orbit = viewer.getCameraOrbit();
-  if (!orbit) return;
-  const dist = orbit.radius;
-  const pinScale = Math.max(0.5, Math.min(1.5, (380 / dist) * 1.0));
-  document.querySelectorAll('.hotspot-pin').forEach(pin => {
-    pin.style.setProperty('--pin-scale', pinScale);
   });
-});
+}
 
+if (viewer) {
+  viewer.addEventListener('click', (event) => {
+    if (!isMeasureMode) return;
+    const rect = viewer.getBoundingClientRect();
+    const hit = viewer.positionAndNormalFromPoint(event.clientX - rect.left, event.clientY - rect.top);
+    if (hit) {
+      const posStr = `${hit.position.x.toFixed(2)} ${hit.position.y.toFixed(2)} ${hit.position.z.toFixed(2)}`;
+      let marker = viewer.querySelector('#temp-measure-marker');
+      if (!marker) {
+        marker = document.createElement('button');
+        marker.id = 'temp-measure-marker';
+        marker.className = 'measure-marker';
+        marker.slot = 'hotspot-measure-point';
+        viewer.appendChild(marker);
+      }
+      marker.dataset.position = `${hit.position.x} ${hit.position.y} ${hit.position.z}`;
+      if (measureHud) {
+        measureHud.innerHTML = `📍 3D 좌표: <b style="color:#38bdf8;">${posStr}</b> (복사됨)`;
+      }
+      navigator.clipboard.writeText(posStr).catch(() => {});
+    } else {
+      if (measureHud) measureHud.innerText = '⚠️ 모델 표면 위를 터치해 주세요.';
+    }
+  });
+
+  viewer.addEventListener('camera-change', () => {
+    const orbit = viewer.getCameraOrbit();
+    if (!orbit) return;
+    const dist = orbit.radius;
+    const pinScale = Math.max(0.5, Math.min(1.5, (380 / dist) * 1.0));
+    document.querySelectorAll('.hotspot-pin').forEach(pin => {
+      pin.style.setProperty('--pin-scale', pinScale);
+    });
+  });
+}
+
+/* --- 전역 층별 도면 오픈 및 줌 함수 --- */
 window.openFloorRoom = function(floor, imgFile, btn) {
   selectedFloor = floor;
   document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
@@ -488,12 +556,14 @@ window.openFloorRoom = function(floor, imgFile, btn) {
   testImg.src = `./${imgFile}`;
   testImg.onload = () => {
     board.style.backgroundImage = `url('./${imgFile}')`;
-    notice.style.display = 'none';
+    if (notice) notice.style.display = 'none';
   };
   testImg.onerror = () => {
     board.style.backgroundImage = 'none';
-    notice.innerText = `⚠️ [${imgFile}] 파일을 찾을 수 없습니다.`;
-    notice.style.display = 'block';
+    if (notice) {
+      notice.innerText = `⚠️ [${imgFile}] 파일을 찾을 수 없습니다.`;
+      notice.style.display = 'block';
+    }
   };
 
   resetCanvasView();
@@ -504,7 +574,8 @@ window.openFloorRoom = function(floor, imgFile, btn) {
 window.exitToOverall = function() {
   selectedFloor = 'ALL';
   document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('btn-ALL').classList.add('active');
+  const btnAll = document.getElementById('btn-ALL');
+  if (btnAll) btnAll.classList.add('active');
   document.getElementById('floor-room-view').style.display = 'none';
   document.getElementById('overall-3d-view').style.display = 'block';
   updateFloorTitle();
@@ -513,7 +584,9 @@ window.exitToOverall = function() {
 };
 
 function updateTransform() {
-  board.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${scale})`;
+  if (board) {
+    board.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${scale})`;
+  }
 }
 
 window.zoomCanvas = function(delta) {
@@ -528,167 +601,187 @@ window.resetCanvasView = function() {
   updateTransform();
 };
 
-canvasWrap.addEventListener('touchstart', (e) => {
-  if (isPinMoving || e.target.closest('.floor-inst-pin')) return;
-  if (e.touches.length === 1) {
-    isDragging = true;
-    dragStartX = e.touches[0].clientX - panX;
-    dragStartY = e.touches[0].clientY - panY;
-  } else if (e.touches.length === 2) {
-    isDragging = false;
-    initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-    initialScale = scale;
-  }
-}, { passive: false });
+// 캔버스 팬/줌 이벤트
+if (canvasWrap) {
+  canvasWrap.addEventListener('touchstart', (e) => {
+    if (isPinMoving || e.target.closest('.floor-inst-pin')) return;
+    if (e.touches.length === 1) {
+      isDragging = true;
+      dragStartX = e.touches[0].clientX - panX;
+      dragStartY = e.touches[0].clientY - panY;
+    } else if (e.touches.length === 2) {
+      isDragging = false;
+      initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      initialScale = scale;
+    }
+  }, { passive: false });
 
-canvasWrap.addEventListener('touchmove', (e) => {
-  if (isPinMoving || e.target.closest('.floor-inst-pin')) return;
-  e.preventDefault();
-  if (e.touches.length === 1 && isDragging) {
-    panX = e.touches[0].clientX - dragStartX;
-    panY = e.touches[0].clientY - dragStartY;
-    updateTransform();
-  } else if (e.touches.length === 2) {
-    const currentDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-    if (initialPinchDist > 0) {
-      scale = Math.max(0.3, Math.min(3.5, initialScale * (currentDist / initialPinchDist)));
+  canvasWrap.addEventListener('touchmove', (e) => {
+    if (isPinMoving || e.target.closest('.floor-inst-pin')) return;
+    e.preventDefault();
+    if (e.touches.length === 1 && isDragging) {
+      panX = e.touches[0].clientX - dragStartX;
+      panY = e.touches[0].clientY - dragStartY;
       updateTransform();
+    } else if (e.touches.length === 2) {
+      const currentDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      if (initialPinchDist > 0) {
+        scale = Math.max(0.3, Math.min(3.5, initialScale * (currentDist / initialPinchDist)));
+        updateTransform();
+      }
     }
-  }
-}, { passive: false });
+  }, { passive: false });
 
-canvasWrap.addEventListener('touchend', () => {
-  isDragging = false;
-});
+  canvasWrap.addEventListener('touchend', () => { isDragging = false; });
 
-canvasWrap.addEventListener('mousedown', (e) => {
-  if (isPinMoving || e.target.closest('.floor-inst-pin')) return;
-  isDragging = true;
-  dragStartX = e.clientX - panX;
-  dragStartY = e.clientY - panY;
-  canvasWrap.style.cursor = 'grabbing';
-});
+  canvasWrap.addEventListener('mousedown', (e) => {
+    if (isPinMoving || e.target.closest('.floor-inst-pin')) return;
+    isDragging = true;
+    dragStartX = e.clientX - panX;
+    dragStartY = e.clientY - panY;
+    canvasWrap.style.cursor = 'grabbing';
+  });
 
-window.addEventListener('mousemove', (e) => {
-  if (isPinMoving || !isDragging) return;
-  panX = e.clientX - dragStartX;
-  panY = e.clientY - dragStartY;
-  updateTransform();
-});
+  window.addEventListener('mousemove', (e) => {
+    if (isPinMoving || !isDragging) return;
+    panX = e.clientX - dragStartX;
+    panY = e.clientY - dragStartY;
+    updateTransform();
+  });
 
-window.addEventListener('mouseup', () => {
-  isDragging = false;
-  canvasWrap.style.cursor = 'grab';
-});
+  window.addEventListener('mouseup', () => {
+    isDragging = false;
+    if (canvasWrap) canvasWrap.style.cursor = 'grab';
+  });
 
-canvasWrap.addEventListener('wheel', (e) => {
-  e.preventDefault();
-  zoomCanvas(e.deltaY < 0 ? 0.15 : -0.15);
-}, { passive: false });
+  canvasWrap.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    zoomCanvas(e.deltaY < 0 ? 0.15 : -0.15);
+  }, { passive: false });
+}
 
-board.addEventListener('click', (e) => {
-  if (isPinMoving || e.target.closest('.floor-inst-pin')) return;
-  const rect = board.getBoundingClientRect();
-  const clickX = (e.clientX - rect.left) / scale;
-  const clickY = (e.clientY - rect.top) / scale;
-  const curX = Math.round(Math.max(0, Math.min(1400, clickX)));
-  const curY = Math.round(Math.max(0, Math.min(1000, clickY)));
+// 도면 클릭 시 신규 등록 모달
+if (board) {
+  board.addEventListener('click', (e) => {
+    if (isPinMoving || e.target.closest('.floor-inst-pin')) return;
+    const rect = board.getBoundingClientRect();
+    const clickX = (e.clientX - rect.left) / scale;
+    const clickY = (e.clientY - rect.top) / scale;
+    const curX = Math.round(Math.max(0, Math.min(1400, clickX)));
+    const curY = Math.round(Math.max(0, Math.min(1000, clickY)));
 
-  if (isMeasureMode) {
-    let marker2d = board.querySelector('#temp-measure-marker-2d');
-    if (!marker2d) {
-      marker2d = document.createElement('div');
-      marker2d.id = 'temp-measure-marker-2d';
-      marker2d.className = 'measure-marker-2d';
-      board.appendChild(marker2d);
+    if (isMeasureMode) {
+      let marker2d = board.querySelector('#temp-measure-marker-2d');
+      if (!marker2d) {
+        marker2d = document.createElement('div');
+        marker2d.id = 'temp-measure-marker-2d';
+        marker2d.className = 'measure-marker-2d';
+        board.appendChild(marker2d);
+      }
+      marker2d.style.left = `${curX}px`;
+      marker2d.style.top = `${curY}px`;
+      const coordMsg = `X: ${curX}, Y: ${curY}`;
+      if (measureHud) {
+        measureHud.innerHTML = `📍 2D 도면 좌표: <b style="color:#38bdf8;">${coordMsg}</b> (복사됨)`;
+      }
+      navigator.clipboard.writeText(`X:${curX} Y:${curY}`).catch(() => {});
+      return;
     }
-    marker2d.style.left = `${curX}px`;
-    marker2d.style.top = `${curY}px`;
-    const coordMsg = `X: ${curX}, Y: ${curY}`;
-    measureHud.innerHTML = `📍 2D 도면 좌표: <b style="color:#38bdf8;">${coordMsg}</b> (복사됨)`;
-    navigator.clipboard.writeText(`X:${curX} Y:${curY}`).catch(() => {});
-    return;
-  }
 
-  clickedFloorCoord = { x: curX, y: curY };
-  document.getElementById('tagNo').value = '';
-  document.getElementById('name').value = '';
-  document.getElementById('model').value = '';
-  document.getElementById('range').value = '';
-  currentInstPhotoBase64 = '';
-  document.getElementById('instPhotoCam').value = '';
-  document.getElementById('instPhotoGallery').value = '';
-  document.getElementById('photoPreview').style.display = 'none';
-  initHistPhotoBase64 = '';
-  document.getElementById('initHistPhotoCam').value = '';
-  document.getElementById('initHistPhotoGallery').value = '';
-  document.getElementById('initHistPreview').style.display = 'none';
-  document.getElementById('initHistAuthor').value = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '';
-  document.getElementById('initHistContent').value = '';
-  document.getElementById('modalUnitText').innerText = selectedUnit;
-  document.getElementById('modalFloorText').innerText = selectedFloor;
-  document.getElementById('modal').style.display = 'block';
-});
+    clickedFloorCoord = { x: curX, y: curY };
+    document.getElementById('tagNo').value = '';
+    document.getElementById('name').value = '';
+    document.getElementById('model').value = '';
+    document.getElementById('range').value = '';
+    currentInstPhotoBase64 = '';
+    const camIn = document.getElementById('instPhotoCam');
+    const galIn = document.getElementById('instPhotoGallery');
+    if (camIn) camIn.value = '';
+    if (galIn) galIn.value = '';
+    const prev = document.getElementById('photoPreview');
+    if (prev) prev.style.display = 'none';
 
-document.getElementById('btnSaveInst').addEventListener('click', async () => {
-  const tag = document.getElementById('tagNo').value.trim();
-  const name = document.getElementById('name').value.trim();
-  if (!tag || !name) {
-    alert('Tag No와 기기명을 입력하세요.');
-    return;
-  }
+    initHistPhotoBase64 = '';
+    const iCam = document.getElementById('initHistPhotoCam');
+    const iGal = document.getElementById('initHistPhotoGallery');
+    if (iCam) iCam.value = '';
+    if (iGal) iGal.value = '';
+    const iPrev = document.getElementById('initHistPreview');
+    if (iPrev) iPrev.style.display = 'none';
 
-  const initialLogs = [];
-  const initContent = document.getElementById('initHistContent').value.trim();
-  const initAuthor = document.getElementById('initHistAuthor').value.trim() || currentUserInfo.name || '관리자';
+    document.getElementById('initHistAuthor').value = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '';
+    document.getElementById('initHistContent').value = '';
+    document.getElementById('modalUnitText').innerText = selectedUnit;
+    document.getElementById('modalFloorText').innerText = selectedFloor;
+    document.getElementById('modal').style.display = 'block';
+  });
+}
 
-  if (initContent) {
-    initialLogs.push({
-      date: new Date().toISOString().slice(0, 10),
-      author: initAuthor,
-      content: initContent,
-      photo: initHistPhotoBase64 || null
-    });
-    localStorage.setItem('jeju_worker_name', initAuthor);
-    currentUserInfo.name = initAuthor;
-    document.getElementById('loginUserBadge').innerText = `👤 ${initAuthor}`;
-  }
+// 신규 계측기 저장
+const btnSaveInst = document.getElementById('btnSaveInst');
+if (btnSaveInst) {
+  btnSaveInst.addEventListener('click', async () => {
+    const tag = document.getElementById('tagNo').value.trim();
+    const name = document.getElementById('name').value.trim();
+    if (!tag || !name) {
+      alert('Tag No와 기기명을 입력하세요.');
+      return;
+    }
 
-  const insertData = {
-    tag_no: tag,
-    name: name,
-    model: document.getElementById('model').value.trim() || 'EMPTY',
-    signal_range: document.getElementById('range').value.trim() || 'EMPTY',
-    floor: selectedFloor,
-    unit: selectedUnit,
-    coord_x: clickedFloorCoord.x,
-    coord_y: clickedFloorCoord.y,
-    x_coord: clickedFloorCoord.x,
-    y_coord: clickedFloorCoord.y,
-    model_position: '0 0 0',
-    history_logs: initialLogs,
-    photo_url: currentInstPhotoBase64 || null,
-    image_data: currentInstPhotoBase64 || null
-  };
+    const initialLogs = [];
+    const initContent = document.getElementById('initHistContent').value.trim();
+    const initAuthor = document.getElementById('initHistAuthor').value.trim() || currentUserInfo.name || '관리자';
 
-  let { error } = await supabaseClient.from('instruments').insert([insertData]);
+    if (initContent) {
+      initialLogs.push({
+        date: new Date().toISOString().slice(0, 10),
+        author: initAuthor,
+        content: initContent,
+        photo: initHistPhotoBase64 || null
+      });
+      localStorage.setItem('jeju_worker_name', initAuthor);
+      currentUserInfo.name = initAuthor;
+      const ub = document.getElementById('loginUserBadge');
+      if (ub) ub.innerText = `👤 ${initAuthor}`;
+    }
 
-  if (error && error.message && error.message.toLowerCase().includes('unit')) {
-    delete insertData.unit;
-    insertData.floor = `${selectedUnit}_${selectedFloor}`;
-    const fallback = await supabaseClient.from('instruments').insert([insertData]);
-    error = fallback.error;
-  }
+    const insertData = {
+      tag_no: tag,
+      name: name,
+      model: document.getElementById('model').value.trim() || 'EMPTY',
+      signal_range: document.getElementById('range').value.trim() || 'EMPTY',
+      floor: selectedFloor,
+      unit: selectedUnit,
+      coord_x: clickedFloorCoord.x,
+      coord_y: clickedFloorCoord.y,
+      x_coord: clickedFloorCoord.x,
+      y_coord: clickedFloorCoord.y,
+      model_position: '0 0 0',
+      history_logs: initialLogs,
+      photo_url: currentInstPhotoBase64 || null,
+      image_data: currentInstPhotoBase64 || null
+    };
 
-  if (!error) {
-    document.getElementById('modal').style.display = 'none';
-    alert(`✅ [기력 ${selectedUnit}] ${selectedFloor}에 등록되었습니다!`);
-    fetchInstruments();
-  } else {
-    alert('❌ 저장 실패!\n' + error.message);
-  }
-});
+    let { error } = await supabaseClient.from('instruments').insert([insertData]);
 
+    if (error && error.message && error.message.toLowerCase().includes('unit')) {
+      delete insertData.unit;
+      insertData.floor = `${selectedUnit}_${selectedFloor}`;
+      const fallback = await supabaseClient.from('instruments').insert([insertData]);
+      error = fallback.error;
+    }
+
+    if (!error) {
+      document.getElementById('modal').style.display = 'none';
+      alert(`✅ [기력 ${selectedUnit}] ${selectedFloor}에 등록되었습니다!`);
+      fetchInstruments();
+    } else {
+      alert('❌ 저장 실패!\n' + error.message);
+    }
+  });
+}
+
+// DB 계측기 데이터 가져오기
 async function fetchInstruments() {
   const { data, error } = await supabaseClient.from('instruments').select('*');
   if (!error) {
@@ -732,7 +825,9 @@ async function fetchInstruments() {
   }
 }
 
+// 2D 핀 렌더링 & 2초 롱프레스 이동
 function renderFloorPins() {
+  if (!board) return;
   board.querySelectorAll('.floor-inst-pin').forEach(el => el.remove());
   currentInstruments.forEach(item => {
     if (item.unit !== selectedUnit || item.floor !== selectedFloor) return;
@@ -769,8 +864,10 @@ function renderFloorPins() {
       isLongPressed = false;
 
       pin.classList.add('pin-pressing');
-      measureHud.style.display = 'block';
-      measureHud.innerText = `⏳ [${item.tag_no}] 2초간 누르고 있으면 이동할 수 있습니다...`;
+      if (measureHud) {
+        measureHud.style.display = 'block';
+        measureHud.innerText = `⏳ [${item.tag_no}] 2초간 누르고 있으면 이동할 수 있습니다...`;
+      }
 
       pressTimer = setTimeout(() => {
         isLongPressed = true;
@@ -783,7 +880,9 @@ function renderFloorPins() {
         pin.setPointerCapture(e.pointerId);
 
         if (navigator.vibrate) navigator.vibrate([80, 50, 80]);
-        measureHud.innerText = `📍 [${item.tag_no}] 이동 모드 활성화! 원하는 위치로 드래그하세요.`;
+        if (measureHud) {
+          measureHud.innerText = `📍 [${item.tag_no}] 이동 모드 활성화! 원하는 위치로 드래그하세요.`;
+        }
       }, 2000);
     });
 
@@ -802,7 +901,7 @@ function renderFloorPins() {
           clearTimeout(pressTimer);
           pressTimer = null;
           pin.classList.remove('pin-pressing');
-          if (!isMeasureMode) measureHud.style.display = 'none';
+          if (!isMeasureMode && measureHud) measureHud.style.display = 'none';
         }
       }
     });
@@ -830,10 +929,12 @@ function renderFloorPins() {
         item.x_coord = finalX;
         item.y_coord = finalY;
 
-        measureHud.innerText = `✅ [${item.tag_no}] 새 위치(X:${finalX}, Y:${finalY})로 변경되었습니다.`;
-        setTimeout(() => {
-          if (!isMeasureMode) measureHud.style.display = 'none';
-        }, 2500);
+        if (measureHud) {
+          measureHud.innerText = `✅ [${item.tag_no}] 새 위치(X:${finalX}, Y:${finalY})로 변경되었습니다.`;
+          setTimeout(() => {
+            if (!isMeasureMode && measureHud) measureHud.style.display = 'none';
+          }, 2500);
+        }
 
         await supabaseClient.from('instruments').update({
           coord_x: finalX,
@@ -846,7 +947,7 @@ function renderFloorPins() {
         activeDraggingPin = null;
         activeDraggingItem = null;
       } else {
-        if (!isMeasureMode) measureHud.style.display = 'none';
+        if (!isMeasureMode && measureHud) measureHud.style.display = 'none';
         showDetail(item);
       }
     };
@@ -858,7 +959,9 @@ function renderFloorPins() {
   });
 }
 
+// 3D 핫스팟 렌더링
 function render3DHotspots() {
+  if (!viewer) return;
   viewer.querySelectorAll('.hotspot-pin').forEach(el => el.remove());
   currentInstruments.forEach(item => {
     if (item.unit !== selectedUnit) return;
@@ -910,6 +1013,7 @@ function render3DHotspots() {
   });
 }
 
+// 상세 정보 모달 오픈
 function showDetail(item) {
   activeTargetId = item.id;
   document.getElementById('infoTitle').innerText = `[${item.tag_no}] ${item.name}`;
@@ -932,27 +1036,36 @@ function showDetail(item) {
 
   renderHistoryList(item);
 
-  document.getElementById('btnAddHistBtn').onclick = () => {
-    editingHistoryIndex = null;
-    document.getElementById('info-modal').style.display = 'none';
-    document.getElementById('histModalTitle').innerText = '📋 새 점검/정비 이력 추가';
-    document.getElementById('histTargetTag').innerText = `[${item.tag_no}] ${item.name}`;
-    document.getElementById('histDate').value = new Date().toISOString().slice(0, 10);
-    document.getElementById('histAuthor').value = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '';
-    document.getElementById('histContent').value = '';
-    currentHistPhotoBase64 = '';
-    document.getElementById('histPhotoCam').value = '';
-    document.getElementById('histPhotoGallery').value = '';
-    document.getElementById('histPhotoPreview').style.display = 'none';
-    document.getElementById('history-modal').style.display = 'block';
-  };
+  const btnAddHist = document.getElementById('btnAddHistBtn');
+  if (btnAddHist) {
+    btnAddHist.onclick = () => {
+      editingHistoryIndex = null;
+      document.getElementById('info-modal').style.display = 'none';
+      document.getElementById('histModalTitle').innerText = '📋 새 점검/정비 이력 추가';
+      document.getElementById('histTargetTag').innerText = `[${item.tag_no}] ${item.name}`;
+      document.getElementById('histDate').value = new Date().toISOString().slice(0, 10);
+      document.getElementById('histAuthor').value = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '';
+      document.getElementById('histContent').value = '';
+      currentHistPhotoBase64 = '';
+      const hCam = document.getElementById('histPhotoCam');
+      const hGal = document.getElementById('histPhotoGallery');
+      if (hCam) hCam.value = '';
+      if (hGal) hGal.value = '';
+      const hPrev = document.getElementById('histPhotoPreview');
+      if (hPrev) hPrev.style.display = 'none';
+      document.getElementById('history-modal').style.display = 'block';
+    };
+  }
 
-  document.getElementById('btnDeletePin').onclick = async () => {
-    if (!confirm('해당 계측기와 모든 이력을 완전히 삭제하시겠습니까?')) return;
-    await supabaseClient.from('instruments').delete().eq('id', item.id);
-    document.getElementById('info-modal').style.display = 'none';
-    fetchInstruments();
-  };
+  const btnDelPin = document.getElementById('btnDeletePin');
+  if (btnDelPin) {
+    btnDelPin.onclick = async () => {
+      if (!confirm('해당 계측기와 모든 이력을 완전히 삭제하시겠습니까?')) return;
+      await supabaseClient.from('instruments').delete().eq('id', item.id);
+      document.getElementById('info-modal').style.display = 'none';
+      fetchInstruments();
+    };
+  }
 
   document.getElementById('info-modal').style.display = 'block';
 }
@@ -960,6 +1073,7 @@ function showDetail(item) {
 function renderHistoryList(item) {
   const logs = Array.isArray(item.history_logs) ? item.history_logs : [];
   const listEl = document.getElementById('infoHistoryList');
+  if (!listEl) return;
   if (logs.length === 0) {
     listEl.innerHTML = '<div style="color:#94a3b8; font-size:11px;">등록된 점검 이력이 없습니다.</div>';
     return;
@@ -980,6 +1094,7 @@ function renderHistoryList(item) {
   `).join('');
 }
 
+// 점검 이력 수정/삭제 전역 바인딩
 window.openEditHistory = function(idx) {
   const target = currentInstruments.find(i => i.id === activeTargetId);
   if (!target || !target.history_logs[idx]) return;
@@ -995,14 +1110,18 @@ window.openEditHistory = function(idx) {
 
   currentHistPhotoBase64 = h.photo || '';
   const preview = document.getElementById('histPhotoPreview');
-  if (currentHistPhotoBase64) {
-    preview.src = currentHistPhotoBase64;
-    preview.style.display = 'block';
-  } else {
-    preview.style.display = 'none';
+  if (preview) {
+    if (currentHistPhotoBase64) {
+      preview.src = currentHistPhotoBase64;
+      preview.style.display = 'block';
+    } else {
+      preview.style.display = 'none';
+    }
   }
-  document.getElementById('histPhotoCam').value = '';
-  document.getElementById('histPhotoGallery').value = '';
+  const hCam = document.getElementById('histPhotoCam');
+  const hGal = document.getElementById('histPhotoGallery');
+  if (hCam) hCam.value = '';
+  if (hGal) hGal.value = '';
   document.getElementById('history-modal').style.display = 'block';
 };
 
@@ -1021,68 +1140,81 @@ window.deleteHistoryItem = async function(idx) {
   }
 };
 
-document.getElementById('btnSaveHist').addEventListener('click', async () => {
-  const text = document.getElementById('histContent').value.trim();
-  const workerName = document.getElementById('histAuthor').value.trim();
-  if (!workerName) {
-    alert('작업자 성명을 입력하세요.');
-    return;
-  }
-  if (!text) {
-    alert('점검/조치 내용을 입력하세요.');
-    return;
-  }
+const btnSaveHist = document.getElementById('btnSaveHist');
+if (btnSaveHist) {
+  btnSaveHist.addEventListener('click', async () => {
+    const text = document.getElementById('histContent').value.trim();
+    const workerName = document.getElementById('histAuthor').value.trim();
+    if (!workerName) {
+      alert('작업자 성명을 입력하세요.');
+      return;
+    }
+    if (!text) {
+      alert('점검/조치 내용을 입력하세요.');
+      return;
+    }
 
-  localStorage.setItem('jeju_worker_name', workerName);
-  currentUserInfo.name = workerName;
-  document.getElementById('loginUserBadge').innerText = `👤 ${workerName}`;
+    localStorage.setItem('jeju_worker_name', workerName);
+    currentUserInfo.name = workerName;
+    const ub = document.getElementById('loginUserBadge');
+    if (ub) ub.innerText = `👤 ${workerName}`;
 
-  const target = currentInstruments.find(i => i.id === activeTargetId);
-  if (!target) return;
-  const logs = Array.isArray(target.history_logs) ? [...target.history_logs] : [];
+    const target = currentInstruments.find(i => i.id === activeTargetId);
+    if (!target) return;
+    const logs = Array.isArray(target.history_logs) ? [...target.history_logs] : [];
 
-  const entryData = {
-    date: document.getElementById('histDate').value,
-    author: workerName,
-    content: text,
-    photo: currentHistPhotoBase64 || null
-  };
+    const entryData = {
+      date: document.getElementById('histDate').value,
+      author: workerName,
+      content: text,
+      photo: currentHistPhotoBase64 || null
+    };
 
-  if (editingHistoryIndex !== null) {
-    logs[editingHistoryIndex] = entryData;
-  } else {
-    logs.unshift(entryData);
-  }
+    if (editingHistoryIndex !== null) {
+      logs[editingHistoryIndex] = entryData;
+    } else {
+      logs.unshift(entryData);
+    }
 
-  const { error } = await supabaseClient.from('instruments').update({ history_logs: logs }).eq('id', activeTargetId);
-  if (!error) {
-    target.history_logs = logs;
-    document.getElementById('history-modal').style.display = 'none';
-    renderHistoryList(target);
-    document.getElementById('info-modal').style.display = 'block';
-    alert(editingHistoryIndex !== null ? '✅ 점검 이력이 수정되었습니다.' : '✅ 새 점검 이력이 저장되었습니다.');
-    editingHistoryIndex = null;
-  } else {
-    alert('❌ 이력 저장 실패: ' + error.message);
-  }
-});
+    const { error } = await supabaseClient.from('instruments').update({ history_logs: logs }).eq('id', activeTargetId);
+    if (!error) {
+      target.history_logs = logs;
+      document.getElementById('history-modal').style.display = 'none';
+      renderHistoryList(target);
+      document.getElementById('info-modal').style.display = 'block';
+      alert(editingHistoryIndex !== null ? '✅ 점검 이력이 수정되었습니다.' : '✅ 새 점검 이력이 저장되었습니다.');
+      editingHistoryIndex = null;
+    } else {
+      alert('❌ 이력 저장 실패: ' + error.message);
+    }
+  });
+}
 
+/* --- 통합 검색 기능 --- */
 const searchModal = document.getElementById('search-modal');
 const searchInput = document.getElementById('searchInput');
 const searchResultsList = document.getElementById('searchResultsList');
+const btnOpenSearch = document.getElementById('btnOpenSearch');
 
-document.getElementById('btnOpenSearch').addEventListener('click', () => {
-  searchInput.value = '';
-  renderSearchResults('');
-  searchModal.style.display = 'block';
-  setTimeout(() => searchInput.focus(), 100);
-});
+if (btnOpenSearch) {
+  btnOpenSearch.addEventListener('click', () => {
+    if (searchInput) searchInput.value = '';
+    renderSearchResults('');
+    if (searchModal) searchModal.style.display = 'block';
+    setTimeout(() => {
+      if (searchInput) searchInput.focus();
+    }, 100);
+  });
+}
 
-searchInput.addEventListener('input', (e) => {
-  renderSearchResults(e.target.value.trim());
-});
+if (searchInput) {
+  searchInput.addEventListener('input', (e) => {
+    renderSearchResults(e.target.value.trim());
+  });
+}
 
 function renderSearchResults(query) {
+  if (!searchResultsList) return;
   if (!query) {
     searchResultsList.innerHTML = '<div style="color: #94a3b8; font-size: 12px; text-align: center; padding: 20px;">검색어를 입력하세요.</div>';
     return;
@@ -1115,7 +1247,7 @@ window.jumpToInstrument = function(instId) {
   const item = currentInstruments.find(i => i.id === instId);
   if (!item) return;
 
-  searchModal.style.display = 'none';
+  if (searchModal) searchModal.style.display = 'none';
 
   if (selectedUnit !== (item.unit || '2호기')) {
     switchUnit(item.unit || '2호기');
@@ -1152,6 +1284,7 @@ window.jumpToInstrument = function(instId) {
   }, 200);
 };
 
+// 자동 로그인 복구
 if (sessionStorage.getItem('jeju_admin_auth') === 'true') {
   const savedWorker = localStorage.getItem('jeju_worker_name') || '관리자';
   unlock(savedWorker, 'admin@jeju.com');
