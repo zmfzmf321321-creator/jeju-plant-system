@@ -7,52 +7,36 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
   <style>
-    * {
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-    }
-
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     html, body {
-      margin: 0; padding: 0;
-      width: 100vw; height: 100vh;
+      margin: 0; padding: 0; width: 100vw; height: 100vh;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background-color: #080d1a; color: #fff;
-      overflow: hidden; position: fixed;
+      background-color: #080d1a; color: #fff; overflow: hidden; position: fixed;
     }
-
     input, textarea, select, button, a {
-      user-select: auto !important;
-      -webkit-user-select: auto !important;
-      pointer-events: auto !important;
-      cursor: pointer;
+      user-select: auto !important; -webkit-user-select: auto !important;
+      pointer-events: auto !important; cursor: pointer;
     }
 
     #auth-overlay {
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       background: #0b132b; display: flex; align-items: center; justify-content: center;
-      z-index: 999999;
-      pointer-events: auto;
+      z-index: 999999; pointer-events: auto;
     }
-
     .auth-box {
       background: #1c2541; padding: 28px 24px; border-radius: 16px;
       border: 1px solid #3a506b; width: 90%; max-width: 340px; text-align: center;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-      position: relative;
-      z-index: 1000000;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8); position: relative; z-index: 1000000;
     }
     .auth-title { font-size: 20px; font-weight: bold; margin-bottom: 6px; color: #48cae4; }
     .auth-desc { font-size: 13px; color: #94a3b8; margin-bottom: 20px; line-height: 1.4; }
     .auth-input {
       width: 100%; padding: 12px; background: #0b132b; border: 1px solid #3a506b;
-      border-radius: 8px; color: #fff; font-size: 15px; margin-bottom: 12px; outline: none;
-      -webkit-appearance: none;
+      border-radius: 8px; color: #fff; font-size: 15px; margin-bottom: 12px; outline: none; -webkit-appearance: none;
     }
     .auth-btn {
       width: 100%; padding: 14px; background: #00b4d8; color: #0b132b;
-      border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 6px;
-      display: block;
+      border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 6px; display: block;
     }
     .auth-btn:active { background: #0096c7; }
     
@@ -233,8 +217,7 @@
       display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
       background: #ffffff; padding: 20px; border-radius: 12px; z-index: 9999999;
       width: 92%; max-width: 380px; color: #333; max-height: 88vh; overflow-y: auto;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
-      pointer-events: auto;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8); pointer-events: auto;
     }
     #modal h3, #info-modal h3, #history-modal h3, #search-modal h3 { margin: 0 0 12px 0; font-size: 16px; color: #0b132b; }
     .form-group { margin-bottom: 10px; }
@@ -401,7 +384,7 @@
   </div>
 </div>
 
-<!-- 등록 모달 -->
+<!-- 계측기 등록 모달 -->
 <div id="modal">
   <h3>계측기 등록 (<span id="modalUnitText" style="color:#0284c7; font-weight:bold;">2호기</span> <span id="modalFloorText" style="color:#00b4d8; font-weight:bold;">1층</span>)</h3>
   <div class="form-group"><label>Tag No.</label><input type="text" id="tagNo" placeholder="예: 20-PT-101"></div>
@@ -410,7 +393,7 @@
   <div class="form-group"><label>측정범위 / 신호</label><input type="text" id="range"></div>
   
   <div class="form-group">
-    <label>기기 사진 첨부</label>
+    <label>기기 사진 첨부 (기본: 카메라 촬영)</label>
     <div class="photo-btn-group">
       <div class="file-input-wrapper">
         <div class="btn-file-upload">📷 즉시 촬영</div>
@@ -554,18 +537,35 @@
     '7층':     { c1: { x: 132, y: 242 }, c4: { x: 569,  y: 855 } }
   };
 
-  // 1. 생체인증 등록 (표준 WebAuthn API)
+  /* --- WebAuthn 표준 바이트 변환 --- */
+  function uint8ArrayToBase64(uint8Array) {
+    let binary = '';
+    for (let i = 0; i < uint8Array.length; i++) binary += String.fromCharCode(uint8Array[i]);
+    return btoa(binary);
+  }
+
+  function base64ToUint8Array(base64) {
+    let clean = base64.replace(/-/g, '+').replace(/_/g, '/');
+    while (clean.length % 4) clean += '=';
+    const binary = atob(clean);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+
+  // 1. 생체인증 등록
   async function registerBiometrics() {
     if (!window.PublicKeyCredential) {
-      alert('⚠️ 현재 브라우저에서 생체인식을 지원하지 않습니다.');
+      alert('⚠️ 현재 브라우저에서 생체인식(WebAuthn)을 지원하지 않습니다.');
       return;
     }
+
     const workerName = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자';
 
     try {
       const challenge = new Uint8Array(32);
       window.crypto.getRandomValues(challenge);
-      const userId = new TextEncoder().encode(workerName + '_' + Date.now());
+      const userId = new TextEncoder().encode('jeju_' + workerName);
 
       const credential = await navigator.credentials.create({
         publicKey: {
@@ -578,16 +578,18 @@
           ],
           authenticatorSelection: {
             authenticatorAttachment: 'platform',
-            userVerification: 'preferred'
+            userVerification: 'preferred',
+            residentKey: 'preferred'
           },
           timeout: 60000
         }
       });
 
       if (credential) {
-        localStorage.setItem('jeju_bio_credential_id', credential.id);
+        const rawIdBase64 = uint8ArrayToBase64(new Uint8Array(credential.rawId));
+        localStorage.setItem('jeju_bio_raw_id', rawIdBase64);
         localStorage.setItem('jeju_bio_user_name', workerName);
-        alert(`✅ [${workerName}] 님의 기기 생체인증이 등록되었습니다.\n이제 로그인 화면에서 지문 버튼으로 입장 가능합니다.`);
+        alert(`✅ [${workerName}] 님의 기기 생체인증이 등록되었습니다.\n이제 로그인 화면에서 지문 버튼으로 즉시 입장하실 수 있습니다.`);
       }
     } catch (err) {
       console.error(err);
@@ -599,13 +601,13 @@
 
   // 2. 생체인증 로그인
   async function loginBiometrics() {
-    const credId = localStorage.getItem('jeju_bio_credential_id');
+    const rawIdBase64 = localStorage.getItem('jeju_bio_raw_id') || localStorage.getItem('jeju_bio_credential_id');
     const savedName = localStorage.getItem('jeju_bio_user_name') || '작업자';
     const msgEl = document.getElementById('bioLoginMsg');
     msgEl.style.display = 'none';
 
-    if (!credId) {
-      msgEl.innerText = '⚠️ 등록된 지문 정보가 없습니다. 먼저 팀원 로그인 후 우측 상단의 [지문] 버튼으로 등록해 주세요.';
+    if (!rawIdBase64) {
+      msgEl.innerText = '⚠️ 기기에 저장된 생체 정보가 없습니다. 먼저 팀원 로그인 후 우측 상단의 [지문] 버튼으로 등록해 주세요.';
       msgEl.style.display = 'block';
       return;
     }
@@ -614,16 +616,15 @@
       const challenge = new Uint8Array(32);
       window.crypto.getRandomValues(challenge);
 
-      let b64 = credId.replace(/-/g, '+').replace(/_/g, '/');
-      while (b64.length % 4) b64 += '=';
-      const binary = atob(b64);
-      const rawIdBuffer = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i++) rawIdBuffer[i] = binary.charCodeAt(i);
+      const rawIdBytes = base64ToUint8Array(rawIdBase64);
 
       const assertion = await navigator.credentials.get({
         publicKey: {
           challenge,
-          allowCredentials: [{ id: rawIdBuffer.buffer, type: 'public-key' }],
+          allowCredentials: [{
+            id: rawIdBytes.buffer,
+            type: 'public-key'
+          }],
           userVerification: 'preferred',
           timeout: 60000
         }
@@ -633,20 +634,18 @@
         unlock(savedName, `${savedName}@jeju.com`);
       }
     } catch (err) {
-      console.error(err);
-      if (err.name !== 'NotAllowedError') {
-        msgEl.innerText = '⚠️ 생체 인증에 실패했거나 취소되었습니다. 사번으로 로그인하세요.';
-        msgEl.style.display = 'block';
+      console.error('로그인 에러:', err);
+      if (err.name === 'NotAllowedError') {
+        msgEl.innerText = '⚠️ 생체 인증이 취소되었습니다.';
+      } else {
+        msgEl.innerText = '⚠️ 이전 생체키 형식과 불일치합니다. 사번 로그인 후 [지문] 버튼으로 1회 다시 등록해 주세요.';
       }
+      msgEl.style.display = 'block';
     }
   }
 
-  // 터치 및 클릭 이벤트 리스너 바인딩
-  const btnBioLoginEl = document.getElementById('btnBioLogin');
-  btnBioLoginEl.addEventListener('click', (e) => { e.preventDefault(); loginBiometrics(); });
-  
-  const btnRegisterBioEl = document.getElementById('btnRegisterBio');
-  btnRegisterBioEl.addEventListener('click', (e) => { e.preventDefault(); registerBiometrics(); });
+  document.getElementById('btnBioLogin').addEventListener('click', (e) => { e.preventDefault(); loginBiometrics(); });
+  document.getElementById('btnRegisterBio').addEventListener('click', (e) => { e.preventDefault(); registerBiometrics(); });
 
   window.switchUnit = function(unit) {
     selectedUnit = unit;
