@@ -17,7 +17,6 @@
       position: fixed;
     }
 
-    /* 입력창 및 폼 요소에는 선택 및 터치/키보드 입력 허용 */
     input, textarea, select, button {
       user-select: auto !important;
       -webkit-user-select: auto !important;
@@ -401,7 +400,7 @@
   </div>
 </div>
 
-<!-- 등록 모달 -->
+<!-- 등록 모달: capture 속성을 제거하여 앨범 사진 선택 및 현장 촬영 모두 가능 -->
 <div id="modal">
   <h3>계측기 등록 (<span id="modalUnitText" style="color:#0284c7; font-weight:bold;">2호기</span> <span id="modalFloorText" style="color:#00b4d8; font-weight:bold;">1층</span>)</h3>
   <div class="form-group"><label>Tag No.</label><input type="text" id="tagNo" placeholder="예: 20-PT-101"></div>
@@ -409,10 +408,10 @@
   <div class="form-group"><label>모델명</label><input type="text" id="model"></div>
   <div class="form-group"><label>측정범위 / 신호</label><input type="text" id="range"></div>
   <div class="form-group">
-    <label>기기 사진 (핀에 표시됨)</label>
+    <label>기기 사진 (기존 사진 선택 / 촬영 가능)</label>
     <div class="file-input-wrapper">
-      <div class="btn-file-upload">📷 기기 사진 촬영 / 앨범</div>
-      <input type="file" id="instPhoto" accept="image/*" capture="environment">
+      <div class="btn-file-upload">🖼️ 앨범에서 사진 선택 또는 촬영</div>
+      <input type="file" id="instPhoto" accept="image/*">
     </div>
     <img id="photoPreview" class="preview-img">
   </div>
@@ -424,8 +423,8 @@
     <div class="form-group">
       <label>조치 현장 사진</label>
       <div class="file-input-wrapper">
-        <div class="btn-file-upload" style="padding:6px; font-size:12px;">📷 조치 사진 첨부</div>
-        <input type="file" id="initHistPhoto" accept="image/*" capture="environment">
+        <div class="btn-file-upload" style="padding:6px; font-size:12px;">🖼️ 앨범에서 사진 선택 또는 촬영</div>
+        <input type="file" id="initHistPhoto" accept="image/*">
       </div>
       <img id="initHistPreview" class="preview-img">
     </div>
@@ -437,10 +436,14 @@
   </div>
 </div>
 
-<!-- 정보 모달 -->
+<!-- 계측기 상세 정보 모달 -->
 <div id="info-modal">
   <h3 id="infoTitle">계측기 상세</h3>
-  <img id="infoMainImg" class="preview-img" style="margin-bottom:10px;">
+  <img id="infoMainImg" class="preview-img" style="margin-bottom:6px;">
+  <div class="file-input-wrapper" style="margin-bottom: 12px;">
+    <div class="btn-file-upload" style="padding: 6px; font-size: 11px; background: #f1f5f9;">🖼️ 대표 사진 앨범에서 변경 / 등록</div>
+    <input type="file" id="updateMainPhoto" accept="image/*">
+  </div>
   <div id="infoBody" style="font-size: 13px; line-height: 1.5;"></div>
   <div class="history-section">
     <div class="history-title">📋 정비/점검 이력 관리</div>
@@ -461,10 +464,10 @@
   <div class="form-group"><label>작업자 성명</label><input type="text" id="histAuthor" placeholder="홍길동"></div>
   <div class="form-group"><label>점검 내용</label><textarea id="histContent" rows="3" placeholder="점검 및 조치 내역 입력"></textarea></div>
   <div class="form-group">
-    <label>점검/조치 현장 사진</label>
+    <label>점검/조치 사진</label>
     <div class="file-input-wrapper">
-      <div class="btn-file-upload">📷 사진 촬영 / 첨부</div>
-      <input type="file" id="histPhoto" accept="image/*" capture="environment">
+      <div class="btn-file-upload">🖼️ 앨범에서 사진 선택 또는 촬영</div>
+      <input type="file" id="histPhoto" accept="image/*">
     </div>
     <img id="histPhotoPreview" class="preview-img">
   </div>
@@ -525,7 +528,6 @@
     '7층':     { c1: { x: 132, y: 242 }, c4: { x: 569,  y: 855 } }
   };
 
-  /* --- WebAuthn 생체인식 --- */
   function bufferToBase64(buffer) { return btoa(String.fromCharCode(...new Uint8Array(buffer))); }
   function base64ToBuffer(base64) { return Uint8Array.from(atob(base64), c => c.charCodeAt(0)).buffer; }
 
@@ -576,7 +578,6 @@
     }
   });
 
-  /* --- 대분류 호기 전환 --- */
   window.switchUnit = function(unit) {
     selectedUnit = unit;
     document.getElementById('tab-unit-2').classList.toggle('active', unit === '2호기');
@@ -604,14 +605,14 @@
       const img = new Image();
       img.onload = function() {
         const canvas = document.createElement('canvas');
-        const MAX_SIZE = 250; 
+        const MAX_SIZE = 300; 
         let width = img.width; let height = img.height;
         if (width > height && width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
         else if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
         canvas.width = width; canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
-        callback(canvas.toDataURL('image/jpeg', 0.6));
+        callback(canvas.toDataURL('image/jpeg', 0.65));
       };
       img.src = e.target.result;
     };
@@ -639,6 +640,27 @@
       currentHistPhotoBase64 = base64;
       const preview = document.getElementById('histPhotoPreview');
       preview.src = base64; preview.style.display = 'block';
+    });
+  });
+
+  // 상세창에서 기존 기기 대표 사진 바로 변경
+  document.getElementById('updateMainPhoto').addEventListener('change', function(e) {
+    compressImage(e.target.files[0], async (base64) => {
+      const target = currentInstruments.find(i => i.id === activeTargetId);
+      if (!target) return;
+      target.photo_url = base64;
+      target.image_data = base64;
+      document.getElementById('infoMainImg').src = base64;
+      document.getElementById('infoMainImg').style.display = 'block';
+
+      await supabaseClient.from('instruments').update({
+        photo_url: base64,
+        image_data: base64
+      }).eq('id', activeTargetId);
+
+      renderFloorPins();
+      render3DHotspots();
+      alert('✅ 기기 대표 사진이 업데이트되었습니다.');
     });
   });
 
@@ -687,7 +709,6 @@
     unlock(namePart, email);
   });
 
-  // 회원가입 버튼 처리 (입력 검증 및 가입 완료)
   document.getElementById('btnRegisterSubmit').addEventListener('click', async () => {
     const name = document.getElementById('regName').value.trim();
     const email = document.getElementById('regEmail').value.trim();
@@ -709,7 +730,6 @@
     regMsg.style.display = 'none';
     localStorage.setItem('jeju_worker_name', name);
 
-    // Supabase Auth 회원가입 시도 (설정에 따라 즉시 가입 또는 로컬 저장)
     try {
       await supabaseClient.auth.signUp({ email, password: pass });
     } catch (e) {
@@ -1318,7 +1338,6 @@
     }
   });
 
-  /* --- 통합 검색 기능 및 해당 핀으로 순간이동 --- */
   const searchModal = document.getElementById('search-modal');
   const searchInput = document.getElementById('searchInput');
   const searchResultsList = document.getElementById('searchResultsList');
