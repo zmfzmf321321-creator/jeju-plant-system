@@ -78,23 +78,37 @@
     .btn-bio-reg { background: #065f46; border: 1px solid #10b981; color: #a7f3d0; padding: 5px 7px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
     .btn-logout { background: transparent; border: 1px solid #64748b; color: #cbd5e1; padding: 5px 7px; border-radius: 6px; cursor: pointer; font-size: 11px; }
 
+    /* 대분류 & 하위 호기 선택 바 */
     #unit-selector-bar {
-      position: fixed; top: 50px; left: 0; width: 100vw; height: 40px;
+      position: fixed; top: 50px; left: 0; width: 100vw; height: 76px;
       background: #0f172a; border-bottom: 2px solid #3a506b; display: flex;
-      align-items: center; justify-content: center; gap: 12px; z-index: 4900;
+      flex-direction: column; justify-content: center; gap: 6px; z-index: 4900;
+      padding: 6px 10px;
     }
-    .unit-tab-btn {
-      flex: 1; max-width: 170px; height: 32px; border: 1px solid #334155;
-      background: #1e293b; color: #94a3b8; font-size: 13px; font-weight: bold;
-      border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
-      transition: all 0.2s;
+    .selector-row {
+      display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
     }
-    .unit-tab-btn.active {
-      background: #0284c7; color: #ffffff; border-color: #38bdf8; box-shadow: 0 0 12px rgba(2, 132, 199, 0.6);
+    .major-tab-btn {
+      flex: 1; max-width: 160px; height: 28px; border: 1px solid #475569;
+      background: #1e293b; color: #cbd5e1; font-size: 12px; font-weight: bold;
+      border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .major-tab-btn.active {
+      background: #0284c7; color: #fff; border-color: #38bdf8;
+      box-shadow: 0 0 10px rgba(2, 132, 199, 0.7);
+    }
+    .sub-tab-btn {
+      flex: 1; max-width: 115px; height: 26px; border: 1px solid #334155;
+      background: #111a33; color: #94a3b8; font-size: 11px; font-weight: bold;
+      border-radius: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+    .sub-tab-btn.active {
+      background: #38bdf8; color: #0b132b; border-color: #7dd3fc;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
     }
 
     #measure-info-hud {
-      display: none; position: absolute; top: 96px; left: 50%; transform: translateX(-50%);
+      display: none; position: absolute; top: 132px; left: 50%; transform: translateX(-50%);
       background: rgba(15, 23, 42, 0.95); border: 2px solid #f59e0b; padding: 8px 16px;
       border-radius: 20px; font-size: 12px; font-weight: bold; color: #fde68a; z-index: 6000;
       box-shadow: 0 4px 16px rgba(0,0,0,0.6); pointer-events: none; text-align: center;
@@ -102,13 +116,51 @@
     }
 
     #main-viewport {
-      position: fixed; top: 90px; bottom: 65px; left: 0; width: 100vw;
+      position: fixed; top: 126px; bottom: 65px; left: 0; width: 100vw;
       background: radial-gradient(circle at center, #1b2838 0%, #080d1a 100%);
       z-index: 10; overflow: hidden;
     }
     #overall-3d-view { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
     model-viewer { width: 100%; height: 100%; --poster-color: transparent; }
     model-viewer::part(default-progress-bar), model-viewer::part(prompt) { display: none !important; }
+
+    /* 빈 화면(내연 호기) */
+    #empty-engine-view {
+      display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0;
+      background: #080d1a; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: #64748b; font-size: 14px; text-align: center; line-height: 1.6;
+    }
+
+    /* 관리이력 테이블 뷰 */
+    #history-table-view {
+      display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0;
+      background: #080d1a; z-index: 50; overflow-y: auto; padding: 12px;
+    }
+    .history-table-header {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+      border-bottom: 1px solid #334155; padding-bottom: 8px;
+    }
+    .history-table-title { font-size: 15px; font-weight: bold; color: #38bdf8; }
+    .history-search-bar {
+      padding: 6px 10px; background: #111a33; border: 1px solid #334155; border-radius: 6px;
+      color: #fff; font-size: 12px; outline: none; width: 160px;
+    }
+    .custom-history-table {
+      width: 100%; border-collapse: collapse; text-align: left; font-size: 12px;
+    }
+    .custom-history-table th {
+      background: #1e293b; color: #38bdf8; padding: 8px 6px; border-bottom: 2px solid #334155;
+      font-weight: bold; white-space: nowrap;
+    }
+    .custom-history-table td {
+      padding: 8px 6px; border-bottom: 1px solid #1e293b; color: #cbd5e1; vertical-align: middle;
+    }
+    .custom-history-table tr:hover { background: #111a33; }
+    .badge-category {
+      padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; white-space: nowrap;
+    }
+    .badge-steam { background: #0284c7; color: #fff; }
+    .badge-engine { background: #d97706; color: #fff; }
 
     .hotspot-pin {
       background: #00b4d8; border: 2px solid #ffffff; border-radius: 50%;
@@ -297,7 +349,7 @@
 
 <div id="header">
   <div class="brand">
-    <span>⚡ 제주 보일러 제어</span>
+    <span>⚡ 제주 발전제어</span>
     <span class="location-tag" id="currentFloorTag">기력 2호기 전체</span>
   </div>
   <div class="header-btns">
@@ -309,14 +361,30 @@
   </div>
 </div>
 
+<!-- 대분류 & 세부 탭 선택 바 -->
 <div id="unit-selector-bar">
-  <button class="unit-tab-btn active" id="tab-unit-2" onclick="switchUnit('2호기')">⚡ 기력 2호기</button>
-  <button class="unit-tab-btn" id="tab-unit-3" onclick="switchUnit('3호기')">⚡ 기력 3호기</button>
+  <div class="selector-row">
+    <button class="major-tab-btn active" id="btn-major-steam" onclick="switchMajor('기력')">⚡ 기력 발전</button>
+    <button class="major-tab-btn" id="btn-major-engine" onclick="switchMajor('내연')">🔥 내연 발전</button>
+  </div>
+  <!-- 기력 세부 탭 -->
+  <div class="selector-row" id="sub-tabs-steam">
+    <button class="sub-tab-btn active" id="sub-steam-2" onclick="switchSubTab('2호기')">2호기</button>
+    <button class="sub-tab-btn" id="sub-steam-3" onclick="switchSubTab('3호기')">3호기</button>
+    <button class="sub-tab-btn" id="sub-steam-hist" onclick="switchSubTab('관리이력')">📋 관리이력</button>
+  </div>
+  <!-- 내연 세부 탭 -->
+  <div class="selector-row" id="sub-tabs-engine" style="display: none;">
+    <button class="sub-tab-btn active" id="sub-engine-1" onclick="switchSubTab('1호기')">1호기</button>
+    <button class="sub-tab-btn" id="sub-engine-2" onclick="switchSubTab('2호기')">2호기</button>
+    <button class="sub-tab-btn" id="sub-engine-hist" onclick="switchSubTab('관리이력')">📋 관리이력</button>
+  </div>
 </div>
 
 <div id="measure-info-hud">📐 모델 위 모서리를 터치하면 좌표가 자동 복사됩니다.</div>
 
 <div id="main-viewport">
+  <!-- 3D 뷰 (기력 2호기/3호기) -->
   <div id="overall-3d-view">
     <model-viewer id="boilerViewer" src="./boiler.glb"
       interaction-prompt="none"
@@ -333,6 +401,7 @@
     </model-viewer>
   </div>
 
+  <!-- 2D 도면 뷰 (기력 2호기/3호기) -->
   <div id="floor-room-view">
     <div id="floor-room-header">
       <div>
@@ -352,6 +421,38 @@
       <button class="zoom-btn" onclick="zoomCanvas(0.25)">＋</button>
       <button class="zoom-btn" onclick="zoomCanvas(-0.25)">－</button>
       <button class="zoom-btn" onclick="resetCanvasView()" style="font-size: 12px;">리셋</button>
+    </div>
+  </div>
+
+  <!-- 빈 화면 뷰 (내연 1호기/2호기) -->
+  <div id="empty-engine-view">
+    <div style="font-size: 40px; margin-bottom: 12px;">⚙️</div>
+    <div style="font-size: 16px; font-weight: bold; color: #38bdf8;" id="emptyEngineTitle">내연 1호기 설비 공간</div>
+    <div style="margin-top: 6px;">현재 모델링 및 도면 데이터가 준비 중입니다.</div>
+  </div>
+
+  <!-- 전체 관리이력 표 뷰 -->
+  <div id="history-table-view">
+    <div class="history-table-header">
+      <div class="history-table-title" id="historyTableTitle">📋 [기력발전] 통합 점검 및 관리이력</div>
+      <input type="text" id="tableFilterInput" class="history-search-bar" placeholder="이력 검색..." oninput="renderHistoryTable()">
+    </div>
+    <div style="overflow-x: auto;">
+      <table class="custom-history-table">
+        <thead>
+          <tr>
+            <th>구분</th>
+            <th>날짜</th>
+            <th>Tag No</th>
+            <th>기기명</th>
+            <th>작업자</th>
+            <th>점검 내용</th>
+          </tr>
+        </thead>
+        <tbody id="historyTableBody">
+          <!-- 동적 렌더링 -->
+        </tbody>
+      </table>
     </div>
   </div>
 </div>
@@ -386,7 +487,7 @@
 
 <!-- 계측기 등록 모달 -->
 <div id="modal">
-  <h3>계측기 등록 (<span id="modalUnitText" style="color:#0284c7; font-weight:bold;">2호기</span> <span id="modalFloorText" style="color:#00b4d8; font-weight:bold;">1층</span>)</h3>
+  <h3>계측기 등록 (<span id="modalUnitText" style="color:#0284c7; font-weight:bold;">기력 2호기</span> <span id="modalFloorText" style="color:#00b4d8; font-weight:bold;">1층</span>)</h3>
   <div class="form-group"><label>Tag No.</label><input type="text" id="tagNo" placeholder="예: 20-PT-101"></div>
   <div class="form-group"><label>기기명</label><input type="text" id="name" placeholder="예: 급수 압력 전송기"></div>
   <div class="form-group"><label>모델명</label><input type="text" id="model"></div>
@@ -494,8 +595,12 @@
 
   let currentInstruments = [];
   let currentUserInfo = { name: '', email: '' };
-  let selectedUnit = '2호기';
+
+  // 신규 분류 체계 상태
+  let selectedMajor = '기력'; // '기력' 또는 '내연'
+  let selectedSubTab = '2호기'; // 기력: '2호기', '3호기', '관리이력' | 내연: '1호기', '2호기', '관리이력'
   let selectedFloor = 'ALL';
+
   let activeTargetId = null;
   let editingHistoryIndex = null;
   let clickedFloorCoord = { x: 0, y: 0 };
@@ -553,53 +658,34 @@
     return bytes;
   }
 
-  // 1. 생체인증 등록
+  // 생체인증 등록
   async function registerBiometrics() {
-    if (!window.PublicKeyCredential) {
-      alert('⚠️ 현재 브라우저에서 생체인식(WebAuthn)을 지원하지 않습니다.');
-      return;
-    }
-
+    if (!window.PublicKeyCredential) { alert('⚠️ 브라우저에서 생체인식을 지원하지 않습니다.'); return; }
     const workerName = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자';
-
     try {
-      const challenge = new Uint8Array(32);
-      window.crypto.getRandomValues(challenge);
-      const userId = new TextEncoder().encode('jeju_' + workerName);
-
+      const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
+      const userId = new TextEncoder().encode(workerName);
       const credential = await navigator.credentials.create({
         publicKey: {
-          challenge,
-          rp: { name: '제주 보일러 제어 시스템' },
+          challenge, rp: { name: '제주 보일러 제어 시스템' },
           user: { id: userId, name: workerName, displayName: workerName },
-          pubKeyCredParams: [
-            { alg: -7, type: 'public-key' },
-            { alg: -257, type: 'public-key' }
-          ],
-          authenticatorSelection: {
-            authenticatorAttachment: 'platform',
-            userVerification: 'preferred',
-            residentKey: 'preferred'
-          },
+          pubKeyCredParams: [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
+          authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'preferred', residentKey: 'preferred' },
           timeout: 60000
         }
       });
-
       if (credential) {
         const rawIdBase64 = uint8ArrayToBase64(new Uint8Array(credential.rawId));
         localStorage.setItem('jeju_bio_raw_id', rawIdBase64);
         localStorage.setItem('jeju_bio_user_name', workerName);
-        alert(`✅ [${workerName}] 님의 기기 생체인증이 등록되었습니다.\n이제 로그인 화면에서 지문 버튼으로 즉시 입장하실 수 있습니다.`);
+        alert(`✅ [${workerName}] 님의 기기 생체인증이 등록되었습니다.\n이제 로그인 화면에서 지문 버튼으로 입장하실 수 있습니다.`);
       }
     } catch (err) {
-      console.error(err);
-      if (err.name !== 'NotAllowedError') {
-        alert('❌ 등록 실패: ' + (err.message || '인증이 취소되었습니다.'));
-      }
+      if (err.name !== 'NotAllowedError') alert('❌ 등록 실패: ' + (err.message || '인증이 취소되었습니다.'));
     }
   }
 
-  // 2. 생체인증 로그인
+  // 생체인증 로그인
   async function loginBiometrics() {
     const rawIdBase64 = localStorage.getItem('jeju_bio_raw_id') || localStorage.getItem('jeju_bio_credential_id');
     const savedName = localStorage.getItem('jeju_bio_user_name') || '작업자';
@@ -608,38 +694,22 @@
 
     if (!rawIdBase64) {
       msgEl.innerText = '⚠️ 기기에 저장된 생체 정보가 없습니다. 먼저 팀원 로그인 후 우측 상단의 [지문] 버튼으로 등록해 주세요.';
-      msgEl.style.display = 'block';
-      return;
+      msgEl.style.display = 'block'; return;
     }
 
     try {
-      const challenge = new Uint8Array(32);
-      window.crypto.getRandomValues(challenge);
-
+      const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
       const rawIdBytes = base64ToUint8Array(rawIdBase64);
-
       const assertion = await navigator.credentials.get({
         publicKey: {
-          challenge,
-          allowCredentials: [{
-            id: rawIdBytes.buffer,
-            type: 'public-key'
-          }],
-          userVerification: 'preferred',
-          timeout: 60000
+          challenge, allowCredentials: [{ id: rawIdBytes.buffer, type: 'public-key' }],
+          userVerification: 'preferred', timeout: 60000
         }
       });
-
-      if (assertion) {
-        unlock(savedName, `${savedName}@jeju.com`);
-      }
+      if (assertion) unlock(savedName, `${savedName}@jeju.com`);
     } catch (err) {
-      console.error('로그인 에러:', err);
-      if (err.name === 'NotAllowedError') {
-        msgEl.innerText = '⚠️ 생체 인증이 취소되었습니다.';
-      } else {
-        msgEl.innerText = '⚠️ 이전 생체키 형식과 불일치합니다. 사번 로그인 후 [지문] 버튼으로 1회 다시 등록해 주세요.';
-      }
+      if (err.name === 'NotAllowedError') msgEl.innerText = '⚠️ 생체 인증이 취소되었습니다.';
+      else msgEl.innerText = '⚠️ 인증키 불일치. 사번 로그인 후 [지문]을 1회 재등록하세요.';
       msgEl.style.display = 'block';
     }
   }
@@ -647,25 +717,156 @@
   document.getElementById('btnBioLogin').addEventListener('click', (e) => { e.preventDefault(); loginBiometrics(); });
   document.getElementById('btnRegisterBio').addEventListener('click', (e) => { e.preventDefault(); registerBiometrics(); });
 
-  window.switchUnit = function(unit) {
-    selectedUnit = unit;
-    document.getElementById('tab-unit-2').classList.toggle('active', unit === '2호기');
-    document.getElementById('tab-unit-3').classList.toggle('active', unit === '3호기');
+  /* --- 신규 분류 체계 라우팅 로직 --- */
+  // 1. 대분류 전환 (기력 <-> 내연)
+  window.switchMajor = function(major) {
+    selectedMajor = major;
+    document.getElementById('btn-major-steam').classList.toggle('active', major === '기력');
+    document.getElementById('btn-major-engine').classList.toggle('active', major === '내연');
+
+    if (major === '기력') {
+      document.getElementById('sub-tabs-steam').style.display = 'flex';
+      document.getElementById('sub-tabs-engine').style.display = 'none';
+      switchSubTab('2호기');
+    } else {
+      document.getElementById('sub-tabs-steam').style.display = 'none';
+      document.getElementById('sub-tabs-engine').style.display = 'flex';
+      switchSubTab('1호기');
+    }
+  };
+
+  // 2. 세부 탭 전환 (2호기, 3호기, 관리이력 등)
+  window.switchSubTab = function(sub) {
+    selectedSubTab = sub;
+
+    // 탭 버튼 스타일 갱신
+    if (selectedMajor === '기력') {
+      document.getElementById('sub-steam-2').classList.toggle('active', sub === '2호기');
+      document.getElementById('sub-steam-3').classList.toggle('active', sub === '3호기');
+      document.getElementById('sub-steam-hist').classList.toggle('active', sub === '관리이력');
+    } else {
+      document.getElementById('sub-engine-1').classList.toggle('active', sub === '1호기');
+      document.getElementById('sub-engine-2').classList.toggle('active', sub === '2호기');
+      document.getElementById('sub-engine-hist').classList.toggle('active', sub === '관리이력');
+    }
+
+    // 뷰포트 전환 분기
+    const view3D = document.getElementById('overall-3d-view');
+    const viewFloor = document.getElementById('floor-room-view');
+    const viewEmpty = document.getElementById('empty-engine-view');
+    const viewHist = document.getElementById('history-table-view');
+    const floorBar = document.getElementById('floor-bar');
+
+    view3D.style.display = 'none';
+    viewFloor.style.display = 'none';
+    viewEmpty.style.display = 'none';
+    viewHist.style.display = 'none';
+
+    if (sub === '관리이력') {
+      // 📋 관리이력 탭 선택 시
+      floorBar.style.display = 'none';
+      viewHist.style.display = 'block';
+      document.getElementById('historyTableTitle').innerText = `📋 [${selectedMajor}발전] 전체 점검 및 관리이력`;
+      renderHistoryTable();
+    } else if (selectedMajor === '기력') {
+      // ⚡ 기력 발전 (2호기, 3호기) -> 기존 3D/도면 뷰
+      floorBar.style.display = 'flex';
+      exitToOverall();
+    } else {
+      // 🔥 내연 발전 (1호기, 2호기) -> 빈 화면
+      floorBar.style.display = 'none';
+      viewEmpty.style.display = 'flex';
+      document.getElementById('emptyEngineTitle').innerText = `내연 ${sub} 설비 공간`;
+    }
+
     updateFloorTitle();
-    renderFloorPins();
-    render3DHotspots();
   };
 
   function updateFloorTitle() {
     const floorTag = document.getElementById('currentFloorTag');
-    const roomTitle = document.getElementById('roomTitleText');
-    if (selectedFloor === 'ALL') {
-      floorTag.innerText = `기력 ${selectedUnit} 전체`;
+    if (selectedSubTab === '관리이력') {
+      floorTag.innerText = `${selectedMajor} 관리이력`;
+    } else if (selectedMajor === '기력') {
+      floorTag.innerText = selectedFloor === 'ALL' ? `기력 ${selectedSubTab} 전체` : `기력 ${selectedSubTab} ${selectedFloor}`;
+      document.getElementById('roomTitleText').innerText = `📍 [기력 ${selectedSubTab} - ${selectedFloor}] 도면 공간`;
     } else {
-      floorTag.innerText = `기력 ${selectedUnit} ${selectedFloor}`;
-      roomTitle.innerText = `📍 [기력 ${selectedUnit} - ${selectedFloor}] 도면 공간`;
+      floorTag.innerText = `내연 ${selectedSubTab}`;
     }
   }
+
+  // 관리이력 표(Table) 동적 렌더링
+  window.renderHistoryTable = function() {
+    const tbody = document.getElementById('historyTableBody');
+    const filterText = (document.getElementById('tableFilterInput').value || '').trim().toLowerCase();
+    tbody.innerHTML = '';
+
+    // 전체 기기에서 이력 로그 취합
+    let allLogs = [];
+    currentInstruments.forEach(inst => {
+      // 기력/내연 구분 추출
+      let category = '기력';
+      if (inst.major_category) {
+        category = inst.major_category;
+      } else if (typeof inst.unit === 'string' && inst.unit.includes('내연')) {
+        category = '내연';
+      }
+
+      // 현재 선택된 대분류('기력' 또는 '내연') 데이터만 필터링
+      if (category !== selectedMajor) return;
+
+      const logs = Array.isArray(inst.history_logs) ? inst.history_logs : [];
+      logs.forEach(log => {
+        allLogs.push({
+          category: `${category} ${inst.unit || ''}`.trim(),
+          date: log.date || '-',
+          tag_no: inst.tag_no || '-',
+          name: inst.name || '-',
+          author: log.author || '-',
+          content: log.content || '-',
+          photo: log.photo || null
+        });
+      });
+    });
+
+    // 날짜 역순(최신순) 정렬
+    allLogs.sort((a, b) => (b.date > a.date ? 1 : -1));
+
+    // 검색어 필터링
+    if (filterText) {
+      allLogs = allLogs.filter(item => 
+        item.category.toLowerCase().includes(filterText) ||
+        item.date.toLowerCase().includes(filterText) ||
+        item.tag_no.toLowerCase().includes(filterText) ||
+        item.name.toLowerCase().includes(filterText) ||
+        item.author.toLowerCase().includes(filterText) ||
+        item.content.toLowerCase().includes(filterText)
+      );
+    }
+
+    if (allLogs.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px; color: #64748b;">등록된 점검 이력이 없습니다.</td></tr>`;
+      return;
+    }
+
+    allLogs.forEach(log => {
+      const tr = document.createElement('tr');
+      const isEngine = log.category.includes('내연');
+      const badgeClass = isEngine ? 'badge-engine' : 'badge-steam';
+
+      tr.innerHTML = `
+        <td><span class="badge-category ${badgeClass}">${log.category}</span></td>
+        <td style="white-space: nowrap;">${log.date}</td>
+        <td style="font-weight: bold; color: #38bdf8; white-space: nowrap;">${log.tag_no}</td>
+        <td style="white-space: nowrap;">${log.name}</td>
+        <td style="white-space: nowrap;">${log.author}</td>
+        <td>
+          <div>${log.content}</div>
+          ${log.photo ? `<img src="${log.photo}" style="max-height: 45px; border-radius: 4px; margin-top: 4px; display: block;">` : ''}
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  };
 
   function compressImage(file, callback) {
     if (!file) return;
@@ -819,9 +1020,9 @@
     if (!isMeasureMode) { measureHud.style.display = 'none'; return; }
     measureHud.style.display = 'block';
     if (selectedFloor === 'ALL') {
-      measureHud.innerText = `📐 [기력 ${selectedUnit}] 3D 모델 표면 터치 시 좌표가 측정·복사됩니다.`;
+      measureHud.innerText = `📐 [${selectedMajor} ${selectedSubTab}] 3D 모델 표면 터치 시 좌표가 측정·복사됩니다.`;
     } else {
-      measureHud.innerText = `📐 [기력 ${selectedUnit} - ${selectedFloor} 도면] 터치 지점의 2D 도면 좌표가 측정·복사됩니다.`;
+      measureHud.innerText = `📐 [${selectedMajor} ${selectedSubTab} - ${selectedFloor} 도면] 터치 지점의 2D 도면 좌표가 측정·복사됩니다.`;
     }
   }
 
@@ -949,7 +1150,7 @@
     document.getElementById('initHistPreview').style.display = 'none';
     document.getElementById('initHistAuthor').value = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '';
     document.getElementById('initHistContent').value = '';
-    document.getElementById('modalUnitText').innerText = selectedUnit;
+    document.getElementById('modalUnitText').innerText = `${selectedMajor} ${selectedSubTab}`;
     document.getElementById('modalFloorText').innerText = selectedFloor;
     document.getElementById('modal').style.display = 'block';
   });
@@ -972,7 +1173,7 @@
     const insertData = {
       tag_no: tag, name: name, model: document.getElementById('model').value.trim() || 'EMPTY',
       signal_range: document.getElementById('range').value.trim() || 'EMPTY',
-      floor: selectedFloor, unit: selectedUnit,
+      floor: selectedFloor, unit: selectedSubTab,
       coord_x: clickedFloorCoord.x, coord_y: clickedFloorCoord.y,
       x_coord: clickedFloorCoord.x, y_coord: clickedFloorCoord.y,
       model_position: '0 0 0', history_logs: initialLogs,
@@ -982,14 +1183,14 @@
     let { error } = await supabaseClient.from('instruments').insert([insertData]);
     if (error && error.message && error.message.toLowerCase().includes('unit')) {
       delete insertData.unit;
-      insertData.floor = `${selectedUnit}_${selectedFloor}`;
+      insertData.floor = `${selectedSubTab}_${selectedFloor}`;
       const fallback = await supabaseClient.from('instruments').insert([insertData]);
       error = fallback.error;
     }
 
     if (!error) {
       document.getElementById('modal').style.display = 'none';
-      alert(`✅ [기력 ${selectedUnit}] ${selectedFloor}에 등록되었습니다!`);
+      alert(`✅ [${selectedMajor} ${selectedSubTab}] ${selectedFloor}에 등록되었습니다!`);
       fetchInstruments();
     } else {
       alert('❌ 저장 실패!\n' + error.message);
@@ -1013,13 +1214,15 @@
         return { ...item, floor: f, unit: u, coord_x: cx, coord_y: cy, photo_url: img, image_data: img, history_logs: Array.isArray(item.history_logs) ? item.history_logs : [] };
       });
       renderFloorPins(); render3DHotspots();
+      if (selectedSubTab === '관리이력') renderHistoryTable();
     }
   }
 
   function renderFloorPins() {
     board.querySelectorAll('.floor-inst-pin').forEach(el => el.remove());
     currentInstruments.forEach(item => {
-      if (item.unit !== selectedUnit || item.floor !== selectedFloor) return;
+      // 기력 발전의 경우 호기와 층 일치 여부 확인
+      if (item.unit !== selectedSubTab || item.floor !== selectedFloor) return;
       const pin = document.createElement('div');
       pin.id = `floor-pin-${item.id}`; pin.className = 'floor-inst-pin';
       pin.style.left = `${item.coord_x}px`; pin.style.top = `${item.coord_y}px`;
@@ -1091,7 +1294,7 @@
   function render3DHotspots() {
     viewer.querySelectorAll('.hotspot-pin').forEach(el => el.remove());
     currentInstruments.forEach(item => {
-      if (item.unit !== selectedUnit) return;
+      if (item.unit !== selectedSubTab) return;
       let pos = item.model_position;
       if (!pos || pos === '0 0 0') {
         const h = floor3DHeights[item.floor] !== undefined ? floor3DHeights[item.floor] : 26;
@@ -1122,8 +1325,8 @@
     if (img) mainImg.src = img;
 
     document.getElementById('infoBody').innerHTML = `
-      <div><b>호기:</b> <span style="color:#38bdf8; font-weight:bold;">기력 ${item.unit || '2호기'}</span></div>
-      <div><b>배치:</b> <span style="color:#0284c7; font-weight:bold;">${item.floor}</span></div>
+      <div><b>설비 구분:</b> <span style="color:#38bdf8; font-weight:bold;">${selectedMajor} ${item.unit || '2호기'}</span></div>
+      <div><b>도면 층:</b> <span style="color:#0284c7; font-weight:bold;">${item.floor}</span></div>
       <div><b>모델명:</b> ${item.model || '-'}</div>
       <div><b>측정범위:</b> ${item.signal_range || '-'}</div>
     `;
@@ -1231,6 +1434,7 @@
       document.getElementById('info-modal').style.display = 'block';
       alert(editingHistoryIndex !== null ? '✅ 수정 완료' : '✅ 등록 완료');
       editingHistoryIndex = null;
+      if (selectedSubTab === '관리이력') renderHistoryTable();
     }
   });
 
@@ -1265,7 +1469,9 @@
     const item = currentInstruments.find(i => i.id === instId);
     if (!item) return;
     searchModal.style.display = 'none';
-    if (selectedUnit !== (item.unit || '2호기')) switchUnit(item.unit || '2호기');
+
+    switchMajor('기력');
+    switchSubTab(item.unit || '2호기');
 
     const floorFileNameMap = {
       '1층': 'floor_1f.jpg', '2층': 'floor_2f.jpg', '2.5층': 'floor_2_5f.jpg', '3층': 'floor_3f.jpg',
