@@ -241,9 +241,12 @@
     .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #334155; }
     .form-group input, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; font-family: inherit; color: #111; }
     
-    .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; }
-    .btn-file-upload { background: #e2e8f0; border: 1px dashed #64748b; color: #334155; padding: 10px; width: 100%; border-radius: 6px; font-weight: bold; text-align: center; cursor: pointer; font-size: 13px; }
-    .file-input-wrapper input[type=file] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; height: 100%; }
+    /* 듀얼 업로드 버튼: 촬영 기본 + 앨범 선택 */
+    .photo-btn-group { display: flex; gap: 6px; }
+    .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; flex: 1; }
+    .btn-file-upload { background: #0284c7; color: #fff; padding: 9px; width: 100%; border-radius: 6px; font-weight: bold; text-align: center; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 4px; }
+    .btn-file-upload.btn-secondary { background: #e2e8f0; border: 1px solid #cbd5e1; color: #334155; }
+    .file-input-wrapper input[type=file] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; height: 100%; width: 100%; }
     .preview-img { display: none; width: 100%; max-height: 140px; object-fit: contain; margin-top: 8px; border-radius: 8px; border: 1px solid #cbd5e1; }
 
     .btn-wrap { display: flex; gap: 8px; margin-top: 14px; }
@@ -400,18 +403,25 @@
   </div>
 </div>
 
-<!-- 등록 모달: capture 속성을 제거하여 앨범 사진 선택 및 현장 촬영 모두 가능 -->
+<!-- 등록 모달 (기본 촬영 + 앨범 분리) -->
 <div id="modal">
   <h3>계측기 등록 (<span id="modalUnitText" style="color:#0284c7; font-weight:bold;">2호기</span> <span id="modalFloorText" style="color:#00b4d8; font-weight:bold;">1층</span>)</h3>
   <div class="form-group"><label>Tag No.</label><input type="text" id="tagNo" placeholder="예: 20-PT-101"></div>
   <div class="form-group"><label>기기명</label><input type="text" id="name" placeholder="예: 급수 압력 전송기"></div>
   <div class="form-group"><label>모델명</label><input type="text" id="model"></div>
   <div class="form-group"><label>측정범위 / 신호</label><input type="text" id="range"></div>
+  
   <div class="form-group">
-    <label>기기 사진 (기존 사진 선택 / 촬영 가능)</label>
-    <div class="file-input-wrapper">
-      <div class="btn-file-upload">🖼️ 앨범에서 사진 선택 또는 촬영</div>
-      <input type="file" id="instPhoto" accept="image/*">
+    <label>기기 사진 첨부 (기본: 카메라 촬영)</label>
+    <div class="photo-btn-group">
+      <div class="file-input-wrapper">
+        <div class="btn-file-upload">📷 즉시 촬영</div>
+        <input type="file" id="instPhotoCam" accept="image/*" capture="environment">
+      </div>
+      <div class="file-input-wrapper">
+        <div class="btn-file-upload btn-secondary">🖼️ 앨범 선택</div>
+        <input type="file" id="instPhotoGallery" accept="image/*">
+      </div>
     </div>
     <img id="photoPreview" class="preview-img">
   </div>
@@ -422,9 +432,15 @@
     <div class="form-group"><label>설치/점검 내용</label><textarea id="initHistContent" rows="2" placeholder="신규 설치 및 상태 점검 내용"></textarea></div>
     <div class="form-group">
       <label>조치 현장 사진</label>
-      <div class="file-input-wrapper">
-        <div class="btn-file-upload" style="padding:6px; font-size:12px;">🖼️ 앨범에서 사진 선택 또는 촬영</div>
-        <input type="file" id="initHistPhoto" accept="image/*">
+      <div class="photo-btn-group">
+        <div class="file-input-wrapper">
+          <div class="btn-file-upload">📷 즉시 촬영</div>
+          <input type="file" id="initHistPhotoCam" accept="image/*" capture="environment">
+        </div>
+        <div class="file-input-wrapper">
+          <div class="btn-file-upload btn-secondary">🖼️ 앨범 선택</div>
+          <input type="file" id="initHistPhotoGallery" accept="image/*">
+        </div>
       </div>
       <img id="initHistPreview" class="preview-img">
     </div>
@@ -440,9 +456,15 @@
 <div id="info-modal">
   <h3 id="infoTitle">계측기 상세</h3>
   <img id="infoMainImg" class="preview-img" style="margin-bottom:6px;">
-  <div class="file-input-wrapper" style="margin-bottom: 12px;">
-    <div class="btn-file-upload" style="padding: 6px; font-size: 11px; background: #f1f5f9;">🖼️ 대표 사진 앨범에서 변경 / 등록</div>
-    <input type="file" id="updateMainPhoto" accept="image/*">
+  <div class="photo-btn-group" style="margin-bottom: 12px;">
+    <div class="file-input-wrapper">
+      <div class="btn-file-upload" style="padding: 7px; font-size: 11px;">📷 대표사진 촬영 변경</div>
+      <input type="file" id="updateMainPhotoCam" accept="image/*" capture="environment">
+    </div>
+    <div class="file-input-wrapper">
+      <div class="btn-file-upload btn-secondary" style="padding: 7px; font-size: 11px;">🖼️ 앨범에서 선택 변경</div>
+      <input type="file" id="updateMainPhotoGallery" accept="image/*">
+    </div>
   </div>
   <div id="infoBody" style="font-size: 13px; line-height: 1.5;"></div>
   <div class="history-section">
@@ -464,10 +486,16 @@
   <div class="form-group"><label>작업자 성명</label><input type="text" id="histAuthor" placeholder="홍길동"></div>
   <div class="form-group"><label>점검 내용</label><textarea id="histContent" rows="3" placeholder="점검 및 조치 내역 입력"></textarea></div>
   <div class="form-group">
-    <label>점검/조치 사진</label>
-    <div class="file-input-wrapper">
-      <div class="btn-file-upload">🖼️ 앨범에서 사진 선택 또는 촬영</div>
-      <input type="file" id="histPhoto" accept="image/*">
+    <label>점검/조치 현장 사진</label>
+    <div class="photo-btn-group">
+      <div class="file-input-wrapper">
+        <div class="btn-file-upload">📷 즉시 촬영</div>
+        <input type="file" id="histPhotoCam" accept="image/*" capture="environment">
+      </div>
+      <div class="file-input-wrapper">
+        <div class="btn-file-upload btn-secondary">🖼️ 앨범 선택</div>
+        <input type="file" id="histPhotoGallery" accept="image/*">
+      </div>
     </div>
     <img id="histPhotoPreview" class="preview-img">
   </div>
@@ -619,33 +647,42 @@
     reader.readAsDataURL(file);
   }
 
-  document.getElementById('instPhoto').addEventListener('change', function(e) {
-    compressImage(e.target.files[0], (base64) => {
+  // 1. 등록 모달 - 카메라 촬영 & 앨범 선택 연동
+  function handleInstPhoto(file) {
+    compressImage(file, (base64) => {
       currentInstPhotoBase64 = base64;
       const preview = document.getElementById('photoPreview');
       preview.src = base64; preview.style.display = 'block';
     });
-  });
+  }
+  document.getElementById('instPhotoCam').addEventListener('change', (e) => handleInstPhoto(e.target.files[0]));
+  document.getElementById('instPhotoGallery').addEventListener('change', (e) => handleInstPhoto(e.target.files[0]));
 
-  document.getElementById('initHistPhoto').addEventListener('change', function(e) {
-    compressImage(e.target.files[0], (base64) => {
+  // 2. 최초 이력 사진 - 카메라 촬영 & 앨범 선택 연동
+  function handleInitHistPhoto(file) {
+    compressImage(file, (base64) => {
       initHistPhotoBase64 = base64;
       const preview = document.getElementById('initHistPreview');
       preview.src = base64; preview.style.display = 'block';
     });
-  });
+  }
+  document.getElementById('initHistPhotoCam').addEventListener('change', (e) => handleInitHistPhoto(e.target.files[0]));
+  document.getElementById('initHistPhotoGallery').addEventListener('change', (e) => handleInitHistPhoto(e.target.files[0]));
 
-  document.getElementById('histPhoto').addEventListener('change', function(e) {
-    compressImage(e.target.files[0], (base64) => {
+  // 3. 점검 이력 추가/수정 모달 - 카메라 촬영 & 앨범 선택 연동
+  function handleHistPhoto(file) {
+    compressImage(file, (base64) => {
       currentHistPhotoBase64 = base64;
       const preview = document.getElementById('histPhotoPreview');
       preview.src = base64; preview.style.display = 'block';
     });
-  });
+  }
+  document.getElementById('histPhotoCam').addEventListener('change', (e) => handleHistPhoto(e.target.files[0]));
+  document.getElementById('histPhotoGallery').addEventListener('change', (e) => handleHistPhoto(e.target.files[0]));
 
-  // 상세창에서 기존 기기 대표 사진 바로 변경
-  document.getElementById('updateMainPhoto').addEventListener('change', function(e) {
-    compressImage(e.target.files[0], async (base64) => {
+  // 4. 상세창 대표사진 변경 - 카메라 촬영 & 앨범 선택 연동
+  function handleUpdateMainPhoto(file) {
+    compressImage(file, async (base64) => {
       const target = currentInstruments.find(i => i.id === activeTargetId);
       if (!target) return;
       target.photo_url = base64;
@@ -662,7 +699,9 @@
       render3DHotspots();
       alert('✅ 기기 대표 사진이 업데이트되었습니다.');
     });
-  });
+  }
+  document.getElementById('updateMainPhotoCam').addEventListener('change', (e) => handleUpdateMainPhoto(e.target.files[0]));
+  document.getElementById('updateMainPhotoGallery').addEventListener('change', (e) => handleUpdateMainPhoto(e.target.files[0]));
 
   function unlock(name, email = 'user@jeju.com') {
     const savedName = localStorage.getItem('jeju_worker_name');
@@ -720,7 +759,6 @@
       regMsg.style.display = 'block';
       return;
     }
-
     if (pass.length < 6) {
       regMsg.innerText = '⚠️ 비밀번호는 최소 6자리 이상이어야 합니다.';
       regMsg.style.display = 'block';
@@ -915,10 +953,12 @@
     document.getElementById('model').value = '';
     document.getElementById('range').value = '';
     currentInstPhotoBase64 = '';
-    document.getElementById('instPhoto').value = '';
+    document.getElementById('instPhotoCam').value = '';
+    document.getElementById('instPhotoGallery').value = '';
     document.getElementById('photoPreview').style.display = 'none';
     initHistPhotoBase64 = '';
-    document.getElementById('initHistPhoto').value = '';
+    document.getElementById('initHistPhotoCam').value = '';
+    document.getElementById('initHistPhotoGallery').value = '';
     document.getElementById('initHistPreview').style.display = 'none';
     document.getElementById('initHistAuthor').value = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '';
     document.getElementById('initHistContent').value = '';
@@ -1220,7 +1260,8 @@
       document.getElementById('histAuthor').value = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '';
       document.getElementById('histContent').value = '';
       currentHistPhotoBase64 = '';
-      document.getElementById('histPhoto').value = '';
+      document.getElementById('histPhotoCam').value = '';
+      document.getElementById('histPhotoGallery').value = '';
       document.getElementById('histPhotoPreview').style.display = 'none';
       document.getElementById('history-modal').style.display = 'block';
     };
@@ -1279,7 +1320,8 @@
     } else {
       preview.style.display = 'none';
     }
-    document.getElementById('histPhoto').value = '';
+    document.getElementById('histPhotoCam').value = '';
+    document.getElementById('histPhotoGallery').value = '';
     document.getElementById('history-modal').style.display = 'block';
   };
 
