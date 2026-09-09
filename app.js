@@ -48,46 +48,82 @@ const floorCorners2D = {
   '7층':     { c1: { x: 132, y: 242 }, c4: { x: 569,  y: 855 } }
 };
 
-/* --- WebAuthn 생체인식 --- */
+/* --- WebAuthn 생체인식 (호환성 개선) --- */
 function bufferToBase64(buffer) {
-  return btoa(String.fromCharCode(...new Uint8Array(buffer)));
+  return btoa(String.fromCharCode(...new Uint8Array(buffer)))
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
 }
 
 function base64ToBuffer(base64) {
-  return Uint8Array.from(atob(base64), c => c.charCodeAt(0)).buffer;
+  let b64 = base64.replace(/-/g, "+").replace(/_/g, "/");
+  while (b64.length % 4) b64 += "=";
+  return Uint8Array.from(atob(b64), c => c.charCodeAt(0)).buffer;
 }
 
+// 1. 지문 등록
 document.getElementById('btnRegisterBio').addEventListener('click', async () => {
   if (!window.PublicKeyCredential) {
-    alert('⚠️ 브라우저/기기가 WebAuthn 생체인식을 지원하지 않습니다.');
+    alert('⚠️ 현재 브라우저 또는 기기에서 생체인식(WebAuthn)을 지원하지 않습니다.');
     return;
   }
+
+  const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+  if (!available) {
+    alert('⚠️ 기기에 등록된 지문/화면 잠금(PIN/패턴)이 없거나 지원되지 않는 기기입니다.\n기기 설정에서 지문 또는 화면 잠금을 먼저 등록해 주세요.');
+    return;
+  }
+
   const workerName = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자';
+
   try {
     const challenge = new Uint8Array(32);
     window.crypto.getRandomValues(challenge);
     const userId = new Uint8Array(16);
     window.crypto.getRandomValues(userId);
+
     const credential = await navigator.credentials.create({
       publicKey: {
         challenge,
-        rp: { name: '제주 보일러 계측관리', id: window.location.hostname },
-        user: { id: userId, name: workerName, displayName: workerName },
-        pubKeyCredParams: [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
-        authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
+        rp: { 
+          name: '제주 보일러 계측관리'
+        },
+        user: {
+          id: userId,
+          name: workerName,
+          displayName: workerName
+        },
+        pubKeyCredParams: [
+          { alg: -7, type: 'public-key' },
+          { alg: -257, type: 'public-key' }
+        ],
+        authenticatorSelection: {
+          authenticatorAttachment: 'platform',
+          userVerification: 'preferred',
+          residentKey: 'preferred'
+        },
         timeout: 60000
       }
     });
+
     if (credential) {
-      localStorage.setItem('jeju_bio_credential_id', bufferToBase64(credential.rawId));
+      const rawIdBase64 = bufferToBase64(credential.rawId);
+      localStorage.setItem('jeju_bio_credential_id', rawIdBase64);
       localStorage.setItem('jeju_bio_user_name', workerName);
-      alert(`✅ [${workerName}] 님의 기기 생체인증이 등록되었습니다.`);
+      alert(`✅ [${workerName}] 님의 생체인증(지문/Face ID)이 등록되었습니다!\n이제 로그인 화면에서 지문 버튼으로 입장하실 수 있습니다.`);
     }
   } catch (err) {
-    alert('❌ 지문 등록 실패: ' + err.message);
+    console.error('등록 실패 상세:', err);
+    if (err.name === 'NotAllowedError') {
+      alert('⚠️ 생체 인증 팝업이 취소되었거나 시간 초과되었습니다.');
+    } else {
+      alert(`❌ 생체인증 등록 실패: ${err.name} - ${err.message}`);
+    }
   }
 });
 
+// 2. 지문 로그인
 document.getElementById('btnBioLogin').addEventListener('click', async () => {
   const credIdBase64 = localStorage.getItem('jeju_bio_credential_id');
   const savedName = localStorage.getItem('jeju_bio_user_name') || '작업자';
@@ -95,24 +131,34 @@ document.getElementById('btnBioLogin').addEventListener('click', async () => {
   msgEl.style.display = 'none';
 
   if (!credIdBase64) {
-    msgEl.innerText = '⚠️ 등록된 지문 정보가 없습니다. 먼저 사번 로그인 후 지문 등록을 해주세요.';
+    msgEl.innerText = '⚠️ 등록된 생체정보가 없습니다. 먼저 팀원 로그인 후 우측 상단의 [지문] 버튼으로 등록해 주세요.';
     msgEl.style.display = 'block';
     return;
   }
+
   try {
     const challenge = new Uint8Array(32);
     window.crypto.getRandomValues(challenge);
+
     const assertion = await navigator.credentials.get({
       publicKey: {
         challenge,
-        allowCredentials: [{ id: base64ToBuffer(credIdBase64), type: 'public-key' }],
-        userVerification: 'required',
+        allowCredentials: [{
+          id: base64ToBuffer(credIdBase64),
+          type: 'public-key',
+          transports: ['internal']
+        }],
+        userVerification: 'preferred',
         timeout: 60000
       }
     });
-    if (assertion) unlock(savedName, `${savedName}@jeju.com`);
+
+    if (assertion) {
+      unlock(savedName, `${savedName}@jeju.com`);
+    }
   } catch (err) {
-    msgEl.innerText = '⚠️ 생체 인증에 실패하였거나 취소되었습니다.';
+    console.error('인증 실패 상세:', err);
+    msgEl.innerText = `⚠️ 생체 인증 실패 (${err.name || '오류'}). 다시 시도하거나 사번으로 로그인하세요.`;
     msgEl.style.display = 'block';
   }
 });
