@@ -27,6 +27,10 @@ let activeDraggingPin = null;
 let activeDraggingItem = null;
 let isPinMoving = false;
 
+// WebAuthn 중복 호출 방지 및 기존 대기 요청 취소용 컨트롤러
+let bioAbortController = null;
+let isBioProcessing = false;
+
 const floor3DHeights = {
   '1층': 8.14, '2층': 11.50, '2.5층': 14.50, '3층': 17.50, '3.1/3층': 20.50,
   '3.2/3층': 23.50, '4층': 26.50, '4.5층': 29.50, '5층': 32.50, '5.5층': 35.50,
@@ -48,46 +52,72 @@ const floorCorners2D = {
   '7층':     { c1: { x: 132, y: 242 }, c4: { x: 569,  y: 855 } }
 };
 
-/* --- WebAuthn 생체인식 (호환성 개선) --- */
-function bufferToBase64(buffer) {
-  return btoa(String.fromCharCode(...new Uint8Array(buffer)))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
+/* --- WebAuthn 생체인식 (중복 요청 및 ID 완벽 교정) --- */
+function bufferToBase64URL(buffer) {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.byteLength; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-function base64ToBuffer(base64) {
-  let b64 = base64.replace(/-/g, "+").replace(/_/g, "/");
-  while (b64.length % 4) b64 += "=";
-  return Uint8Array.from(atob(b64), c => c.charCodeAt(0)).buffer;
+function base64URLToBuffer(base64url) {
+  let base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
+  while (base64.length % 4) base64 += '=';
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes.buffer;
 }
 
 // 1. 지문 등록
 document.getElementById('btnRegisterBio').addEventListener('click', async () => {
-  if (!window.PublicKeyCredential) {
-    alert('⚠️ 현재 브라우저 또는 기기에서 생체인식(WebAuthn)을 지원하지 않습니다.');
+  if (isBioProcessing) {
+    alert('⏳ 이미 생체 인증 요청이 진행 중입니다. 잠시 후 다시 시도해 주세요.');
     return;
   }
 
-  const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-  if (!available) {
-    alert('⚠️ 기기에 등록된 지문/화면 잠금(PIN/패턴)이 없거나 지원되지 않는 기기입니다.\n기기 설정에서 지문 또는 화면 잠금을 먼저 등록해 주세요.');
+  if (!window.PublicKeyCredential) {
+    alert('⚠️ 브라우저/기기가 WebAuthn 생체인식을 지원하지 않습니다.');
     return;
   }
+
+  try {
+    const isAvailable = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+    if (!isAvailable) {
+      alert('⚠️ 기기에 등록된 지문 또는 화면 잠금(PIN/패턴)이 없습니다.\n스마트폰 설정에서 지문을 먼저 등록해 주세요.');
+      return;
+    }
+  } catch (e) {
+    console.warn(e);
+  }
+
+  // 이전 대기 요청 취소
+  if (bioAbortController) {
+    bioAbortController.abort();
+  }
+  bioAbortController = new AbortController();
+  isBioProcessing = true;
 
   const workerName = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자';
 
   try {
     const challenge = new Uint8Array(32);
     window.crypto.getRandomValues(challenge);
-    const userId = new Uint8Array(16);
-    window.crypto.getRandomValues(userId);
+
+    // 사용자 ID 바이트 생성
+    const enc = new TextEncoder();
+    const userId = enc.encode('jeju_' + workerName);
 
     const credential = await navigator.credentials.create({
       publicKey: {
         challenge,
-        rp: { 
-          name: '제주 보일러 계측관리'
+        rp: {
+          name: '제주 보일러 계측관리',
+          id: window.location.hostname
         },
         user: {
           id: userId,
@@ -104,37 +134,53 @@ document.getElementById('btnRegisterBio').addEventListener('click', async () => 
           residentKey: 'preferred'
         },
         timeout: 60000
-      }
+      },
+      signal: bioAbortController.signal
     });
 
     if (credential) {
-      const rawIdBase64 = bufferToBase64(credential.rawId);
-      localStorage.setItem('jeju_bio_credential_id', rawIdBase64);
+      const rawIdString = bufferToBase64URL(credential.rawId);
+      localStorage.setItem('jeju_bio_credential_id', rawIdString);
       localStorage.setItem('jeju_bio_user_name', workerName);
-      alert(`✅ [${workerName}] 님의 생체인증(지문/Face ID)이 등록되었습니다!\n이제 로그인 화면에서 지문 버튼으로 입장하실 수 있습니다.`);
+      alert(`✅ [${workerName}] 님의 생체인증이 등록되었습니다!\n로그아웃 후 지문 버튼으로 즉시 로그인할 수 있습니다.`);
     }
   } catch (err) {
-    console.error('등록 실패 상세:', err);
+    console.error('생체 등록 상세:', err);
     if (err.name === 'NotAllowedError') {
-      alert('⚠️ 생체 인증 팝업이 취소되었거나 시간 초과되었습니다.');
+      alert('⚠️ 인증이 취소되었거나 화면 잠금이 해제되지 않았습니다.');
+    } else if (err.name === 'AbortError') {
+      console.log('이전 요청 취소됨');
     } else {
-      alert(`❌ 생체인증 등록 실패: ${err.name} - ${err.message}`);
+      alert(`❌ 지문 등록 실패: ${err.message}`);
     }
+  } finally {
+    isBioProcessing = false;
+    bioAbortController = null;
   }
 });
 
 // 2. 지문 로그인
 document.getElementById('btnBioLogin').addEventListener('click', async () => {
-  const credIdBase64 = localStorage.getItem('jeju_bio_credential_id');
+  if (isBioProcessing) {
+    return;
+  }
+
+  const credIdString = localStorage.getItem('jeju_bio_credential_id');
   const savedName = localStorage.getItem('jeju_bio_user_name') || '작업자';
   const msgEl = document.getElementById('bioLoginMsg');
   msgEl.style.display = 'none';
 
-  if (!credIdBase64) {
-    msgEl.innerText = '⚠️ 등록된 생체정보가 없습니다. 먼저 팀원 로그인 후 우측 상단의 [지문] 버튼으로 등록해 주세요.';
+  if (!credIdString) {
+    msgEl.innerText = '⚠️ 등록된 지문 정보가 없습니다. 먼저 사번 로그인 후 우측 상단의 [지문] 버튼으로 등록해 주세요.';
     msgEl.style.display = 'block';
     return;
   }
+
+  if (bioAbortController) {
+    bioAbortController.abort();
+  }
+  bioAbortController = new AbortController();
+  isBioProcessing = true;
 
   try {
     const challenge = new Uint8Array(32);
@@ -143,23 +189,29 @@ document.getElementById('btnBioLogin').addEventListener('click', async () => {
     const assertion = await navigator.credentials.get({
       publicKey: {
         challenge,
+        rpId: window.location.hostname,
         allowCredentials: [{
-          id: base64ToBuffer(credIdBase64),
-          type: 'public-key',
-          transports: ['internal']
+          id: base64URLToBuffer(credIdString),
+          type: 'public-key'
         }],
         userVerification: 'preferred',
         timeout: 60000
-      }
+      },
+      signal: bioAbortController.signal
     });
 
     if (assertion) {
       unlock(savedName, `${savedName}@jeju.com`);
     }
   } catch (err) {
-    console.error('인증 실패 상세:', err);
-    msgEl.innerText = `⚠️ 생체 인증 실패 (${err.name || '오류'}). 다시 시도하거나 사번으로 로그인하세요.`;
-    msgEl.style.display = 'block';
+    console.error('생체 로그인 상세:', err);
+    if (err.name !== 'AbortError') {
+      msgEl.innerText = '⚠️ 생체 인증이 취소되었거나 실패했습니다. 사번으로 로그인하세요.';
+      msgEl.style.display = 'block';
+    }
+  } finally {
+    isBioProcessing = false;
+    bioAbortController = null;
   }
 });
 
