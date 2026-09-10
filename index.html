@@ -535,10 +535,10 @@
 
   <div id="aiChatView">
     <div class="ai-chat-box" id="aiChatBox">
-      <div class="ai-msg ai-msg-bot">안녕하세요! 발전제어설비 AI 어시스턴트입니다. 현장 데이터, 정비 매뉴얼 및 현장 사진을 분석하며 질문 내용은 자동으로 기록됩니다.</div>
+      <div class="ai-msg ai-msg-bot">안녕하세요! 발전제어설비 AI 어시스턴트입니다. 현장 데이터 및 정비 매뉴얼을 기반으로 답변합니다.</div>
     </div>
     <div class="ai-input-wrap">
-      <input type="text" id="aiUserInput" placeholder="질문을 입력하세요 (예: 테스트3에 등록된 사진 분석해줘)" autocomplete="off" readonly onfocus="this.removeAttribute('readonly');">
+      <input type="text" id="aiUserInput" placeholder="질문을 입력하세요..." autocomplete="off" readonly onfocus="this.removeAttribute('readonly');">
       <button class="btn-ai-send" id="btnSendAi">전송</button>
     </div>
   </div>
@@ -747,7 +747,6 @@
   let isMeasureMode = false;
   let measurePoints = [];
 
-  // 대화 세션 관리 ID
   let currentChatSessionId = 'session_' + Date.now();
 
   let pendingInstPhotoFile = null;
@@ -990,7 +989,6 @@
 
   async function fetchManuals() { const { data } = await supabaseClient.from('manuals').select('*'); currentManuals = data || []; }
 
-  // 새 대화하기 기능
   window.startNewChat = function() {
     currentChatSessionId = 'session_' + Date.now();
     const chatBox = document.getElementById('aiChatBox');
@@ -1053,20 +1051,12 @@
     await fetchManuals();
   });
 
+  // [수정됨] 텍스트 질문 시 기기 사진이 자동으로 첨부되지 않도록 자동 탐색 로직 제거
   async function callGemini(userPrompt, extraContext = '', targetPhotos = []) {
     appendAiMsg('user', userPrompt); 
-    appendAiMsg('bot', '⏳ Supabase 보안 서버를 통해 현장 데이터 및 이미지 분석 중...');
+    appendAiMsg('bot', '⏳ Supabase 보안 서버를 통해 데이터를 분석 중...');
     
-    let photosToSend = [...targetPhotos];
-    if (photosToSend.length === 0) {
-      currentInstruments.forEach(inst => {
-        if ((inst.tag_no && userPrompt.includes(inst.tag_no)) || (inst.name && userPrompt.includes(inst.name))) {
-          const mainImg = inst.photo_url || inst.image_data;
-          if (mainImg && !photosToSend.includes(mainImg)) photosToSend.push(mainImg);
-          (inst.history_logs || []).forEach(h => { if (h.photo && !photosToSend.includes(h.photo)) photosToSend.push(h.photo); });
-        }
-      });
-    }
+    let photosToSend = [...targetPhotos]; // 명시적으로 전달된 사진만 사용 (자동 매칭 안 함)
 
     try {
       const { data, error } = await supabaseClient.functions.invoke('gemini-chat', { body: { prompt: userPrompt, extraContext, photosToSend, mode: 'chat' } });
@@ -1087,7 +1077,6 @@
         
         if (dbError) {
           console.error('⚠️ DB 저장 실패:', dbError.message);
-          alert('⚠️ 대화 저장 실패 (Supabase 설정 확인 필요): ' + dbError.message);
         }
 
       } else {
