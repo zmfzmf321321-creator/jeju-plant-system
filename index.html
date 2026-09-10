@@ -365,20 +365,21 @@
   </div>
 </div>
 
+<!-- 대분류 선택 시 하위 소분류/관리이력 탭이 동적으로 제어되는 영역 -->
 <div id="unit-selector-bar">
   <div class="selector-row">
     <button class="major-tab-btn active" id="btn-major-steam" onclick="switchMajor('기력')">⚡ 기력 발전</button>
     <button class="major-tab-btn" id="btn-major-engine" onclick="switchMajor('내연')">🔥 내연 발전</button>
   </div>
   <div class="selector-row" id="sub-tabs-steam">
-    <button class="sub-tab-btn active" id="sub-steam-2" onclick="switchSubTab('2호기')">2호기</button>
-    <button class="sub-tab-btn" id="sub-steam-3" onclick="switchSubTab('3호기')">3호기</button>
+    <button class="sub-tab-btn active" id="sub-steam-2" onclick="switchSubTab('2호기')">2호기 설비</button>
+    <button class="sub-tab-btn" id="sub-steam-3" onclick="switchSubTab('3호기')">3호기 설비</button>
     <button class="sub-tab-btn" id="sub-steam-hist2" onclick="switchSubTab('2호기 관리이력')">📋 2호기 이력</button>
     <button class="sub-tab-btn" id="sub-steam-hist3" onclick="switchSubTab('3호기 관리이력')">📋 3호기 이력</button>
   </div>
   <div class="selector-row" id="sub-tabs-engine" style="display: none;">
-    <button class="sub-tab-btn active" id="sub-engine-1" onclick="switchSubTab('1호기')">1호기</button>
-    <button class="sub-tab-btn" id="sub-engine-2" onclick="switchSubTab('2호기')">2호기</button>
+    <button class="sub-tab-btn active" id="sub-engine-1" onclick="switchSubTab('1호기')">1호기 설비</button>
+    <button class="sub-tab-btn" id="sub-engine-2" onclick="switchSubTab('2호기')">2호기 설비</button>
     <button class="sub-tab-btn" id="sub-engine-hist1" onclick="switchSubTab('1호기 관리이력')">📋 1호기 이력</button>
     <button class="sub-tab-btn" id="sub-engine-hist2" onclick="switchSubTab('2호기 관리이력')">📋 2호기 이력</button>
   </div>
@@ -705,7 +706,7 @@
     }
   }
 
-  /* --- 완전 안정화된 WebAuthn 생체인식 --- */
+  /* --- WebAuthn 생체인식 --- */
   function uint8ArrayToBase64(uint8Array) {
     let binary = '';
     for (let i = 0; i < uint8Array.length; i++) binary += String.fromCharCode(uint8Array[i]);
@@ -766,7 +767,6 @@
       if (assertion) unlock(savedName, `${savedName}@jeju.com`);
     } catch (err) {
       if (err.name !== 'NotAllowedError') {
-        // 브라우저 갱신 등으로 기존 토큰이 유효하지 않을 경우 자동 초기화 후 안내
         localStorage.removeItem('jeju_bio_raw_id');
         msgEl.innerText = '⚠️ 인증 정보가 만료되었거나 초기화되었습니다. 사번 로그인 후 [지문]을 다시 등록해 주세요.';
       } else {
@@ -779,7 +779,7 @@
   document.getElementById('btnBioLogin').addEventListener('click', (e) => { e.preventDefault(); loginBiometrics(); });
   document.getElementById('btnRegisterBio').addEventListener('click', (e) => { e.preventDefault(); registerBiometrics(); });
 
-  /* --- 대분류 및 탭 라우팅 --- */
+  /* --- 대분류 및 탭 라우팅 (대분류 누르면 소분류 표시 제어) --- */
   window.switchMajor = function(major) {
     selectedMajor = major;
     document.getElementById('btn-major-steam').classList.toggle('active', major === '기력');
@@ -865,6 +865,7 @@
         dbMajor = (typeof inst.unit === 'string' && inst.unit.includes('내연')) ? '내연' : '기력';
       }
 
+      // 대분류 및 소분류(unit) 일치 확인 (예: 3호기 데이터 매칭 검증)
       if (dbMajor !== selectedMajor || inst.unit !== targetUnit) return;
 
       const logs = Array.isArray(inst.history_logs) ? inst.history_logs : [];
