@@ -469,11 +469,11 @@
   <button class="floor-btn" onclick="openFloorRoom('7층', 'floor_7f.jpg', this)">7층</button>
 </div>
 
-<!-- Gemini AI 어시스턴트 모달 -->
+<!-- Gemini AI 어시스턴트 모달 (최고관리자만 키 설정 버튼 표시) -->
 <div id="gemini-modal">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
     <h3>🤖 제미나이 정비 AI 도우미</h3>
-    <button style="background: none; border: none; color: #64748b; font-size: 11px; text-decoration: underline;" onclick="toggleApiKeyInput()">⚙️ 키 설정</button>
+    <button id="btnGeminiKeySetting" style="display: none; background: none; border: none; color: #64748b; font-size: 11px; text-decoration: underline;" onclick="toggleApiKeyInput()">⚙️ 키 설정</button>
   </div>
   
   <div id="apiKeySetupBox" style="display: none; background: #f1f5f9; padding: 10px; border-radius: 8px; margin-bottom: 10px;">
@@ -490,7 +490,7 @@
   </div>
 
   <div class="ai-chat-box" id="aiChatBox">
-    <div class="ai-msg ai-msg-bot">안녕하세요! 보일러 제어설비 AI 어시스턴트입니다. 현장 등록 계측기 상태 진단 및 조치 방안을 문의해 주세요.</div>
+    <div class="ai-msg ai-msg-bot">안녕하세요! 발전제어설비 AI 어시스턴트입니다. 현장 등록 계측기 상태 진단 및 조치 방안을 문의해 주세요.</div>
   </div>
 
   <div class="ai-input-wrap">
@@ -867,12 +867,16 @@
     });
   };
 
-  /* --- Gemini API 연동 모듈 --- */
+  /* --- Gemini API 연동 모듈 (최고관리자 전용 제어) --- */
   function getGeminiApiKey() {
     return localStorage.getItem('jeju_gemini_api_key') || '';
   }
 
   window.toggleApiKeyInput = function() {
+    if (sessionStorage.getItem('jeju_admin_auth') !== 'true') {
+      alert('⚠️ 최고관리자만 API 키를 설정할 수 있습니다.');
+      return;
+    }
     const box = document.getElementById('apiKeySetupBox');
     box.style.display = box.style.display === 'none' ? 'block' : 'none';
     if (box.style.display === 'block') {
@@ -881,16 +885,21 @@
   };
 
   window.saveGeminiApiKey = function() {
+    if (sessionStorage.getItem('jeju_admin_auth') !== 'true') {
+      alert('⚠️ 최고관리자만 API 키를 저장할 수 있습니다.');
+      return;
+    }
     const key = document.getElementById('geminiApiKeyInput').value.trim();
     if (!key) { alert('API Key를 입력하세요.'); return; }
     localStorage.setItem('jeju_gemini_api_key', key);
-    alert('✅ Gemini API Key가 브라우저에 안전하게 저장되었습니다.');
+    alert('✅ Gemini API Key가 저장되었습니다.');
     document.getElementById('apiKeySetupBox').style.display = 'none';
   };
 
   document.getElementById('btnOpenGemini').addEventListener('click', () => {
     document.getElementById('gemini-modal').style.display = 'block';
-    if (!getGeminiApiKey()) {
+    const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
+    if (isAdmin && !getGeminiApiKey()) {
       document.getElementById('apiKeySetupBox').style.display = 'block';
     }
   });
@@ -898,16 +907,20 @@
   async function callGemini(userPrompt, extraContext = '') {
     const apiKey = getGeminiApiKey();
     if (!apiKey) {
-      appendAiMsg('bot', '⚠️ Gemini API 키가 설정되지 않았습니다. 우측 상단의 [⚙️ 키 설정] 버튼을 눌러 Google AI Studio에서 발급받은 API 키를 입력해 주세요.');
-      document.getElementById('apiKeySetupBox').style.display = 'block';
+      const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
+      if (isAdmin) {
+        appendAiMsg('bot', '⚠️ Gemini API 키가 설정되지 않았습니다. 우측 상단의 [⚙️ 키 설정] 버튼을 눌러 API 키를 입력해 주세요.');
+        document.getElementById('apiKeySetupBox').style.display = 'block';
+      } else {
+        appendAiMsg('bot', '⚠️ Gemini API 키가 아직 등록되지 않았습니다. 최고관리자에게 키 등록을 요청해 주세요.');
+      }
       return;
     }
 
-    // 시스템 컨텍스트 구축 (전체 계측기 및 최근 점검 내역 요약 전달)
     const plantSummary = currentInstruments.map(i => ({
       tag: i.tag_no,
       name: i.name,
-      location: `${i.unit || '2호기'} ${i.floor}`,
+      location: `${i.major_category || '기력'} ${i.unit || '2호기'} ${i.floor}`,
       model: i.model,
       range: i.signal_range,
       histories: (i.history_logs || []).slice(0, 3)
@@ -980,7 +993,6 @@ ${extraContext ? '[특정 대상 추가 정보]:\n' + extraContext : ''}
     callGemini(promptText);
   };
 
-  // 상세 모달 내 기기 전용 AI 분석 호출
   document.getElementById('btnAiAnalyzeThis').addEventListener('click', () => {
     const target = currentInstruments.find(i => i.id === activeTargetId);
     if (!target) return;
@@ -990,7 +1002,7 @@ ${extraContext ? '[특정 대상 추가 정보]:\n' + extraContext : ''}
     const targetContext = `
 Tag: ${target.tag_no}
 기기명: ${target.name}
-설치위치: ${target.unit} ${target.floor}
+설치위치: ${target.major_category || '기력'} ${target.unit} ${target.floor}
 모델명: ${target.model}
 측정범위: ${target.signal_range}
 과거 점검이력: ${JSON.stringify(target.history_logs || [])}
@@ -1071,6 +1083,14 @@ Tag: ${target.tag_no}
     currentUserInfo = { name: finalName, email };
     document.getElementById('auth-overlay').style.display = 'none';
     document.getElementById('loginUserBadge').innerText = `👤 ${finalName}`;
+
+    // 최고관리자 여부에 따른 Gemini 키 설정 버튼 노출 처리
+    const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
+    const keyBtn = document.getElementById('btnGeminiKeySetting');
+    if (keyBtn) {
+      keyBtn.style.display = isAdmin ? 'inline-block' : 'none';
+    }
+
     fetchInstruments();
   }
 
