@@ -694,7 +694,7 @@
     const workerName = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자';
     try {
       const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
-      const userId = new TextEncoder().encode('jeju_' + workerName);
+      const userId = new TextEncoder().encode(workerName);
       const credential = await navigator.credentials.create({
         publicKey: {
           challenge, rp: { name: '제주 보일러 제어 시스템' },
@@ -866,7 +866,7 @@
     });
   };
 
-  /* --- Gemini API 연동 모듈 (공식 표준 모델 반영) --- */
+  /* --- Gemini API 연동 모듈 (gemini-2.5-flash 표준 연동) --- */
   function getGeminiApiKey() {
     return localStorage.getItem('jeju_gemini_api_key') || '';
   }
@@ -938,12 +938,12 @@ ${extraContext ? '[특정 대상 추가 정보]:\n' + extraContext : ''}
     appendAiMsg('user', userPrompt);
     appendAiMsg('bot', '⏳ 설비 데이터 분석 중...');
 
-    // Google 공식 최신 지원 모델 후보군 (flash 및 정규 프로 모델)
-    const models = ['gemini-1.5-flash', 'gemini-2.5-flash', 'gemini-1.5-pro'];
+    // Google 공식 표준 최신 모델 (gemini-2.5-flash -> gemini-2.0-flash 순차 호출)
+    const targetModels = ['gemini-2.5-flash', 'gemini-2.0-flash'];
     let success = false;
     let lastError = '';
 
-    for (const model of models) {
+    for (const model of targetModels) {
       try {
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
           method: 'POST',
@@ -965,7 +965,7 @@ ${extraContext ? '[특정 대상 추가 정보]:\n' + extraContext : ''}
           success = true;
           break;
         } else {
-          lastError = data.error ? data.error.message : 'API 응답 형식 오류';
+          lastError = data.error ? data.error.message : '응답 실패';
         }
       } catch (err) {
         lastError = err.message;
@@ -975,7 +975,7 @@ ${extraContext ? '[특정 대상 추가 정보]:\n' + extraContext : ''}
     if (!success) {
       const lastMsg = document.querySelector('#aiChatBox .ai-msg-bot:last-child');
       if (lastMsg && lastMsg.innerText.includes('⏳')) {
-        lastMsg.innerText = '❌ 오류: ' + lastError + '\n\n(API 키가 유효한지 또는 사용량 한도가 초과되지 않았는지 확인해 주세요.)';
+        lastMsg.innerText = `❌ 오류: ${lastError}\n\n(구글 AI Studio에서 API Key가 활성화되어 있는지 확인해 주세요.)`;
       }
     }
   }
@@ -1279,10 +1279,8 @@ Tag: ${target.tag_no}
   board.addEventListener('click', (e) => {
     if (isPinMoving || e.target.closest('.floor-inst-pin')) return;
     const rect = board.getBoundingClientRect();
-    const clickX = (e.clientX - rect.left) / scale;
-    const clickY = (e.clientY - rect.top) / scale;
-    const curX = Math.round(Math.max(0, Math.min(1400, clickX)));
-    const curY = Math.round(Math.max(0, Math.min(1000, clickY)));
+    const curX = Math.round(Math.max(0, Math.min(1400, (e.clientX - rect.left) / scale)));
+    const curY = Math.round(Math.max(0, Math.min(1000, (e.clientY - rect.top) / scale)));
 
     if (isMeasureMode) {
       let m = board.querySelector('#temp-measure-marker-2d');
