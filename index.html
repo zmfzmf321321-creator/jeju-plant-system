@@ -299,7 +299,6 @@
     .search-item-sub { font-size: 11px; color: #64748b; margin-top: 2px; }
     .search-item-badge { background: #0284c7; color: #fff; padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; white-space: nowrap; }
 
-    /* Gemini AI 전용 스타일 */
     .ai-chat-box {
       height: 250px; overflow-y: auto; background: #f8fafc; border: 1px solid #e2e8f0;
       border-radius: 8px; padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px;
@@ -469,7 +468,7 @@
   <button class="floor-btn" onclick="openFloorRoom('7층', 'floor_7f.jpg', this)">7층</button>
 </div>
 
-<!-- Gemini AI 어시스턴트 모달 (최고관리자만 키 설정 버튼 표시) -->
+<!-- Gemini AI 어시스턴트 모달 -->
 <div id="gemini-modal">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
     <h3>🤖 제미나이 정비 AI 도우미</h3>
@@ -687,7 +686,7 @@
     const binary = atob(clean);
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return bytes;
+    return bytes.buffer;
   }
 
   async function registerBiometrics() {
@@ -728,9 +727,9 @@
 
     try {
       const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
-      const rawIdBytes = base64ToUint8Array(rawIdBase64);
+      const rawIdBuffer = base64ToUint8Array(rawIdBase64);
       const assertion = await navigator.credentials.get({
-        publicKey: { challenge, allowCredentials: [{ id: rawIdBytes.buffer, type: 'public-key' }], userVerification: 'preferred', timeout: 60000 }
+        publicKey: { challenge, allowCredentials: [{ id: rawIdBuffer, type: 'public-key' }], userVerification: 'preferred', timeout: 60000 }
       });
       if (assertion) unlock(savedName, `${savedName}@jeju.com`);
     } catch (err) {
@@ -867,7 +866,7 @@
     });
   };
 
-  /* --- Gemini API 연동 모듈 (최고관리자 전용 제어) --- */
+  /* --- Gemini API 연동 모듈 (모델 URL 호환성 패치 완료) --- */
   function getGeminiApiKey() {
     return localStorage.getItem('jeju_gemini_api_key') || '';
   }
@@ -939,32 +938,50 @@ ${extraContext ? '[특정 대상 추가 정보]:\n' + extraContext : ''}
     appendAiMsg('user', userPrompt);
     appendAiMsg('bot', '⏳ 설비 데이터 분석 중...');
 
-    try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            { role: 'user', parts: [{ text: systemPrompt + '\n\n[작업자 질문]: ' + userPrompt }] }
-          ],
-          generationConfig: { temperature: 0.2, maxOutputTokens: 1000 }
-        })
-      });
+    // API 버전 및 모델명 폴백 후보군
+    const modelCandidates = [
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent',
+      'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent',
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent'
+    ];
 
-      const data = await response.json();
-      const lastMsg = document.querySelector('#aiChatBox .ai-msg-bot:last-child');
-      
-      if (data.candidates && data.candidates[0].content.parts[0].text) {
-        const reply = data.candidates[0].content.parts[0].text;
-        if (lastMsg && lastMsg.innerText.includes('⏳')) lastMsg.innerText = reply;
-        else appendAiMsg('bot', reply);
-      } else {
-        const errMsg = data.error ? data.error.message : '응답을 생성할 수 없습니다.';
-        if (lastMsg && lastMsg.innerText.includes('⏳')) lastMsg.innerText = '❌ 오류: ' + errMsg;
+    let success = false;
+    let lastError = '';
+
+    for (const url of modelCandidates) {
+      try {
+        const response = await fetch(`${url}?key=${apiKey}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [
+              { role: 'user', parts: [{ text: systemPrompt + '\n\n[작업자 질문]: ' + userPrompt }] }
+            ],
+            generationConfig: { temperature: 0.2, maxOutputTokens: 1000 }
+          })
+        });
+
+        const data = await response.json();
+        if (response.ok && data.candidates && data.candidates[0].content.parts[0].text) {
+          const reply = data.candidates[0].content.parts[0].text;
+          const lastMsg = document.querySelector('#aiChatBox .ai-msg-bot:last-child');
+          if (lastMsg && lastMsg.innerText.includes('⏳')) lastMsg.innerText = reply;
+          else appendAiMsg('bot', reply);
+          success = true;
+          break;
+        } else {
+          lastError = data.error ? data.error.message : '응답 생성 실패';
+        }
+      } catch (err) {
+        lastError = err.message;
       }
-    } catch (err) {
+    }
+
+    if (!success) {
       const lastMsg = document.querySelector('#aiChatBox .ai-msg-bot:last-child');
-      if (lastMsg && lastMsg.innerText.includes('⏳')) lastMsg.innerText = '❌ 네트워크 통신 실패: ' + err.message;
+      if (lastMsg && lastMsg.innerText.includes('⏳')) {
+        lastMsg.innerText = '❌ 오류: ' + lastError + '\n(API 키 상태 및 Google AI Studio 활성화 여부를 확인해 주세요.)';
+      }
     }
   }
 
@@ -1084,12 +1101,9 @@ Tag: ${target.tag_no}
     document.getElementById('auth-overlay').style.display = 'none';
     document.getElementById('loginUserBadge').innerText = `👤 ${finalName}`;
 
-    // 최고관리자 여부에 따른 Gemini 키 설정 버튼 노출 처리
     const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
     const keyBtn = document.getElementById('btnGeminiKeySetting');
-    if (keyBtn) {
-      keyBtn.style.display = isAdmin ? 'inline-block' : 'none';
-    }
+    if (keyBtn) keyBtn.style.display = isAdmin ? 'inline-block' : 'none';
 
     fetchInstruments();
   }
