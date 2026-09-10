@@ -54,6 +54,12 @@
     }
     .btn-biometric-admin:active { background: #0369a1; }
 
+    .btn-reg-admin-bio {
+      width: 100%; padding: 9px; background: #1e293b; color: #38bdf8;
+      border: 1px dashed #0284c7; border-radius: 6px; font-size: 12px; font-weight: bold;
+      cursor: pointer; margin-top: 10px;
+    }
+
     .auth-divider { display: flex; align-items: center; margin: 16px 0; color: #64748b; font-size: 12px; }
     .auth-divider::before, .auth-divider::after { content: ''; flex: 1; border-bottom: 1px solid #334155; }
     .auth-divider span { padding: 0 10px; }
@@ -352,10 +358,15 @@
     <div class="auth-title" style="color: #38bdf8;">👑 최고관리자 모드</div>
     <button class="btn-biometric-admin" id="btnAdminBioLogin" type="button">👆 최고관리자 지문 즉시 로그인</button>
     <div id="adminBioLoginMsg" class="auth-status-error"></div>
+    
     <div class="auth-divider"><span>또는 마스터 비밀번호</span></div>
     <input type="password" id="adminPassInput" class="auth-input" placeholder="마스터 비밀번호">
     <button class="auth-btn" style="background: #38bdf8;" id="btnAdminSubmit" type="button">관리자 접속</button>
     <div id="adminErrorMsg" class="auth-status-error">⚠️ 비밀번호가 틀렸습니다.</div>
+    
+    <!-- 마스터 비번 입력 후 즉시 관리자 지문으로 등록할 수 있는 직관적 버튼 제공 -->
+    <button class="btn-reg-admin-bio" id="btnDirectRegAdminBio" type="button">🔑 비밀번호 확인 후 이 기기 지문 등록</button>
+    
     <div class="auth-toggle-link" id="linkBackLogin">돌아가기</div>
   </div>
 
@@ -751,53 +762,54 @@
     return bytes.buffer;
   }
 
-  async function registerBiometrics() {
-    if (!window.PublicKeyCredential) { alert('⚠️ 브라우저에서 생체인증을 지원하지 않습니다.'); return; }
+  /* --- 지문 등록 함수 (관리자 / 일반 팀원 완전 분리) --- */
+  async function registerBiometrics(isAdmin = false) {
+    if (!window.PublicKeyCredential) { alert('⚠️ 현재 브라우저에서 생체인증을 지원하지 않습니다.'); return; }
     
-    // 최고관리자 접속 여부 확인
-    const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
-    const defaultName = isAdmin ? '관리자' : (currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자');
-    const workerName = prompt('기기에 등록할 인증 이름을 확인하세요:', defaultName);
-    if (!workerName) return;
-
+    const workerName = isAdmin ? '최고관리자' : (currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자');
+    
     try {
       const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
       const userId = new TextEncoder().encode(workerName);
       const credential = await navigator.credentials.create({
         publicKey: {
-          challenge, rp: { name: '제주 보일러 제어 시스템' },
+          challenge,
+          rp: { name: '제주 보일러 제어 시스템' },
           user: { id: userId, name: workerName, displayName: workerName },
           pubKeyCredParams: [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
           authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'preferred', residentKey: 'preferred' },
           timeout: 60000
         }
       });
+
       if (credential) {
-        localStorage.setItem('jeju_bio_raw_id', uint8ArrayToBase64(new Uint8Array(credential.rawId)));
-        localStorage.setItem('jeju_bio_user_name', workerName);
-        if (isAdmin || workerName.includes('관리자')) {
-          localStorage.setItem('jeju_bio_is_admin', 'true');
+        const rawIdBase64 = uint8ArrayToBase64(new Uint8Array(credential.rawId));
+        if (isAdmin) {
+          localStorage.setItem('jeju_admin_bio_raw_id', rawIdBase64);
+          alert('✅ [최고관리자] 지문이 성공적으로 등록되었습니다!\n이제 마스터 비밀번호 없이 지문 버튼으로 즉시 접속 가능합니다.');
         } else {
-          localStorage.removeItem('jeju_bio_is_admin');
+          localStorage.setItem('jeju_bio_raw_id', rawIdBase64);
+          localStorage.setItem('jeju_bio_user_name', workerName);
+          alert(`✅ [${workerName}] 님의 일반 팀원 지문이 등록되었습니다.`);
         }
-        alert(`✅ [${workerName}] 님의 기기 생체/지문 인증이 등록되었습니다.`);
       }
     } catch (err) {
-      if (err.name !== 'NotAllowedError') alert('❌ 등록 실패: ' + (err.message || '취소됨'));
+      if (err.name !== 'NotAllowedError') alert('❌ 지문 등록 실패: ' + (err.message || '취소됨'));
     }
   }
 
-  async function loginBiometrics(forceAdmin = false) {
-    const rawIdBase64 = localStorage.getItem('jeju_bio_raw_id');
-    const savedName = localStorage.getItem('jeju_bio_user_name') || '작업자';
-    const isBioAdmin = localStorage.getItem('jeju_bio_is_admin') === 'true' || forceAdmin || savedName.includes('관리자');
+  /* --- 지문 로그인 함수 (관리자 / 일반 팀원 분기) --- */
+  async function loginBiometrics(isAdminLogin = false) {
+    const rawIdBase64 = isAdminLogin 
+      ? (localStorage.getItem('jeju_admin_bio_raw_id') || localStorage.getItem('jeju_bio_raw_id'))
+      : localStorage.getItem('jeju_bio_raw_id');
 
-    const msgEl = forceAdmin ? document.getElementById('adminBioLoginMsg') : document.getElementById('bioLoginMsg');
+    const msgEl = isAdminLogin ? document.getElementById('adminBioLoginMsg') : document.getElementById('bioLoginMsg');
     msgEl.style.display = 'none';
 
     if (!rawIdBase64) {
-      msgEl.innerText = forceAdmin
-        ? '⚠️ 등록된 관리자 지문이 없습니다. 마스터 비밀번호로 접속 후 우측 상단 [지문]을 먼저 등록해 주세요.'
+      msgEl.innerText = isAdminLogin
+        ? '⚠️ 등록된 관리자 지문이 없습니다. 아래 [비밀번호 확인 후 이 기기 지문 등록] 버튼을 눌러 먼저 등록해 주세요.'
         : '⚠️ 저장된 생체정보가 없습니다. 로그인 후 우측 상단 [지문]을 등록하세요.';
       msgEl.style.display = 'block';
       return;
@@ -807,22 +819,28 @@
       const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
       const rawIdBuffer = base64ToUint8Array(rawIdBase64);
       const assertion = await navigator.credentials.get({
-        publicKey: { challenge, allowCredentials: [{ id: rawIdBuffer, type: 'public-key' }], userVerification: 'preferred', timeout: 60000 }
+        publicKey: {
+          challenge,
+          allowCredentials: [{ id: rawIdBuffer, type: 'public-key' }],
+          userVerification: 'preferred',
+          timeout: 60000
+        }
       });
+
       if (assertion) {
-        if (isBioAdmin) {
+        if (isAdminLogin) {
           sessionStorage.setItem('jeju_admin_auth', 'true');
-          unlock(savedName, 'admin@jeju.com');
+          unlock('최고관리자', 'admin@jeju.com');
         } else {
+          const savedName = localStorage.getItem('jeju_bio_user_name') || '작업자';
           unlock(savedName, `${savedName}@jeju.com`);
         }
       }
     } catch (err) {
       if (err.name !== 'NotAllowedError') {
-        localStorage.removeItem('jeju_bio_raw_id');
-        msgEl.innerText = '⚠️ 인증 정보가 만료되었습니다. 비밀번호로 로그인 후 [지문]을 다시 등록해 주세요.';
+        msgEl.innerText = '⚠️ 지문 인증 실패 또는 만료되었습니다. 다시 등록해 주세요.';
       } else {
-        msgEl.innerText = '⚠️ 생체 인증이 취소되었습니다.';
+        msgEl.innerText = '⚠️ 지문 인증이 취소되었습니다.';
       }
       msgEl.style.display = 'block';
     }
@@ -830,7 +848,25 @@
 
   document.getElementById('btnBioLogin').addEventListener('click', (e) => { e.preventDefault(); loginBiometrics(false); });
   document.getElementById('btnAdminBioLogin').addEventListener('click', (e) => { e.preventDefault(); loginBiometrics(true); });
-  document.getElementById('btnRegisterBio').addEventListener('click', (e) => { e.preventDefault(); registerBiometrics(); });
+  
+  // 관리자 모달에서 즉시 지문 등록하는 버튼
+  document.getElementById('btnDirectRegAdminBio').addEventListener('click', (e) => {
+    e.preventDefault();
+    const inputPass = document.getElementById('adminPassInput').value.trim();
+    if (inputPass !== ADMIN_MASTER_PASS) {
+      alert('⚠️ 먼저 위의 [마스터 비밀번호]를 올바르게 입력해 주세요.');
+      document.getElementById('adminPassInput').focus();
+      return;
+    }
+    registerBiometrics(true);
+  });
+
+  // 상단 헤더 지문 버튼 클릭 시 (관리자 상태면 관리자 지문 등록, 일반 유저면 일반 지문 등록)
+  document.getElementById('btnRegisterBio').addEventListener('click', (e) => {
+    e.preventDefault();
+    const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
+    registerBiometrics(isAdmin);
+  });
 
   window.switchMajor = function(major) {
     selectedMajor = major;
@@ -1278,7 +1314,7 @@ Tag No: ${target.tag_no}
     document.getElementById('auth-overlay').style.display = 'none';
     
     const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
-    document.getElementById('loginUserBadge').innerText = isAdmin ? `👑 ${finalName}(관리자)` : `👤 ${finalName}`;
+    document.getElementById('loginUserBadge').innerText = isAdmin ? `👑 최고관리자` : `👤 ${finalName}`;
 
     await fetchManuals();
     fetchInstruments();
@@ -1310,7 +1346,7 @@ Tag No: ${target.tag_no}
     e.preventDefault();
     if (document.getElementById('adminPassInput').value.trim() === ADMIN_MASTER_PASS) {
       sessionStorage.setItem('jeju_admin_auth', 'true');
-      unlock(localStorage.getItem('jeju_worker_name') || '관리자', 'admin@jeju.com');
+      unlock('최고관리자', 'admin@jeju.com');
     } else {
       document.getElementById('adminErrorMsg').style.display = 'block';
     }
@@ -1870,7 +1906,7 @@ Tag No: ${target.tag_no}
   };
 
   if (sessionStorage.getItem('jeju_admin_auth') === 'true') {
-    unlock(localStorage.getItem('jeju_worker_name') || '관리자', 'admin@jeju.com');
+    unlock('최고관리자', 'admin@jeju.com');
   }
 </script>
 </body>
