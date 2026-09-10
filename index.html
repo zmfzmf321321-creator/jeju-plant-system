@@ -1015,7 +1015,6 @@
     }
   };
 
-  // [수정됨] 현재 로그인한 작업자의 기록만 필터링하여 불러오기
   async function loadSavedAiHistory() {
     const box = document.getElementById('aiSavedHistoryBox');
     box.innerHTML = '<div style="color: #94a3b8; font-size: 12px; text-align: center; padding: 20px;">불러오는 중...</div>';
@@ -1025,7 +1024,7 @@
     const { data, error } = await supabaseClient
       .from('ai_chat_history')
       .select('*')
-      .eq('user_name', workerName) // 본인 이름의 기록만 조회
+      .eq('user_name', workerName)
       .order('created_at', { ascending: false })
       .limit(50);
 
@@ -1055,14 +1054,53 @@
     await fetchManuals();
   });
 
+  // [수정됨] 스마트 키워드/동의어 매칭 검색을 통해 관련 계측기 및 이력을 자동으로 찾아 컨텍스트에 주입
   async function callGemini(userPrompt, extraContext = '', targetPhotos = []) {
     appendAiMsg('user', userPrompt); 
     appendAiMsg('bot', '⏳ Supabase 보안 서버를 통해 데이터를 분석 중...');
     
     let photosToSend = [...targetPhotos];
+    let dynamicContext = extraContext;
+
+    if (!dynamicContext) {
+      const promptLower = userPrompt.toLowerCase();
+      
+      // 스마트 동의어 및 키워드 매칭 필터링
+      const matchedInsts = currentInstruments.filter(inst => {
+        const tag = (inst.tag_no || '').toLowerCase();
+        const name = (inst.name || '').toLowerCase();
+        const logsStr = (inst.history_logs || []).map(h => h.content + ' ' + h.author).join(' ').toLowerCase();
+        
+        let hit = tag.includes(promptLower) || name.includes(promptLower) || logsStr.includes(promptLower);
+        
+        // 동의어 및 약어 확장 매칭 (예: 컨트롤 밸브 / 조절밸브 / FCV 등)
+        if (promptLower.includes('밸브') || promptLower.includes('컨트롤') || promptLower.includes('조절') || promptLower.includes('fcv') || promptLower.includes('cv')) {
+          if (name.includes('밸브') || name.includes('조절') || name.includes('fcv') || tag.includes('fcv') || tag.includes('cv') || logsStr.includes('밸브')) hit = true;
+        }
+        if (promptLower.includes('압력') || promptLower.includes('pt')) {
+          if (name.includes('압력') || tag.includes('pt')) hit = true;
+        }
+        if (promptLower.includes('온도') || promptLower.includes('tt') || promptLower.includes('te')) {
+          if (name.includes('온도') || tag.includes('tt') || tag.includes('te')) hit = true;
+        }
+        if (promptLower.includes('유량') || promptLower.includes('ft') || promptLower.includes('fe')) {
+          if (name.includes('유량') || tag.includes('ft') || tag.includes('fe')) hit = true;
+        }
+        return hit;
+      });
+
+      if (matchedInsts.length > 0) {
+        dynamicContext = "🔍 [자동 검색된 관련 계측기 및 점검 이력 데이터]:\n" + matchedInsts.map(i => 
+          `- Tag No: ${i.tag_no}, 기기명: ${i.name}, 위치: ${i.major_category} ${i.unit} ${i.floor}, 모델: ${i.model}, 측정범위: ${i.signal_range}, 이력내역: ${JSON.stringify(i.history_logs)}`
+        ).join('\n');
+      } else {
+        // 일치하는 특정 기기가 없을 경우 전체 장비 요약 제공
+        dynamicContext = "💡 [참고용 전체 등록 계측기 목록]:\n" + currentInstruments.map(i => `[${i.tag_no}] ${i.name} (${i.major_category} ${i.unit} ${i.floor})`).join(', ');
+      }
+    }
 
     try {
-      const { data, error } = await supabaseClient.functions.invoke('gemini-chat', { body: { prompt: userPrompt, extraContext, photosToSend, mode: 'chat' } });
+      const { data, error } = await supabaseClient.functions.invoke('gemini-chat', { body: { prompt: userPrompt, extraContext: dynamicContext, photosToSend, mode: 'chat' } });
       const lastMsg = document.querySelector('#aiChatBox .ai-msg-bot:last-child');
       
       if (!error && data?.candidates?.[0]?.content?.parts?.[0]?.text) {
