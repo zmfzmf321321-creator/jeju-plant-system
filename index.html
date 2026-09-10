@@ -583,7 +583,7 @@
   <div id="infoBody" style="font-size: 13px; line-height: 1.5;"></div>
   
   <!-- 등록된 사진에서 즉시 명판을 읽어 Tag를 수정하는 버튼 -->
-  <button class="btn-file-upload" style="background:#059669; width:100%; margin-top:8px; padding:9px; font-size:12px;" onclick="extractCurrentPhotoInfo()">
+  <button id="btnExtractCurrentPhoto" class="btn-file-upload" style="background:#059669; width:100%; margin-top:8px; padding:9px; font-size:12px;" onclick="extractCurrentPhotoInfo()">
     🔍 등록된 사진에서 Tag·기기정보 자동 추출 및 수정
   </button>
 
@@ -981,7 +981,24 @@
       alert('⚠️ 현재 등록된 대표 사진이 없습니다. 상단에서 사진을 먼저 등록해 주세요.');
       return;
     }
-    await autoFillTagFromPhoto(imgUrl, 'update');
+
+    const extractBtn = document.getElementById('btnExtractCurrentPhoto');
+    const originalText = extractBtn ? extractBtn.innerText : '';
+    if (extractBtn) {
+      extractBtn.innerText = '⏳ 사진에서 명판 정보 정밀 추출 중...';
+      extractBtn.style.opacity = '0.7';
+      extractBtn.disabled = true;
+    }
+
+    try {
+      await autoFillTagFromPhoto(imgUrl, 'update');
+    } finally {
+      if (extractBtn) {
+        extractBtn.innerText = originalText;
+        extractBtn.style.opacity = '1';
+        extractBtn.disabled = false;
+      }
+    }
   };
 
   /* --- 사진 속 명판(Tag No, 모델, 범위) 자동 OCR 판독 함수 --- */
@@ -1602,7 +1619,9 @@ Tag No: ${target.tag_no}
     mainImg.style.display = img ? 'block' : 'none';
     if (img) mainImg.src = img;
 
+    // 설비 구분, 도면 층, 모델명, 측정범위 바로 위에 Tag-name을 명시적으로 추가
     document.getElementById('infoBody').innerHTML = `
+      <div><b>Tag-name:</b> <span style="color:#38bdf8; font-weight:bold;">${item.tag_no || '-'}</span></div>
       <div><b>설비 구분:</b> <span style="color:#38bdf8; font-weight:bold;">${selectedMajor} ${item.unit || '2호기'}</span></div>
       <div><b>도면 층:</b> <span style="color:#0284c7; font-weight:bold;">${item.floor}</span></div>
       <div><b>모델명:</b> ${item.model || '-'}</div>
