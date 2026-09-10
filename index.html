@@ -47,6 +47,13 @@
     }
     .btn-biometric:active { background: #059669; }
 
+    .btn-biometric-admin {
+      width: 100%; padding: 13px; background: #0284c7; color: #fff;
+      border: 1px solid #38bdf8; border-radius: 8px; font-size: 14px; font-weight: bold;
+      cursor: pointer; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .btn-biometric-admin:active { background: #0369a1; }
+
     .auth-divider { display: flex; align-items: center; margin: 16px 0; color: #64748b; font-size: 12px; }
     .auth-divider::before, .auth-divider::after { content: ''; flex: 1; border-bottom: 1px solid #334155; }
     .auth-divider span { padding: 0 10px; }
@@ -343,6 +350,9 @@
 
   <div id="admin-login-box" class="auth-box">
     <div class="auth-title" style="color: #38bdf8;">👑 최고관리자 모드</div>
+    <button class="btn-biometric-admin" id="btnAdminBioLogin" type="button">👆 최고관리자 지문 즉시 로그인</button>
+    <div id="adminBioLoginMsg" class="auth-status-error"></div>
+    <div class="auth-divider"><span>또는 마스터 비밀번호</span></div>
     <input type="password" id="adminPassInput" class="auth-input" placeholder="마스터 비밀번호">
     <button class="auth-btn" style="background: #38bdf8;" id="btnAdminSubmit" type="button">관리자 접속</button>
     <div id="adminErrorMsg" class="auth-status-error">⚠️ 비밀번호가 틀렸습니다.</div>
@@ -743,7 +753,13 @@
 
   async function registerBiometrics() {
     if (!window.PublicKeyCredential) { alert('⚠️ 브라우저에서 생체인증을 지원하지 않습니다.'); return; }
-    const workerName = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자';
+    
+    // 최고관리자 접속 여부 확인
+    const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
+    const defaultName = isAdmin ? '관리자' : (currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자');
+    const workerName = prompt('기기에 등록할 인증 이름을 확인하세요:', defaultName);
+    if (!workerName) return;
+
     try {
       const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
       const userId = new TextEncoder().encode(workerName);
@@ -759,22 +775,32 @@
       if (credential) {
         localStorage.setItem('jeju_bio_raw_id', uint8ArrayToBase64(new Uint8Array(credential.rawId)));
         localStorage.setItem('jeju_bio_user_name', workerName);
-        alert(`✅ [${workerName}] 님의 기기 생체인증이 등록되었습니다.`);
+        if (isAdmin || workerName.includes('관리자')) {
+          localStorage.setItem('jeju_bio_is_admin', 'true');
+        } else {
+          localStorage.removeItem('jeju_bio_is_admin');
+        }
+        alert(`✅ [${workerName}] 님의 기기 생체/지문 인증이 등록되었습니다.`);
       }
     } catch (err) {
       if (err.name !== 'NotAllowedError') alert('❌ 등록 실패: ' + (err.message || '취소됨'));
     }
   }
 
-  async function loginBiometrics() {
+  async function loginBiometrics(forceAdmin = false) {
     const rawIdBase64 = localStorage.getItem('jeju_bio_raw_id');
     const savedName = localStorage.getItem('jeju_bio_user_name') || '작업자';
-    const msgEl = document.getElementById('bioLoginMsg');
+    const isBioAdmin = localStorage.getItem('jeju_bio_is_admin') === 'true' || forceAdmin || savedName.includes('관리자');
+
+    const msgEl = forceAdmin ? document.getElementById('adminBioLoginMsg') : document.getElementById('bioLoginMsg');
     msgEl.style.display = 'none';
 
     if (!rawIdBase64) {
-      msgEl.innerText = '⚠️ 저장된 생체정보가 없습니다. 사번 로그인 후 우측 상단 [지문]을 등록하세요.';
-      msgEl.style.display = 'block'; return;
+      msgEl.innerText = forceAdmin
+        ? '⚠️ 등록된 관리자 지문이 없습니다. 마스터 비밀번호로 접속 후 우측 상단 [지문]을 먼저 등록해 주세요.'
+        : '⚠️ 저장된 생체정보가 없습니다. 로그인 후 우측 상단 [지문]을 등록하세요.';
+      msgEl.style.display = 'block';
+      return;
     }
 
     try {
@@ -783,11 +809,18 @@
       const assertion = await navigator.credentials.get({
         publicKey: { challenge, allowCredentials: [{ id: rawIdBuffer, type: 'public-key' }], userVerification: 'preferred', timeout: 60000 }
       });
-      if (assertion) unlock(savedName, `${savedName}@jeju.com`);
+      if (assertion) {
+        if (isBioAdmin) {
+          sessionStorage.setItem('jeju_admin_auth', 'true');
+          unlock(savedName, 'admin@jeju.com');
+        } else {
+          unlock(savedName, `${savedName}@jeju.com`);
+        }
+      }
     } catch (err) {
       if (err.name !== 'NotAllowedError') {
         localStorage.removeItem('jeju_bio_raw_id');
-        msgEl.innerText = '⚠️ 인증 정보가 만료되었습니다. 사번 로그인 후 [지문]을 다시 등록해 주세요.';
+        msgEl.innerText = '⚠️ 인증 정보가 만료되었습니다. 비밀번호로 로그인 후 [지문]을 다시 등록해 주세요.';
       } else {
         msgEl.innerText = '⚠️ 생체 인증이 취소되었습니다.';
       }
@@ -795,7 +828,8 @@
     }
   }
 
-  document.getElementById('btnBioLogin').addEventListener('click', (e) => { e.preventDefault(); loginBiometrics(); });
+  document.getElementById('btnBioLogin').addEventListener('click', (e) => { e.preventDefault(); loginBiometrics(false); });
+  document.getElementById('btnAdminBioLogin').addEventListener('click', (e) => { e.preventDefault(); loginBiometrics(true); });
   document.getElementById('btnRegisterBio').addEventListener('click', (e) => { e.preventDefault(); registerBiometrics(); });
 
   window.switchMajor = function(major) {
@@ -1111,7 +1145,6 @@
         } else if (targetMode === 'update') {
           const target = currentInstruments.find(i => i.id === activeTargetId);
           if (target) {
-            // 바로 수정 가능한 입력 팝업창 띄우기
             openOcrEditModal(target, parsed);
             if (hud) hud.innerText = '✅ 명판 추출 완료! 입력창에서 최종 검토 후 적용하세요.';
           }
@@ -1243,7 +1276,9 @@ Tag No: ${target.tag_no}
     const finalName = savedName || name;
     currentUserInfo = { name: finalName, email };
     document.getElementById('auth-overlay').style.display = 'none';
-    document.getElementById('loginUserBadge').innerText = `👤 ${finalName}`;
+    
+    const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
+    document.getElementById('loginUserBadge').innerText = isAdmin ? `👑 ${finalName}(관리자)` : `👤 ${finalName}`;
 
     await fetchManuals();
     fetchInstruments();
@@ -1652,7 +1687,6 @@ Tag No: ${target.tag_no}
     mainImg.style.display = img ? 'block' : 'none';
     if (img) mainImg.src = img;
 
-    // 설비 구분, 도면 층, 모델명, 측정범위 바로 위에 Tag-name을 명시적으로 추가
     document.getElementById('infoBody').innerHTML = `
       <div><b>Tag-name:</b> <span style="color:#38bdf8; font-weight:bold;">${item.tag_no || '-'}</span></div>
       <div><b>설비 구분:</b> <span style="color:#38bdf8; font-weight:bold;">${selectedMajor} ${item.unit || '2호기'}</span></div>
