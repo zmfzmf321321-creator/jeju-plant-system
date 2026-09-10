@@ -64,7 +64,6 @@
     .auth-status-error { color: #ef4444; font-size: 12px; margin-top: 10px; display: none; line-height: 1.4; }
     #admin-login-box, #register-box { display: none; }
 
-    /* 상단 헤더: 부드러운 네이티브 가로 스크롤(스와이프) 및 최적화된 버튼 간격/크기 */
     #header {
       position: fixed; top: 0; left: 0; width: 100vw; height: 52px;
       background: #1c2541; display: flex; align-items: center; justify-content: space-between;
@@ -487,7 +486,7 @@
   </div>
   
   <div id="apiKeySetupBox" style="display: none; background: #f1f5f9; padding: 10px; border-radius: 8px; margin-bottom: 10px;">
-    <div style="font-size: 11px; color: #475569; margin-bottom: 4px;">Google AI Studio Gemini API Key 입력:</div>
+    <div style="font-size: 11px; color: #475569; margin-bottom: 4px;">Supabase 공용 Gemini API Key 설정:</div>
     <div style="display: flex; gap: 4px;">
       <input type="password" id="geminiApiKeyInput" style="flex:1; padding:6px; border:1px solid #cbd5e1; border-radius:4px; font-size:11px;" placeholder="AIzaSy...">
       <button class="btn-save" style="padding:6px 10px; font-size:11px;" onclick="saveGeminiApiKey()">저장</button>
@@ -639,6 +638,7 @@
   let currentInstruments = [];
   let currentManuals = [];
   let currentUserInfo = { name: '', email: '' };
+  let cachedGeminiApiKey = '';
 
   let selectedMajor = '기력';
   let selectedSubTab = '2호기';
@@ -683,6 +683,63 @@
     '5.5층':   { c1: { x: 591, y: 174 }, c4: { x: 1044, y: 844 } },
     '6층':     { c1: { x: 554, y: 170 }, c4: { x: 993,  y: 822 } },
     '7층':     { c1: { x: 132, y: 242 }, c4: { x: 569,  y: 855 } }
+  };
+
+  /* --- Supabase 기반 공용 Gemini API Key 관리 --- */
+  async function getGeminiApiKey() {
+    if (cachedGeminiApiKey) return cachedGeminiApiKey;
+    try {
+      const { data, error } = await supabaseClient
+        .from('settings')
+        .select('value')
+        .eq('key', 'gemini_api_key')
+        .single();
+      if (data && data.value) {
+        cachedGeminiApiKey = data.value.trim();
+        return cachedGeminiApiKey;
+      }
+    } catch (err) {
+      console.error('Supabase API Key 로드 오류:', err);
+    }
+    // Fallback to localStorage
+    return (localStorage.getItem('jeju_gemini_api_key') || '').trim();
+  }
+
+  window.toggleApiKeyInput = function() {
+    if (sessionStorage.getItem('jeju_admin_auth') !== 'true') {
+      alert('⚠️ 최고관리자만 API 키를 설정할 수 있습니다.');
+      return;
+    }
+    const box = document.getElementById('apiKeySetupBox');
+    box.style.display = box.style.display === 'none' ? 'block' : 'none';
+    if (box.style.display === 'block') {
+      getGeminiApiKey().then(key => {
+        document.getElementById('geminiApiKeyInput').value = key;
+      });
+    }
+  };
+
+  window.saveGeminiApiKey = async function() {
+    if (sessionStorage.getItem('jeju_admin_auth') !== 'true') {
+      alert('⚠️ 최고관리자만 API 키를 저장할 수 있습니다.');
+      return;
+    }
+    const key = document.getElementById('geminiApiKeyInput').value.trim();
+    if (!key) { alert('API Key를 입력하세요.'); return; }
+
+    const { error } = await supabaseClient
+      .from('settings')
+      .upsert({ key: 'gemini_api_key', value: key });
+
+    if (error) {
+      alert('❌ Supabase 저장 실패: ' + error.message);
+      return;
+    }
+
+    cachedGeminiApiKey = key;
+    localStorage.setItem('jeju_gemini_api_key', key);
+    alert('✅ Supabase 공용 설정에 Gemini API Key가 안전하게 저장되었습니다.');
+    document.getElementById('apiKeySetupBox').style.display = 'none';
   };
 
   async function uploadImageToStorage(file) {
@@ -922,52 +979,25 @@
     }
   }
 
-  function getGeminiApiKey() {
-    return (localStorage.getItem('jeju_gemini_api_key') || '').trim();
-  }
-
-  window.toggleApiKeyInput = function() {
-    if (sessionStorage.getItem('jeju_admin_auth') !== 'true') {
-      alert('⚠️ 최고관리자만 API 키를 설정할 수 있습니다.');
-      return;
-    }
-    const box = document.getElementById('apiKeySetupBox');
-    box.style.display = box.style.display === 'none' ? 'block' : 'none';
-    if (box.style.display === 'block') {
-      document.getElementById('geminiApiKeyInput').value = getGeminiApiKey();
-    }
-  };
-
-  window.saveGeminiApiKey = function() {
-    if (sessionStorage.getItem('jeju_admin_auth') !== 'true') {
-      alert('⚠️ 최고관리자만 API 키를 저장할 수 있습니다.');
-      return;
-    }
-    const key = document.getElementById('geminiApiKeyInput').value.trim();
-    if (!key) { alert('API Key를 입력하세요.'); return; }
-    localStorage.setItem('jeju_gemini_api_key', key);
-    alert('✅ Gemini API Key가 저장되었습니다.');
-    document.getElementById('apiKeySetupBox').style.display = 'none';
-  };
-
   document.getElementById('btnOpenGemini').addEventListener('click', async () => {
     document.getElementById('gemini-modal').style.display = 'block';
     await fetchManuals();
     const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
-    if (isAdmin && !getGeminiApiKey()) {
-      document.getElementById('apiKeySetupBox').style.display = 'block';
+    if (isAdmin) {
+      const key = await getGeminiApiKey();
+      if (!key) document.getElementById('apiKeySetupBox').style.display = 'block';
     }
   });
 
   async function callGemini(userPrompt, extraContext = '') {
-    const apiKey = getGeminiApiKey();
+    const apiKey = await getGeminiApiKey();
     if (!apiKey) {
       const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
       if (isAdmin) {
-        appendAiMsg('bot', '⚠️ Gemini API 키가 설정되지 않았습니다. 우측 상단의 [⚙️ 키 설정] 버튼을 눌러 API 키를 입력해 주세요.');
+        appendAiMsg('bot', '⚠️ Supabase에 Gemini API 키가 설정되지 않았습니다. 우측 상단의 [⚙️ 키 설정] 버튼을 눌러 API 키를 입력해 주세요.');
         document.getElementById('apiKeySetupBox').style.display = 'block';
       } else {
-        appendAiMsg('bot', '⚠️ Gemini API 키가 아직 등록되지 않았습니다. 최고관리자에게 키 등록을 요청해 주세요.');
+        appendAiMsg('bot', '⚠️ 관리자에 의해 Supabase에 Gemini API 키가 등록되지 않았습니다. 관리자에게 문의하세요.');
       }
       return;
     }
