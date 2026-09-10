@@ -530,7 +530,7 @@
 
   <div style="display: flex; gap: 6px; margin-bottom: 10px;">
     <button class="major-tab-btn active" id="btnAiTabChat" onclick="switchAiTab('chat')">💬 실시간 대화</button>
-    <button class="major-tab-btn" id="btnAiTabHistory" onclick="switchAiTab('history')">💾 저장된 질의 기록</button>
+    <button class="major-tab-btn" id="btnAiTabHistory" onclick="switchAiTab('history')">💾 저장된 내 질의 기록</button>
   </div>
 
   <div id="aiChatView">
@@ -544,7 +544,7 @@
   </div>
 
   <div id="aiHistoryView" style="display: none;">
-    <div style="font-size: 11px; color: #64748b; margin-bottom: 6px;">Supabase에 영구 저장된 과거 질의응답 기록입니다.</div>
+    <div style="font-size: 11px; color: #64748b; margin-bottom: 6px;">Supabase에 영구 저장된 본인의 과거 질의응답 기록입니다.</div>
     <div class="ai-chat-box" id="aiSavedHistoryBox" style="height: 280px; overflow-y: auto;">
       <div style="color: #94a3b8; font-size: 12px; text-align: center; padding: 20px;">저장된 기록을 불러오는 중...</div>
     </div>
@@ -703,8 +703,8 @@
 <div id="history-modal">
   <h3 id="histModalTitle">📋 정비/점검 이력 관리</h3>
   <div style="font-size: 13px; color: #0284c7; font-weight: bold; margin-bottom: 12px;" id="histTargetTag"></div>
-  <div class="form-group"><label>작업일자</label><input type="date" id="histDate"></div>
   <div class="form-group"><label>작업자 성명</label><input type="text" id="histAuthor" placeholder="홍길동"></div>
+  <div class="form-group"><label>작업일자</label><input type="date" id="histDate"></div>
   <div class="form-group"><label>점검 내용</label><textarea id="histContent" rows="3" placeholder="점검 및 조치 내역 입력"></textarea></div>
   <div class="form-group">
     <label>점검/조치 현장 사진</label>
@@ -1015,19 +1015,23 @@
     }
   };
 
+  // [수정됨] 현재 로그인한 작업자의 기록만 필터링하여 불러오기
   async function loadSavedAiHistory() {
     const box = document.getElementById('aiSavedHistoryBox');
     box.innerHTML = '<div style="color: #94a3b8; font-size: 12px; text-align: center; padding: 20px;">불러오는 중...</div>';
     
+    const workerName = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자';
+
     const { data, error } = await supabaseClient
       .from('ai_chat_history')
       .select('*')
+      .eq('user_name', workerName) // 본인 이름의 기록만 조회
       .order('created_at', { ascending: false })
       .limit(50);
 
     if (error || !data || data.length === 0) {
       box.innerHTML = `<div style="color: #64748b; font-size: 12px; text-align: center; padding: 20px;">
-        저장된 질의 기록이 없거나 Supabase에 <code style="color:#0284c7">ai_chat_history</code> 테이블이 없습니다.<br>
+        저장된 본인의 질의 기록이 없습니다.<br>
         (질문 및 답변은 자동으로 저장됩니다)
       </div>`;
       return;
@@ -1051,12 +1055,11 @@
     await fetchManuals();
   });
 
-  // [수정됨] 텍스트 질문 시 기기 사진이 자동으로 첨부되지 않도록 자동 탐색 로직 제거
   async function callGemini(userPrompt, extraContext = '', targetPhotos = []) {
     appendAiMsg('user', userPrompt); 
     appendAiMsg('bot', '⏳ Supabase 보안 서버를 통해 데이터를 분석 중...');
     
-    let photosToSend = [...targetPhotos]; // 명시적으로 전달된 사진만 사용 (자동 매칭 안 함)
+    let photosToSend = [...targetPhotos];
 
     try {
       const { data, error } = await supabaseClient.functions.invoke('gemini-chat', { body: { prompt: userPrompt, extraContext, photosToSend, mode: 'chat' } });
