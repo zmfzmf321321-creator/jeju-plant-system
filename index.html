@@ -525,6 +525,7 @@
 <div id="gemini-modal">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
     <h3>🤖 제미나이 정비 AI 도우미</h3>
+    <button class="major-tab-btn" style="background:#10b981; border-color:#34d399; color:#fff; max-width:110px; height:26px; font-size:11px;" onclick="startNewChat()">➕ 새 대화하기</button>
   </div>
 
   <div style="display: flex; gap: 6px; margin-bottom: 10px;">
@@ -745,6 +746,9 @@
   
   let isMeasureMode = false;
   let measurePoints = [];
+
+  // 대화 세션 관리 ID
+  let currentChatSessionId = 'session_' + Date.now();
 
   let pendingInstPhotoFile = null;
   let pendingInitHistPhotoFile = null;
@@ -986,6 +990,13 @@
 
   async function fetchManuals() { const { data } = await supabaseClient.from('manuals').select('*'); currentManuals = data || []; }
 
+  // 새 대화하기 기능
+  window.startNewChat = function() {
+    currentChatSessionId = 'session_' + Date.now();
+    const chatBox = document.getElementById('aiChatBox');
+    chatBox.innerHTML = `<div class="ai-msg ai-msg-bot">새로운 대화가 시작되었습니다. 무엇을 도와드릴까요?</div>`;
+  };
+
   window.switchAiTab = async function(tab) {
     const chatView = document.getElementById('aiChatView');
     const historyView = document.getElementById('aiHistoryView');
@@ -1027,7 +1038,7 @@
     box.innerHTML = data.map(item => `
       <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; margin-bottom: 6px; font-size: 12px;">
         <div style="display: flex; justify-content: space-between; color: #64748b; font-size: 10px; margin-bottom: 4px;">
-          <span>👤 ${item.user_name || '작업자'}</span>
+          <span>👤 ${item.user_name || '작업자'} (세션: ${item.session_id ? item.session_id.slice(-6) : '기본'})</span>
           <span>${item.created_at ? item.created_at.slice(0, 16).replace('T', ' ') : ''}</span>
         </div>
         <div style="color: #0284c7; font-weight: bold; margin-bottom: 2px;">Q: ${item.prompt}</div>
@@ -1068,6 +1079,7 @@
         const workerName = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자';
         await supabaseClient.from('ai_chat_history').insert([{
           user_name: workerName,
+          session_id: currentChatSessionId,
           prompt: userPrompt,
           response: reply,
           created_at: new Date().toISOString()
@@ -1263,7 +1275,6 @@
     const savedName = localStorage.getItem('jeju_worker_name'); const finalName = savedName || name;
     currentUserInfo = { name: finalName, email }; 
     
-    // 로그인 박스를 DOM에서 완전히 제거하여 크롬 비밀번호 자동완성 오탐지 방지
     const authOverlay = document.getElementById('auth-overlay');
     if (authOverlay) authOverlay.remove();
 
@@ -1803,7 +1814,7 @@
     document.getElementById('btnAddHistBtn').onclick = () => {
       editingHistoryIndex = null;
       document.getElementById('info-modal').style.display = 'none';
-      document.getElementById('histModalTitle').innerText = '📋 새 점검/정비 이력 추가';
+      document.getElementById('histModalTitle').innerText = '📋 새 새 점검/정비 이력 추가';
       document.getElementById('histTargetTag').innerText = `[${item.tag_no}] ${item.name}`;
       document.getElementById('histDate').value = new Date().toISOString().slice(0, 10);
       document.getElementById('histAuthor').value = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '';
