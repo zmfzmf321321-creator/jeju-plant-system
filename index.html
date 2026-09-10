@@ -485,15 +485,15 @@
 
   <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px;">
     <button class="btn-ai-quick" onclick="askAiQuick('현재 등록된 기력/내연 계측기 통계와 상태를 요약해줘.')">📊 전체 현황 분석</button>
-    <button class="btn-ai-quick" onclick="askAiQuick('최근 점검 이력 중 특별히 주의해야 할 결함이 있는지 점검해줘.')">🔍 최근 결함 점검</button>
+    <button class="btn-ai-quick" onclick="askAiQuick('등록된 매뉴얼에 기반하여 주요 설비 점검 수칙을 요약해줘.')">📖 매뉴얼 점검 수칙</button>
   </div>
 
   <div class="ai-chat-box" id="aiChatBox">
-    <div class="ai-msg ai-msg-bot">안녕하세요! 발전제어설비 AI 어시스턴트입니다. 등록된 계측기 제원 및 점검 기록을 바탕으로 분석해 드립니다.</div>
+    <div class="ai-msg ai-msg-bot">안녕하세요! 발전제어설비 AI 어시스턴트입니다. Supabase 데이터 및 스토리지 매뉴얼을 기반으로 분석합니다.</div>
   </div>
 
   <div class="ai-input-wrap">
-    <input type="text" id="aiUserInput" placeholder="질문을 입력하세요 (예: 20-PT-101 점검 권고사항)">
+    <input type="text" id="aiUserInput" placeholder="질문을 입력하세요 (예: 20-PT-101 정비 매뉴얼 지침)">
     <button class="btn-ai-send" id="btnSendAi">전송</button>
   </div>
 
@@ -579,7 +579,7 @@
   </div>
   <div id="infoBody" style="font-size: 13px; line-height: 1.5;"></div>
   
-  <button class="btn-ai-detail-ask" id="btnAiAnalyzeThis">🤖 이 기기 점검이력 AI 분석 및 정비 권고 받기</button>
+  <button class="btn-ai-detail-ask" id="btnAiAnalyzeThis">🤖 이 기기 점검이력 및 매뉴얼 AI 분석 받기</button>
 
   <div class="history-section">
     <div class="history-title">📋 정비/점검 이력 관리</div>
@@ -626,6 +626,7 @@
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   let currentInstruments = [];
+  let currentManuals = [];
   let currentUserInfo = { name: '', email: '' };
 
   let selectedMajor = '기력';
@@ -637,9 +638,10 @@
   let clickedFloorCoord = { x: 0, y: 0 };
   let isMeasureMode = false;
   
-  let currentInstPhotoBase64 = '';
-  let initHistPhotoBase64 = '';
-  let currentHistPhotoBase64 = '';
+  // 파일 객체 자체를 임시 보관하는 변수 (Storage 업로드용)
+  let pendingInstPhotoFile = null;
+  let pendingInitHistPhotoFile = null;
+  let pendingHistPhotoFile = null;
 
   let scale = 0.65;
   let panX = 0, panY = 0;
@@ -672,6 +674,36 @@
     '6층':     { c1: { x: 554, y: 170 }, c4: { x: 993,  y: 822 } },
     '7층':     { c1: { x: 132, y: 242 }, c4: { x: 569,  y: 855 } }
   };
+
+  /* --- Supabase Storage 파일 업로드 핵심 함수 --- */
+  async function uploadImageToStorage(file) {
+    if (!file) return null;
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}_${Math.random().toString(36.substring(2, 9))}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { data, error } = await supabaseClient.storage
+        .from('inst-photos')
+        .upload(filePath, file);
+
+      if (error) {
+        console.error('Storage 업로드 오류:', error);
+        alert('⚠️ 이미지 스토리지 업로드 실패: ' + error.message);
+        return null;
+      }
+
+      // 업로드된 파일의 공개 URL 획득
+      const { data: publicURLData } = supabaseClient.storage
+        .from('inst-photos')
+        .getPublicUrl(filePath);
+
+      return publicURLData.publicUrl;
+    } catch (err) {
+      console.error('이미지 업로드 예외:', err);
+      return null;
+    }
+  }
 
   /* --- WebAuthn 생체인식 --- */
   function uint8ArrayToBase64(uint8Array) {
@@ -866,9 +898,19 @@
     });
   };
 
-  /* --- Gemini API 연동 모듈 (gemini-3.6-flash 및 웹페이지 데이터 한정 통제) --- */
+  /* --- Supabase 매뉴얼 데이터 가져오기 --- */
+  async function fetchManuals() {
+    const { data, error } = await supabaseClient.from('manuals').select('*');
+    if (!error && data) {
+      currentManuals = data;
+    } else {
+      currentManuals = [];
+    }
+  }
+
+  /* --- Gemini API 연동 모듈 --- */
   function getGeminiApiKey() {
-    return localStorage.getItem('jeju_gemini_api_key') || '';
+    return (localStorage.getItem('jeju_gemini_api_key') || '').trim();
   }
 
   window.toggleApiKeyInput = function() {
@@ -895,8 +937,9 @@
     document.getElementById('apiKeySetupBox').style.display = 'none';
   };
 
-  document.getElementById('btnOpenGemini').addEventListener('click', () => {
+  document.getElementById('btnOpenGemini').addEventListener('click', async () => {
     document.getElementById('gemini-modal').style.display = 'block';
+    await fetchManuals();
     const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
     if (isAdmin && !getGeminiApiKey()) {
       document.getElementById('apiKeySetupBox').style.display = 'block';
@@ -916,7 +959,6 @@
       return;
     }
 
-    // 웹페이지에 등록된 모든 실제 데이터 추출
     const plantSummary = currentInstruments.map(i => ({
       tag: i.tag_no,
       name: i.name,
@@ -930,27 +972,37 @@
       }))
     }));
 
-    // 웹페이지 자료 한정 엄격 제약 지침 (Grounding System Instruction)
-    const systemInstruction = `당신은 제주 발전본부 보일러 및 계측제어 설비 데이터 분석 전문가입니다.
+    const manualSummary = currentManuals.map(m => ({
+      title: m.title,
+      category: m.category,
+      content: m.content
+    }));
+
+    const systemInstruction = `당신은 제주 발전본부 보일러 및 계측제어 설비 데이터 및 정비 매뉴얼 분석 전문가입니다.
 [매우 중요한 절대 규칙]:
-1. 반드시 아래 제공된 [등록 설비 데이터베이스]에 포함된 사실과 수치만을 바탕으로 질문에 답변하고 계산하세요.
-2. 데이터베이스에 존재하지 않는 계측기나 없는 사실은 절대로 지어내거나 일반적인 외부 지식으로 추측하지 마세요.
-3. 데이터베이스에 없는 정보를 질문받으면 "현재 웹페이지에 등록된 데이터베이스에서는 확인할 수 없습니다."라고만 답변하세요.
-4. 계측기 수량 계산, 층별 통계, 날짜 계산은 오직 아래 데이터의 수치를 근거로만 계산하세요.
+1. 반드시 아래 제공된 [등록 설비 데이터베이스]와 [정비 매뉴얼]에 포함된 내용만을 바탕으로 질문에 답변하고 분석하세요.
+2. 데이터베이스나 매뉴얼에 존재하지 않는 사실은 절대로 지어내거나 일반적인 외부 지식으로 추측하지 마세요.
+3. 등록된 데이터나 매뉴얼에 없는 내용을 질문받으면 "현재 Supabase에 등록된 데이터베이스 및 매뉴얼에서는 확인할 수 없습니다."라고만 답변하세요.
+4. 매뉴얼의 정비 지침과 계측기 이력을 교차 검증하여 구체적인 조치 방안을 제시하세요.
 
 [등록 설비 데이터베이스]:
 ${JSON.stringify(plantSummary)}
 
+[Supabase 등록 정비 매뉴얼]:
+${JSON.stringify(manualSummary)}
+
 ${extraContext ? '[특정 계측기 상세 정보]:\n' + extraContext : ''}`;
 
     appendAiMsg('user', userPrompt);
-    appendAiMsg('bot', '⏳ 등록 설비 데이터 분석 중...');
+    appendAiMsg('bot', '⏳ Supabase 설비 및 매뉴얼 데이터 분석 중...');
 
     try {
-      // 공식 구글 API 권장 최신 정식 모델 gemini-3.6-flash 호출
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${encodeURIComponent(apiKey)}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey
+        },
         body: JSON.stringify({
           contents: [
             {
@@ -959,7 +1011,7 @@ ${extraContext ? '[특정 계측기 상세 정보]:\n' + extraContext : ''}`;
             }
           ],
           generationConfig: {
-            temperature: 0.0, // 창의성 배제, 엄격한 팩트 및 수치 계산 고정
+            temperature: 0.0,
             maxOutputTokens: 1200
           }
         })
@@ -973,9 +1025,9 @@ ${extraContext ? '[특정 계측기 상세 정보]:\n' + extraContext : ''}`;
         if (lastMsg && lastMsg.innerText.includes('⏳')) lastMsg.innerText = reply;
         else appendAiMsg('bot', reply);
       } else {
-        const errMsg = data.error ? data.error.message : 'API 응답 오류';
+        const errMsg = data.error ? `${data.error.message} (코드: ${data.error.code})` : 'API 응답 오류';
         if (lastMsg && lastMsg.innerText.includes('⏳')) {
-          lastMsg.innerText = `❌ 오류: ${errMsg}\n\n(구글 AI Studio에서 API 키가 활성화되어 있는지 확인해 주세요.)`;
+          lastMsg.innerText = `❌ 오류: ${errMsg}\n\n(API 키 상태 및 설정을 확인해 주세요.)`;
         }
       }
     } catch (err) {
@@ -1011,11 +1063,12 @@ ${extraContext ? '[특정 계측기 상세 정보]:\n' + extraContext : ''}`;
     callGemini(promptText);
   };
 
-  document.getElementById('btnAiAnalyzeThis').addEventListener('click', () => {
+  document.getElementById('btnAiAnalyzeThis').addEventListener('click', async () => {
     const target = currentInstruments.find(i => i.id === activeTargetId);
     if (!target) return;
     document.getElementById('info-modal').style.display = 'none';
     document.getElementById('gemini-modal').style.display = 'block';
+    await fetchManuals();
 
     const targetContext = `
 Tag No: ${target.tag_no}
@@ -1025,77 +1078,66 @@ Tag No: ${target.tag_no}
 측정범위: ${target.signal_range}
 등록된 과거 점검이력: ${JSON.stringify(target.history_logs || [])}
 `;
-    callGemini(`이 계측기(${target.tag_no} ${target.name})에 대해 등록된 과거 점검 이력을 요약 분석하고, 과거에 발생했던 이상 증상에 기반한 주의사항을 알려줘.`, targetContext);
+    callGemini(`이 계측기(${target.tag_no} ${target.name})의 점검 이력과 Supabase에 등록된 [정비 매뉴얼] 내용을 대조하여, 올바른 정비 지침과 조치 방안을 안내해줘.`, targetContext);
   });
 
-  /* --- 기본 뷰어 및 이미지 압축 --- */
-  function compressImage(file, callback) {
+  /* --- 파일 선택 및 미리보기 핸들러 (Storage 연동 대상) --- */
+  function previewImageFile(file, previewElementId) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = function(e) {
-      const img = new Image();
-      img.onload = function() {
-        const canvas = document.createElement('canvas');
-        const MAX_SIZE = 300; 
-        let width = img.width; let height = img.height;
-        if (width > height && width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
-        else if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
-        canvas.width = width; canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-        callback(canvas.toDataURL('image/jpeg', 0.65));
-      };
-      img.src = e.target.result;
+      const preview = document.getElementById(previewElementId);
+      preview.src = e.target.result;
+      preview.style.display = 'block';
     };
     reader.readAsDataURL(file);
   }
 
-  function handleInstPhoto(file) {
-    compressImage(file, (base64) => {
-      currentInstPhotoBase64 = base64;
-      const preview = document.getElementById('photoPreview');
-      preview.src = base64; preview.style.display = 'block';
-    });
-  }
-  document.getElementById('instPhotoCam').addEventListener('change', (e) => handleInstPhoto(e.target.files[0]));
-  document.getElementById('instPhotoGallery').addEventListener('change', (e) => handleInstPhoto(e.target.files[0]));
+  document.getElementById('instPhotoCam').addEventListener('change', (e) => {
+    pendingInstPhotoFile = e.target.files[0];
+    previewImageFile(pendingInstPhotoFile, 'photoPreview');
+  });
+  document.getElementById('instPhotoGallery').addEventListener('change', (e) => {
+    pendingInstPhotoFile = e.target.files[0];
+    previewImageFile(pendingInstPhotoFile, 'photoPreview');
+  });
 
-  function handleInitHistPhoto(file) {
-    compressImage(file, (base64) => {
-      initHistPhotoBase64 = base64;
-      const preview = document.getElementById('initHistPreview');
-      preview.src = base64; preview.style.display = 'block';
-    });
-  }
-  document.getElementById('initHistPhotoCam').addEventListener('change', (e) => handleInitHistPhoto(e.target.files[0]));
-  document.getElementById('initHistPhotoGallery').addEventListener('change', (e) => handleInitHistPhoto(e.target.files[0]));
+  document.getElementById('initHistPhotoCam').addEventListener('change', (e) => {
+    pendingInitHistPhotoFile = e.target.files[0];
+    previewImageFile(pendingInitHistPhotoFile, 'initHistPreview');
+  });
+  document.getElementById('initHistPhotoGallery').addEventListener('change', (e) => {
+    pendingInitHistPhotoFile = e.target.files[0];
+    previewImageFile(pendingInitHistPhotoFile, 'initHistPreview');
+  });
 
-  function handleHistPhoto(file) {
-    compressImage(file, (base64) => {
-      currentHistPhotoBase64 = base64;
-      const preview = document.getElementById('histPhotoPreview');
-      preview.src = base64; preview.style.display = 'block';
-    });
-  }
-  document.getElementById('histPhotoCam').addEventListener('change', (e) => handleHistPhoto(e.target.files[0]));
-  document.getElementById('histPhotoGallery').addEventListener('change', (e) => handleHistPhoto(e.target.files[0]));
+  document.getElementById('histPhotoCam').addEventListener('change', (e) => {
+    pendingHistPhotoFile = e.target.files[0];
+    previewImageFile(pendingHistPhotoFile, 'histPhotoPreview');
+  });
+  document.getElementById('histPhotoGallery').addEventListener('change', (e) => {
+    pendingHistPhotoFile = e.target.files[0];
+    previewImageFile(pendingHistPhotoFile, 'histPhotoPreview');
+  });
 
-  function handleUpdateMainPhoto(file) {
-    compressImage(file, async (base64) => {
-      const target = currentInstruments.find(i => i.id === activeTargetId);
-      if (!target) return;
-      target.photo_url = base64; target.image_data = base64;
-      document.getElementById('infoMainImg').src = base64;
-      document.getElementById('infoMainImg').style.display = 'block';
-      await supabaseClient.from('instruments').update({ photo_url: base64, image_data: base64 }).eq('id', activeTargetId);
-      renderFloorPins(); render3DHotspots();
-      alert('✅ 기기 대표 사진이 업데이트되었습니다.');
-    });
+  async function handleUpdateMainPhoto(file) {
+    if (!file) return;
+    const uploadedUrl = await uploadImageToStorage(file);
+    if (!uploadedUrl) return;
+
+    const target = currentInstruments.find(i => i.id === activeTargetId);
+    if (!target) return;
+    target.photo_url = uploadedUrl; target.image_data = uploadedUrl;
+    document.getElementById('infoMainImg').src = uploadedUrl;
+    document.getElementById('infoMainImg').style.display = 'block';
+    await supabaseClient.from('instruments').update({ photo_url: uploadedUrl, image_data: uploadedUrl }).eq('id', activeTargetId);
+    renderFloorPins(); render3DHotspots();
+    alert('✅ 기기 대표 사진이 스토리지에 업로드되고 업데이트되었습니다.');
   }
   document.getElementById('updateMainPhotoCam').addEventListener('change', (e) => handleUpdateMainPhoto(e.target.files[0]));
   document.getElementById('updateMainPhotoGallery').addEventListener('change', (e) => handleUpdateMainPhoto(e.target.files[0]));
 
-  function unlock(name, email = 'user@jeju.com') {
+  async function unlock(name, email = 'user@jeju.com') {
     const savedName = localStorage.getItem('jeju_worker_name');
     const finalName = savedName || name;
     currentUserInfo = { name: finalName, email };
@@ -1106,6 +1148,7 @@ Tag No: ${target.tag_no}
     const keyBtn = document.getElementById('btnGeminiKeySetting');
     if (keyBtn) keyBtn.style.display = isAdmin ? 'inline-block' : 'none';
 
+    await fetchManuals();
     fetchInstruments();
   }
 
@@ -1305,10 +1348,10 @@ Tag No: ${target.tag_no}
     clickedFloorCoord = { x: curX, y: curY };
     document.getElementById('tagNo').value = ''; document.getElementById('name').value = '';
     document.getElementById('model').value = ''; document.getElementById('range').value = '';
-    currentInstPhotoBase64 = '';
+    pendingInstPhotoFile = null;
     document.getElementById('instPhotoCam').value = ''; document.getElementById('instPhotoGallery').value = '';
     document.getElementById('photoPreview').style.display = 'none';
-    initHistPhotoBase64 = '';
+    pendingInitHistPhotoFile = null;
     document.getElementById('initHistPhotoCam').value = ''; document.getElementById('initHistPhotoGallery').value = '';
     document.getElementById('initHistPreview').style.display = 'none';
     document.getElementById('initHistAuthor').value = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '';
@@ -1323,11 +1366,17 @@ Tag No: ${target.tag_no}
     const name = document.getElementById('name').value.trim();
     if (!tag || !name) { alert('Tag No와 기기명을 입력하세요.'); return; }
 
+    alert('⏳ 스토리지에 사진 업로드 및 데이터 저장 중...');
+
+    // Storage에 파일 업로드 후 공개 URL 획득
+    const instPhotoUrl = await uploadImageToStorage(pendingInstPhotoFile);
+    const initHistPhotoUrl = await uploadImageToStorage(pendingInitHistPhotoFile);
+
     const initialLogs = [];
     const initContent = document.getElementById('initHistContent').value.trim();
     const initAuthor = document.getElementById('initHistAuthor').value.trim() || currentUserInfo.name || '관리자';
     if (initContent) {
-      initialLogs.push({ date: new Date().toISOString().slice(0, 10), author: initAuthor, content: initContent, photo: initHistPhotoBase64 || null });
+      initialLogs.push({ date: new Date().toISOString().slice(0, 10), author: initAuthor, content: initContent, photo: initHistPhotoUrl });
       localStorage.setItem('jeju_worker_name', initAuthor);
       currentUserInfo.name = initAuthor;
       document.getElementById('loginUserBadge').innerText = `👤 ${initAuthor}`;
@@ -1340,7 +1389,7 @@ Tag No: ${target.tag_no}
       coord_x: clickedFloorCoord.x, coord_y: clickedFloorCoord.y,
       x_coord: clickedFloorCoord.x, y_coord: clickedFloorCoord.y,
       model_position: '0 0 0', history_logs: initialLogs,
-      photo_url: currentInstPhotoBase64 || null, image_data: currentInstPhotoBase64 || null
+      photo_url: instPhotoUrl, image_data: instPhotoUrl
     };
 
     let { error } = await supabaseClient.from('instruments').insert([insertData]);
@@ -1504,7 +1553,7 @@ Tag No: ${target.tag_no}
       document.getElementById('histDate').value = new Date().toISOString().slice(0, 10);
       document.getElementById('histAuthor').value = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '';
       document.getElementById('histContent').value = '';
-      currentHistPhotoBase64 = '';
+      pendingHistPhotoFile = null;
       document.getElementById('histPhotoCam').value = ''; document.getElementById('histPhotoGallery').value = '';
       document.getElementById('histPhotoPreview').style.display = 'none';
       document.getElementById('history-modal').style.display = 'block';
@@ -1555,10 +1604,10 @@ Tag No: ${target.tag_no}
     document.getElementById('histDate').value = h.date || new Date().toISOString().slice(0, 10);
     document.getElementById('histAuthor').value = h.author || '';
     document.getElementById('histContent').value = h.content || '';
-    currentHistPhotoBase64 = h.photo || '';
+    pendingHistPhotoFile = null;
     const preview = document.getElementById('histPhotoPreview');
-    preview.style.display = currentHistPhotoBase64 ? 'block' : 'none';
-    if (currentHistPhotoBase64) preview.src = currentHistPhotoBase64;
+    preview.style.display = h.photo ? 'block' : 'none';
+    if (h.photo) preview.src = h.photo;
     document.getElementById('histPhotoCam').value = ''; document.getElementById('histPhotoGallery').value = '';
     document.getElementById('history-modal').style.display = 'block';
   };
@@ -1577,6 +1626,9 @@ Tag No: ${target.tag_no}
     const workerName = document.getElementById('histAuthor').value.trim();
     if (!workerName || !text) { alert('작업자와 내용을 입력하세요.'); return; }
 
+    alert('⏳ 스토리지에 사진 업로드 및 이력 저장 중...');
+    const histPhotoUrl = await uploadImageToStorage(pendingHistPhotoFile);
+
     localStorage.setItem('jeju_worker_name', workerName);
     currentUserInfo.name = workerName;
     document.getElementById('loginUserBadge').innerText = `👤 ${workerName}`;
@@ -1584,7 +1636,14 @@ Tag No: ${target.tag_no}
     const target = currentInstruments.find(i => i.id === activeTargetId);
     if (!target) return;
     const logs = Array.isArray(target.history_logs) ? [...target.history_logs] : [];
-    const entryData = { date: document.getElementById('histDate').value, author: workerName, content: text, photo: currentHistPhotoBase64 || null };
+    
+    // 기존 사진 주소 유지 처리 (수정 시 새 사진을 안 올렸으면 기존 사진 주소 유지)
+    let finalPhotoUrl = histPhotoUrl;
+    if (!finalPhotoUrl && editingHistoryIndex !== null && logs[editingHistoryIndex]) {
+      finalPhotoUrl = logs[editingHistoryIndex].photo;
+    }
+
+    const entryData = { date: document.getElementById('histDate').value, author: workerName, content: text, photo: finalPhotoUrl };
 
     if (editingHistoryIndex !== null) logs[editingHistoryIndex] = entryData;
     else logs.unshift(entryData);
