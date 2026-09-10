@@ -839,7 +839,7 @@
     }
   }
 
-  /* --- 관리이력 통합 렌더링 함수 (대분류에 속한 모든 호기의 이력 표시) --- */
+  /* --- 관리이력 통합 렌더링 함수 (해당 대분류의 모든 호기 데이터를 누락 없이 수집) --- */
   window.renderHistoryTable = function() {
     const tbody = document.getElementById('historyTableBody');
     const filterText = (document.getElementById('tableFilterInput').value || '').trim().toLowerCase();
@@ -847,13 +847,19 @@
 
     let allLogs = [];
     currentInstruments.forEach(inst => {
-      let category = inst.major_category || (typeof inst.unit === 'string' && inst.unit.includes('내연') ? '내연' : '기력');
-      if (category !== selectedMajor) return; // 선택된 대분류(기력 또는 내연)에 해당하는 기기만 추출
+      // 데이터베이스에 저장된 major_category 또는 unit 문자열을 바탕으로 대분류 판별
+      let dbMajor = inst.major_category;
+      if (!dbMajor) {
+        dbMajor = (typeof inst.unit === 'string' && inst.unit.includes('내연')) ? '내연' : '기력';
+      }
+
+      // 현재 선택된 대분류(기력 또는 내연)와 일치하는 기기만 허용
+      if (dbMajor !== selectedMajor) return;
 
       const logs = Array.isArray(inst.history_logs) ? inst.history_logs : [];
       logs.forEach(log => {
         allLogs.push({
-          category: `${category} ${inst.unit || ''}`.trim(), // 예: 기력 2호기, 기력 3호기, 내연 1호기 등 표시
+          category: `${dbMajor} ${inst.unit || ''}`.trim(),
           date: log.date || '-',
           tag_no: inst.tag_no || '-',
           name: inst.name || '-',
