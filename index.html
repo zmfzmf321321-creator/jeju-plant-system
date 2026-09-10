@@ -705,7 +705,7 @@
     }
   }
 
-  /* --- 안정화된 WebAuthn 생체인식 --- */
+  /* --- 완전 안정화된 WebAuthn 생체인식 --- */
   function uint8ArrayToBase64(uint8Array) {
     let binary = '';
     for (let i = 0; i < uint8Array.length; i++) binary += String.fromCharCode(uint8Array[i]);
@@ -747,13 +747,13 @@
   }
 
   async function loginBiometrics() {
-    const rawIdBase64 = localStorage.getItem('jeju_bio_raw_id') || localStorage.getItem('jeju_bio_credential_id');
+    const rawIdBase64 = localStorage.getItem('jeju_bio_raw_id');
     const savedName = localStorage.getItem('jeju_bio_user_name') || '작업자';
     const msgEl = document.getElementById('bioLoginMsg');
     msgEl.style.display = 'none';
 
     if (!rawIdBase64) {
-      msgEl.innerText = '⚠️ 저장된 생체정보가 없습니다. 먼저 사번 로그인 후 우측 상단 [지문]을 등록하세요.';
+      msgEl.innerText = '⚠️ 저장된 생체정보가 없습니다. 사번 로그인 후 우측 상단 [지문]을 등록하세요.';
       msgEl.style.display = 'block'; return;
     }
 
@@ -765,7 +765,13 @@
       });
       if (assertion) unlock(savedName, `${savedName}@jeju.com`);
     } catch (err) {
-      if (err.name !== 'NotAllowedError') msgEl.innerText = '⚠️ 생체 인증 실패. 사번으로 로그인하세요.';
+      if (err.name !== 'NotAllowedError') {
+        // 브라우저 갱신 등으로 기존 토큰이 유효하지 않을 경우 자동 초기화 후 안내
+        localStorage.removeItem('jeju_bio_raw_id');
+        msgEl.innerText = '⚠️ 인증 정보가 만료되었거나 초기화되었습니다. 사번 로그인 후 [지문]을 다시 등록해 주세요.';
+      } else {
+        msgEl.innerText = '⚠️ 생체 인증이 취소되었습니다.';
+      }
       msgEl.style.display = 'block';
     }
   }
@@ -818,7 +824,7 @@
     if (sub.includes('관리이력')) {
       floorBar.style.display = 'none';
       viewHist.style.display = 'block';
-      const targetUnit = sub.includes('2호기') ? '2호기' : (sub.includes('3호기') ? '3호기' : '1호기');
+      const targetUnit = sub.includes('3호기') ? '3호기' : (sub.includes('2호기') ? '2호기' : '1호기');
       document.getElementById('historyTableTitle').innerText = `📋 [${selectedMajor} ${targetUnit}] 점검 및 관리이력`;
       renderHistoryTable();
     } else if (selectedMajor === '기력') {
@@ -850,7 +856,6 @@
     const filterText = (document.getElementById('tableFilterInput').value || '').trim().toLowerCase();
     tbody.innerHTML = '';
 
-    // 현재 선택된 관리이력 탭에 해당하는 호기 문자열 추출 (예: '2호기', '3호기', '1호기')
     const targetUnit = selectedSubTab.includes('3호기') ? '3호기' : (selectedSubTab.includes('2호기') ? '2호기' : '1호기');
 
     let allLogs = [];
@@ -860,7 +865,6 @@
         dbMajor = (typeof inst.unit === 'string' && inst.unit.includes('내연')) ? '내연' : '기력';
       }
 
-      // 대분류(기력/내연) 및 정확한 호기(unit)가 일치하는 기기만 필터링
       if (dbMajor !== selectedMajor || inst.unit !== targetUnit) return;
 
       const logs = Array.isArray(inst.history_logs) ? inst.history_logs : [];
@@ -1729,7 +1733,7 @@ Tag No: ${target.tag_no}
   };
 
   if (sessionStorage.getItem('jeju_admin_auth') === 'true') {
-    unlock(localStorage.getItem('jeju_worker_name'] || '관리자', 'admin@jeju.com');
+    unlock(localStorage.getItem('jeju_worker_name') || '관리자', 'admin@jeju.com');
   }
 </script>
 </body>
