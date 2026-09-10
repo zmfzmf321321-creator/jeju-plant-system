@@ -527,24 +527,21 @@
     <h3>🤖 제미나이 정비 AI 도우미</h3>
   </div>
 
-  <!-- 대화 / 저장된 기록 탭 전환 버튼 -->
   <div style="display: flex; gap: 6px; margin-bottom: 10px;">
     <button class="major-tab-btn active" id="btnAiTabChat" onclick="switchAiTab('chat')">💬 실시간 대화</button>
     <button class="major-tab-btn" id="btnAiTabHistory" onclick="switchAiTab('history')">💾 저장된 질의 기록</button>
   </div>
 
-  <!-- 실시간 대화 뷰 -->
   <div id="aiChatView">
     <div class="ai-chat-box" id="aiChatBox">
       <div class="ai-msg ai-msg-bot">안녕하세요! 발전제어설비 AI 어시스턴트입니다. 현장 데이터, 정비 매뉴얼 및 현장 사진을 분석하며 질문 내용은 자동으로 기록됩니다.</div>
     </div>
     <div class="ai-input-wrap">
-      <input type="text" id="aiUserInput" placeholder="질문을 입력하세요 (예: 테스트3에 등록된 사진 분석해줘)" autocomplete="off">
+      <input type="text" id="aiUserInput" placeholder="질문을 입력하세요 (예: 테스트3에 등록된 사진 분석해줘)" autocomplete="off" readonly onfocus="this.removeAttribute('readonly');">
       <button class="btn-ai-send" id="btnSendAi">전송</button>
     </div>
   </div>
 
-  <!-- 저장된 질의 기록 뷰 -->
   <div id="aiHistoryView" style="display: none;">
     <div style="font-size: 11px; color: #64748b; margin-bottom: 6px;">Supabase에 영구 저장된 과거 질의응답 기록입니다.</div>
     <div class="ai-chat-box" id="aiSavedHistoryBox" style="height: 280px; overflow-y: auto;">
@@ -989,7 +986,6 @@
 
   async function fetchManuals() { const { data } = await supabaseClient.from('manuals').select('*'); currentManuals = data || []; }
 
-  // AI 탭 전환 함수
   window.switchAiTab = async function(tab) {
     const chatView = document.getElementById('aiChatView');
     const historyView = document.getElementById('aiHistoryView');
@@ -1069,7 +1065,6 @@
         const reply = data.candidates[0].content.parts[0].text;
         if (lastMsg && lastMsg.innerText.includes('⏳')) lastMsg.innerText = reply; else appendAiMsg('bot', reply);
         
-        // Supabase에 질의 내용 영구 저장
         const workerName = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자';
         await supabaseClient.from('ai_chat_history').insert([{
           user_name: workerName,
@@ -1266,7 +1261,12 @@
 
   async function unlock(name, email = 'user@jeju.com') {
     const savedName = localStorage.getItem('jeju_worker_name'); const finalName = savedName || name;
-    currentUserInfo = { name: finalName, email }; document.getElementById('auth-overlay').style.display = 'none';
+    currentUserInfo = { name: finalName, email }; 
+    
+    // 로그인 박스를 DOM에서 완전히 제거하여 크롬 비밀번호 자동완성 오탐지 방지
+    const authOverlay = document.getElementById('auth-overlay');
+    if (authOverlay) authOverlay.remove();
+
     const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
     document.getElementById('loginUserBadge').innerText = isAdmin ? `👑 최고관리자` : `👤 ${finalName}`;
 
