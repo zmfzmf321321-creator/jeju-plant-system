@@ -189,16 +189,28 @@
       border-radius: 4px; font-size: 10px; white-space: nowrap; border: 1px solid #38bdf8; pointer-events: none;
     }
     
-    .measure-marker {
+    /* 계측 마커 및 연결선 스타일 */
+    .measure-marker-2d {
       position: absolute; border: 2px solid #ffffff; border-radius: 50%;
-      width: 16px; height: 16px; transform: translate(-50%, -50%); pointer-events: none;
+      width: 24px; height: 24px; transform: translate(-50%, -50%); pointer-events: none; z-index: 100;
+      display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: #ffffff;
+      background: #0284c7; box-shadow: 0 0 12px rgba(2, 132, 199, 1);
     }
-    .measure-marker-p1 { background: #10b981 !important; box-shadow: 0 0 12px #10b981 !important; z-index: 100; }
-    .measure-marker-p2 { background: #f59e0b !important; box-shadow: 0 0 12px #f59e0b !important; z-index: 100; }
+    .measure-marker-2d.p-start { background: #10b981; box-shadow: 0 0 12px #10b981; }
+    .measure-marker-2d.p-mid { background: #f59e0b; box-shadow: 0 0 12px #f59e0b; }
+    .measure-marker-2d.p-end { background: #ef4444; box-shadow: 0 0 12px #ef4444; }
+
+    .measure-marker-3d {
+      position: absolute; border: 2px solid #ffffff; border-radius: 50%;
+      width: 22px; height: 22px; transform: translate(-50%, -50%); pointer-events: none;
+      display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: #ffffff;
+      background: #f59e0b; box-shadow: 0 0 10px #f59e0b;
+    }
+
     .measure-line {
       position: absolute; height: 3px; background: rgba(245, 158, 11, 0.9);
       transform-origin: 0 50%; pointer-events: none; z-index: 98;
-      box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.7);
     }
 
     #floor-room-view {
@@ -682,10 +694,9 @@
   let editingHistoryIndex = null;
   let clickedFloorCoord = { x: 0, y: 0 };
   
-  // 계측(측정) 모드 관련 변수
+  // 계측(측정) 모드 관련 변수 (최대 10개 지점 지원)
   let isMeasureMode = false;
-  let measureP1 = null; 
-  let measureP2 = null;
+  let measurePoints = []; // [{ idx, floor, x, y, x3d, y3d, z3d }]
 
   let pendingInstPhotoFile = null;
   let pendingInitHistPhotoFile = null;
@@ -723,7 +734,6 @@
     '7층':     { c1: { x: 132, y: 242 }, c4: { x: 569,  y: 855 } }
   };
 
-  /* --- 2D 평면 좌표를 실제 3D 좌표 및 층고(m)로 변환하는 함수 --- */
   function get3DCoordFrom2D(floor, cx, cy) {
     const h = floor3DHeights[floor] !== undefined ? floor3DHeights[floor] : 26;
     const bounds = floorCorners2D[floor] || floorCorners2D['1층'];
@@ -841,7 +851,8 @@
 
   window.switchMajor = function(major) {
     selectedMajor = major;
-    measureP1 = null; measureP2 = null; // 탭 이동 시 계측 리셋
+    measurePoints = [];
+    clearAllMeasureVisuals();
     document.getElementById('btn-major-steam').classList.toggle('active', major === '기력');
     document.getElementById('btn-major-engine').classList.toggle('active', major === '내연');
 
@@ -858,7 +869,8 @@
 
   window.switchSubTab = function(sub) {
     selectedSubTab = sub;
-    measureP1 = null; measureP2 = null; // 탭 이동 시 계측 리셋
+    measurePoints = [];
+    clearAllMeasureVisuals();
     if (selectedMajor === '기력') {
       document.getElementById('sub-steam-2').classList.toggle('active', sub === '2호기');
       document.getElementById('sub-steam-3').classList.toggle('active', sub === '3호기');
@@ -1081,39 +1093,71 @@
   const measureHud = document.getElementById('measure-info-hud');
   const btnMeasure = document.getElementById('btnToggleMeasure');
 
+  function clearAllMeasureVisuals() {
+    document.querySelectorAll('.measure-marker-2d, .measure-line').forEach(e => e.remove());
+    viewer.querySelectorAll('.measure-marker-3d').forEach(e => e.remove());
+  }
+
   function updateMeasureHudPrompt() {
     if (!isMeasureMode) { measureHud.style.display = 'none'; return; }
     measureHud.style.display = 'block';
-    if (measureP1) {
-      measureHud.innerHTML = `📍 <b>1번 지점(${measureP1.floor})</b> 선택됨. 거리를 잴 <b>두 번째 지점</b>을 선택하세요 (층 이동 가능).`;
+    const count = measurePoints.length;
+    if (count === 0) {
+      measureHud.innerHTML = selectedFloor === 'ALL'
+        ? `📐 <b>[계측 모드]</b> 3D 모델에서 첫 번째 지점(P1)을 터치하세요. (최대 10개)`
+        : `📐 <b>[계측 모드]</b> 도면에서 첫 번째 지점(P1)을 터치하세요. (최대 10개)`;
     } else {
-      measureHud.innerHTML = selectedFloor === 'ALL' 
-        ? `📐 <b>[계측 모드]</b> 3D 모델에서 거리를 잴 <b>첫 번째 지점</b>을 터치하세요.`
-        : `📐 <b>[계측 모드]</b> 도면에서 거리를 잴 <b>첫 번째 지점</b>을 터치하세요.`;
+      updateMeasureHudResult();
     }
+  }
+
+  function updateMeasureHudResult() {
+    const count = measurePoints.length;
+    if (count === 0) return;
+    if (count === 1) {
+      measureHud.innerHTML = `📍 <b>P1(${measurePoints[0].floor})</b> 선택됨. <b>두 번째 지점(P2)</b>을 터치하세요. (층 이동 가능)`;
+      return;
+    }
+
+    let total3D = 0;
+    let totalH = 0;
+    for (let i = 0; i < count - 1; i++) {
+      const pA = measurePoints[i];
+      const pB = measurePoints[i + 1];
+      const dx = pB.x3d - pA.x3d;
+      const dy = pB.y3d - pA.y3d;
+      const dz = pB.z3d - pA.z3d;
+      totalH += Math.hypot(dx, dz);
+      total3D += Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    const lastP = measurePoints[count - 1];
+    measureHud.innerHTML = `📏 <b>[총 ${count}개 지점] 누적 3D 거리: <span style="color:#10b981;">${total3D.toFixed(2)} m</span></b> (수평: ${totalH.toFixed(2)}m)<br><span style="font-size:10px; color:#94a3b8;">${count < 10 ? `다음 지점(P${count + 1}) 터치 가능 (${count}/10) | 버튼 OFF 시 초기화` : `최대 10개 지점 완료 | 터치 시 새로 시작`}</span>`;
   }
 
   btnMeasure.addEventListener('click', () => {
     isMeasureMode = !isMeasureMode;
-    measureP1 = null; measureP2 = null; // 모드 토글 시 항상 초기화
+    measurePoints = [];
+    clearAllMeasureVisuals();
     
     if (isMeasureMode) {
       btnMeasure.classList.add('active'); btnMeasure.innerText = '📐 계측 ON'; updateMeasureHudPrompt();
     } else {
       btnMeasure.classList.remove('active'); btnMeasure.innerText = '📐 계측'; measureHud.style.display = 'none';
-      document.querySelectorAll('.measure-marker-2d, .measure-line').forEach(e => e.remove());
-      viewer.querySelectorAll('.measure-marker-3d').forEach(e => e.remove());
     }
   });
 
-  // 3D 뷰어 평면 측정 및 마커 렌더링
-  function draw3DMarker(p, idStr) {
-    if (idStr === 'p1') viewer.querySelectorAll('.measure-marker-3d').forEach(e => e.remove());
-    const marker = document.createElement('button');
-    marker.className = `measure-marker measure-marker-3d measure-marker-${idStr}`;
-    marker.slot = `hotspot-measure-${idStr}`;
-    marker.dataset.position = `${p.x3d} ${p.y3d} ${p.z3d}`;
-    viewer.appendChild(marker);
+  // 3D 뷰어 마커 렌더링
+  function renderMeasureVisuals3D() {
+    viewer.querySelectorAll('.measure-marker-3d').forEach(e => e.remove());
+    measurePoints.forEach((p, idx) => {
+      const marker = document.createElement('button');
+      marker.className = 'measure-marker-3d';
+      marker.slot = `hotspot-measure-${p.idx}`;
+      marker.dataset.position = `${p.x3d} ${p.y3d} ${p.z3d}`;
+      marker.innerText = `${p.idx}`;
+      viewer.appendChild(marker);
+    });
   }
 
   viewer.addEventListener('click', (event) => {
@@ -1121,24 +1165,19 @@
     const rect = viewer.getBoundingClientRect();
     const hit = viewer.positionAndNormalFromPoint(event.clientX - rect.left, event.clientY - rect.top);
     if (hit) {
-      if (!measureP1 || (measureP1 && measureP2)) {
-        measureP1 = null; measureP2 = null;
-        measureP1 = { floor: '3D', x3d: hit.position.x, y3d: hit.position.y, z3d: hit.position.z };
-        draw3DMarker(measureP1, 'p1');
-        updateMeasureHudPrompt();
-      } else {
-        measureP2 = { floor: '3D', x3d: hit.position.x, y3d: hit.position.y, z3d: hit.position.z };
-        draw3DMarker(measureP2, 'p2');
-        
-        const dx = measureP2.x3d - measureP1.x3d;
-        const dy = measureP2.y3d - measureP1.y3d;
-        const dz = measureP2.z3d - measureP1.z3d;
-        const hDist = Math.hypot(dx, dz).toFixed(2);
-        const vDist = Math.abs(dy).toFixed(2);
-        const tDist = Math.sqrt(dx*dx + dy*dy + dz*dz).toFixed(2);
-        
-        measureHud.innerHTML = `📏 <b>[3D 모델 측정] 거리: <span style="color:#10b981;">${tDist} m</span></b><br><span style="font-size:10px; color:#94a3b8;">(수평: ${hDist}m, 수직: ${vDist}m)</span>`;
+      if (measurePoints.length >= 10) {
+        measurePoints = [];
+        clearAllMeasureVisuals();
       }
+      const nextIdx = measurePoints.length + 1;
+      measurePoints.push({
+        idx: nextIdx,
+        floor: '3D',
+        x: 0, y: 0,
+        x3d: hit.position.x, y3d: hit.position.y, z3d: hit.position.z
+      });
+      renderMeasureVisuals3D();
+      updateMeasureHudResult();
     }
   });
 
@@ -1148,35 +1187,38 @@
     document.querySelectorAll('.hotspot-pin').forEach(pin => pin.style.setProperty('--pin-scale', pinScale));
   });
 
-  // 2D 도면 계측 마커 및 선 렌더링 로직
+  // 2D 도면 마커 및 연결선 렌더링
   function renderMeasureMarkers2D() {
     document.querySelectorAll('.measure-marker-2d, .measure-line').forEach(el => el.remove());
     
-    if (measureP1 && measureP1.floor === selectedFloor) {
-      const m = document.createElement('div');
-      m.className = 'measure-marker-2d measure-marker-p1';
-      m.style.left = `${measureP1.x}px`; m.style.top = `${measureP1.y}px`;
-      board.appendChild(m);
-    }
-    
-    if (measureP2 && measureP2.floor === selectedFloor) {
-      const m = document.createElement('div');
-      m.className = 'measure-marker-2d measure-marker-p2';
-      m.style.left = `${measureP2.x}px`; m.style.top = `${measureP2.y}px`;
-      board.appendChild(m);
-    }
-    
-    // 두 점 모두 현재 층이면 선 그리기
-    if (measureP1 && measureP2 && measureP1.floor === selectedFloor && measureP2.floor === selectedFloor) {
-      const line = document.createElement('div');
-      line.className = 'measure-line';
-      const length = Math.hypot(measureP2.x - measureP1.x, measureP2.y - measureP1.y);
-      const angle = Math.atan2(measureP2.y - measureP1.y, measureP2.x - measureP1.x) * 180 / Math.PI;
-      line.style.width = `${length}px`;
-      line.style.left = `${measureP1.x}px`;
-      line.style.top = `${measureP1.y}px`;
-      line.style.transform = `rotate(${angle}deg)`;
-      board.appendChild(line);
+    // 현재 층에 위치한 지점 마커 표시
+    measurePoints.forEach((p) => {
+      if (p.floor === selectedFloor) {
+        const m = document.createElement('div');
+        const colorClass = p.idx === 1 ? 'p-start' : (p.idx === measurePoints.length ? 'p-end' : 'p-mid');
+        m.className = `measure-marker-2d ${colorClass}`;
+        m.innerText = `${p.idx}`;
+        m.style.left = `${p.x}px`;
+        m.style.top = `${p.y}px`;
+        board.appendChild(m);
+      }
+    });
+
+    // 연속된 두 지점이 모두 현재 층인 경우 선 연결
+    for (let i = 0; i < measurePoints.length - 1; i++) {
+      const pA = measurePoints[i];
+      const pB = measurePoints[i + 1];
+      if (pA.floor === selectedFloor && pB.floor === selectedFloor) {
+        const line = document.createElement('div');
+        line.className = 'measure-line';
+        const length = Math.hypot(pB.x - pA.x, pB.y - pA.y);
+        const angle = Math.atan2(pB.y - pA.y, pB.x - pA.x) * 180 / Math.PI;
+        line.style.width = `${length}px`;
+        line.style.left = `${pA.x}px`;
+        line.style.top = `${pA.y}px`;
+        line.style.transform = `rotate(${angle}deg)`;
+        board.appendChild(line);
+      }
     }
   }
 
@@ -1207,7 +1249,10 @@
     document.getElementById('overall-3d-view').style.display = 'block';
     updateFloorTitle(); render3DHotspots(); 
     
-    if (isMeasureMode) updateMeasureHudPrompt();
+    if (isMeasureMode) {
+      updateMeasureHudPrompt();
+      renderMeasureVisuals3D();
+    }
   };
 
   function updateTransform() { board.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${scale})`; }
@@ -1255,35 +1300,24 @@
     const curX = Math.round(Math.max(0, Math.min(1400, clickX)));
     const curY = Math.round(Math.max(0, Math.min(1000, clickY)));
 
-    // [계측 모드 동작 처리]
+    // [계측 모드: 최대 10개 연속 포인트 추가]
     if (isMeasureMode) {
-      const p3d = get3DCoordFrom2D(selectedFloor, curX, curY);
-
-      if (!measureP1 || (measureP1 && measureP2)) {
-        // 첫 번째 지점 찍기
-        measureP1 = null; measureP2 = null;
-        measureP1 = { floor: selectedFloor, x: curX, y: curY, ...p3d };
-        updateMeasureHudPrompt();
-      } else {
-        // 두 번째 지점 찍기
-        measureP2 = { floor: selectedFloor, x: curX, y: curY, ...p3d };
-        
-        // 거리 계산 로직
-        const dx = measureP2.x3d - measureP1.x3d;
-        const dy = measureP2.y3d - measureP1.y3d;
-        const dz = measureP2.z3d - measureP1.z3d;
-        
-        const hDist = Math.hypot(dx, dz).toFixed(2);
-        const vDist = Math.abs(dy).toFixed(2);
-        const tDist = Math.sqrt(dx*dx + dy*dy + dz*dz).toFixed(2);
-
-        if (measureP1.floor === measureP2.floor) {
-          measureHud.innerHTML = `📏 <b>[${selectedFloor}] 수평 직선거리: <span style="color:#10b981;">${hDist} m</span></b>`;
-        } else {
-          measureHud.innerHTML = `📏 <b>[${measureP1.floor} ↔ ${measureP2.floor}] 3D 입체거리: <span style="color:#f59e0b;">${tDist} m</span></b><br><span style="font-size:10px; color:#94a3b8;">(수평: ${hDist}m, 층고(높이차): ${vDist}m)</span>`;
-        }
+      if (measurePoints.length >= 10) {
+        measurePoints = [];
+        clearAllMeasureVisuals();
       }
+
+      const p3d = get3DCoordFrom2D(selectedFloor, curX, curY);
+      const nextIdx = measurePoints.length + 1;
+      measurePoints.push({
+        idx: nextIdx,
+        floor: selectedFloor,
+        x: curX, y: curY,
+        ...p3d
+      });
+
       renderMeasureMarkers2D();
+      updateMeasureHudResult();
       return;
     }
 
