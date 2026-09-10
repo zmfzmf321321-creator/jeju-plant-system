@@ -744,7 +744,7 @@
   let pendingInstPhotoFile = null;
   let pendingInitHistPhotoFile = null;
   let pendingHistPhotoFile = null;
-  let pendingEditInstPhotoFile = null; // 계측기 직접 수정용 사진 파일
+  let pendingEditInstPhotoFile = null;
 
   let scale = 0.65;
   let panX = 0, panY = 0;
@@ -1017,7 +1017,6 @@
     try { await autoFillTagFromPhoto(target.photo_url || target.image_data, 'update'); } finally { if (extractBtn) { extractBtn.innerText = origText; extractBtn.style.opacity = '1'; extractBtn.disabled = false; } }
   };
 
-  /* --- [신규] 계측기 정보 및 사진 직접 수정 모달 열기 --- */
   window.openEditInstModal = function() {
     const target = currentInstruments.find(i => i.id === activeTargetId);
     if (!target) return;
