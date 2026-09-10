@@ -147,7 +147,7 @@
 
     #empty-engine-view {
       display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0;
-      background: #080d1a; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: #080d1a; flex-direction: column; align-items: center; justify-content: center;
       color: #64748b; font-size: 14px; text-align: center; line-height: 1.6;
     }
 
@@ -383,7 +383,7 @@
 <div id="header">
   <div class="brand">
     <span>⚡ 제주 발전</span>
-    <span class="location-tag" id="currentFloorTag">2호기 전체</span>
+    <span class="location-tag" id="currentFloorTag">기력 2호기 전체</span>
   </div>
   <div class="header-btns">
     <span id="loginUserBadge" style="font-size:11px; color:#38bdf8; font-weight:bold; margin-right:4px; flex-shrink:0;"></span>
@@ -771,7 +771,6 @@
       const challenge = new Uint8Array(32);
       window.crypto.getRandomValues(challenge);
       
-      // user.id는 브라우저 스펙상 최소 16바이트 이상의 랜덤 바이트를 사용하는 것이 안전합니다.
       const userId = new Uint8Array(16);
       window.crypto.getRandomValues(userId);
 
@@ -801,8 +800,6 @@
 
       if (credential) {
         const rawIdBase64 = uint8ArrayToBase64(new Uint8Array(credential.rawId));
-        
-        // 지문 키 영구 보관
         localStorage.setItem('jeju_bio_raw_id', rawIdBase64);
         localStorage.setItem('jeju_bio_user_name', workerName);
 
@@ -852,7 +849,6 @@
       });
 
       if (assertion) {
-        // 관리자 모달에서 지문 로그인을 눌렀거나, 관리자로 등록된 지문인 경우 관리자 권한 즉시 부여
         if (isAdminLogin || localStorage.getItem('jeju_admin_bio_auth') === 'true') {
           sessionStorage.setItem('jeju_admin_auth', 'true');
           unlock('최고관리자', 'admin@jeju.com');
@@ -875,7 +871,6 @@
   document.getElementById('btnBioLogin').addEventListener('click', (e) => { e.preventDefault(); loginBiometrics(false); });
   document.getElementById('btnAdminBioLogin').addEventListener('click', (e) => { e.preventDefault(); loginBiometrics(true); });
   
-  // 관리자 모달 내 즉시 등록 버튼
   document.getElementById('btnDirectRegAdminBio').addEventListener('click', (e) => {
     e.preventDefault();
     const inputPass = document.getElementById('adminPassInput').value.trim();
@@ -887,7 +882,6 @@
     registerBiometrics(true);
   });
 
-  // 상단 바 지문 등록 버튼
   document.getElementById('btnRegisterBio').addEventListener('click', (e) => {
     e.preventDefault();
     const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
@@ -1333,6 +1327,7 @@ Tag No: ${target.tag_no}
   document.getElementById('updateMainPhotoCam').addEventListener('change', (e) => handleUpdateMainPhoto(e.target.files[0]));
   document.getElementById('updateMainPhotoGallery').addEventListener('change', (e) => handleUpdateMainPhoto(e.target.files[0]));
 
+  /* --- 로그인 완료 및 기본 화면 렌더링 (초기 뷰포트 완전 초기화) --- */
   async function unlock(name, email = 'user@jeju.com') {
     const savedName = localStorage.getItem('jeju_worker_name');
     const finalName = savedName || name;
@@ -1342,6 +1337,26 @@ Tag No: ${target.tag_no}
     const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
     document.getElementById('loginUserBadge').innerText = isAdmin ? `👑 최고관리자` : `👤 ${finalName}`;
 
+    // 로그인 시 항상 [기력 발전 - 2호기 - 3D 조감도]로 뷰포트 리셋
+    selectedMajor = '기력';
+    selectedSubTab = '2호기';
+    selectedFloor = 'ALL';
+
+    document.getElementById('btn-major-steam').classList.add('active');
+    document.getElementById('btn-major-engine').classList.remove('active');
+    document.getElementById('sub-tabs-steam').style.display = 'flex';
+    document.getElementById('sub-tabs-engine').style.display = 'none';
+    document.getElementById('sub-steam-2').classList.add('active');
+    document.getElementById('sub-steam-3').classList.remove('active');
+    document.getElementById('sub-steam-hist').classList.remove('active');
+
+    document.getElementById('overall-3d-view').style.display = 'block';
+    document.getElementById('floor-room-view').style.display = 'none';
+    document.getElementById('empty-engine-view').style.display = 'none';
+    document.getElementById('history-table-view').style.display = 'none';
+    document.getElementById('floor-bar').style.display = 'flex';
+
+    updateFloorTitle();
     await fetchManuals();
     fetchInstruments();
   }
