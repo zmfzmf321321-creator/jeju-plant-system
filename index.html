@@ -188,15 +188,17 @@
       background: rgba(11, 19, 43, 0.92); color: #38bdf8; padding: 2px 6px;
       border-radius: 4px; font-size: 10px; white-space: nowrap; border: 1px solid #38bdf8; pointer-events: none;
     }
+    
     .measure-marker {
-      background: #ef4444; border: 2px solid #ffffff; border-radius: 50%;
-      width: 16px; height: 16px; transform: translate(-50%, -50%);
-      box-shadow: 0 0 10px #ef4444; pointer-events: none;
+      position: absolute; border: 2px solid #ffffff; border-radius: 50%;
+      width: 16px; height: 16px; transform: translate(-50%, -50%); pointer-events: none;
     }
-    .measure-marker-2d {
-      position: absolute; background: #f59e0b; border: 2px solid #ffffff; border-radius: 50%;
-      width: 14px; height: 14px; transform: translate(-50%, -50%);
-      box-shadow: 0 0 10px #f59e0b; pointer-events: none; z-index: 99;
+    .measure-marker-p1 { background: #10b981 !important; box-shadow: 0 0 12px #10b981 !important; z-index: 100; }
+    .measure-marker-p2 { background: #f59e0b !important; box-shadow: 0 0 12px #f59e0b !important; z-index: 100; }
+    .measure-line {
+      position: absolute; height: 3px; background: rgba(245, 158, 11, 0.9);
+      transform-origin: 0 50%; pointer-events: none; z-index: 98;
+      box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
     }
 
     #floor-room-view {
@@ -412,7 +414,7 @@
   </div>
 </div>
 
-<div id="measure-info-hud">📐 모델 위 모서리를 터치하면 좌표가 자동 복사됩니다.</div>
+<div id="measure-info-hud">📐 모델 위 모서리를 터치하면 좌표가 자동 측정됩니다.</div>
 
 <div id="main-viewport">
   <div id="overall-3d-view">
@@ -679,8 +681,12 @@
   let activeTargetId = null;
   let editingHistoryIndex = null;
   let clickedFloorCoord = { x: 0, y: 0 };
-  let isMeasureMode = false;
   
+  // 계측(측정) 모드 관련 변수
+  let isMeasureMode = false;
+  let measureP1 = null; 
+  let measureP2 = null;
+
   let pendingInstPhotoFile = null;
   let pendingInitHistPhotoFile = null;
   let pendingHistPhotoFile = null;
@@ -717,32 +723,28 @@
     '7층':     { c1: { x: 132, y: 242 }, c4: { x: 569,  y: 855 } }
   };
 
+  /* --- 2D 평면 좌표를 실제 3D 좌표 및 층고(m)로 변환하는 함수 --- */
+  function get3DCoordFrom2D(floor, cx, cy) {
+    const h = floor3DHeights[floor] !== undefined ? floor3DHeights[floor] : 26;
+    const bounds = floorCorners2D[floor] || floorCorners2D['1층'];
+    const u = (cx - bounds.c1.x) / (bounds.c4.x - bounds.c1.x || 1);
+    const v = (cy - bounds.c1.y) / (bounds.c4.y - bounds.c1.y || 1);
+    const x3d = 19.96 + (u * (30.93 - 19.96)) + (v * (1.65 - 19.96));
+    const z3d = -11.43 + (u * (6.89 - (-11.43))) + (v * (-0.47 - (-11.43)));
+    return { x3d, y3d: h, z3d };
+  }
+
   async function uploadImageToStorage(file) {
     if (!file) return null;
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
       const filePath = `${fileName}`;
-
-      const { data, error } = await supabaseClient.storage
-        .from('instrument-photos')
-        .upload(filePath, file);
-
-      if (error) {
-        console.error('Storage 업로드 오류:', error);
-        alert('⚠️ 이미지 스토리지 업로드 실패: ' + error.message);
-        return null;
-      }
-
-      const { data: publicURLData } = supabaseClient.storage
-        .from('instrument-photos')
-        .getPublicUrl(filePath);
-
+      const { data, error } = await supabaseClient.storage.from('instrument-photos').upload(filePath, file);
+      if (error) { alert('⚠️ 이미지 업로드 실패: ' + error.message); return null; }
+      const { data: publicURLData } = supabaseClient.storage.from('instrument-photos').getPublicUrl(filePath);
       return publicURLData.publicUrl;
-    } catch (err) {
-      console.error('이미지 업로드 예외:', err);
-      return null;
-    }
+    } catch (err) { return null; }
   }
 
   function uint8ArrayToBase64(uint8Array) {
@@ -760,40 +762,19 @@
     return bytes.buffer;
   }
 
-  /* --- WebAuthn 규격에 맞춘 안전한 지문 등록 로직 --- */
   async function registerBiometrics(isAdmin = false) {
-    if (!window.PublicKeyCredential) {
-      alert('⚠️ 현재 브라우저 환경에서 생체인증(WebAuthn)을 지원하지 않습니다.');
-      return;
-    }
-
+    if (!window.PublicKeyCredential) { alert('⚠️ 현재 브라우저 환경에서 생체인증을 지원하지 않습니다.'); return; }
     try {
-      const challenge = new Uint8Array(32);
-      window.crypto.getRandomValues(challenge);
-      
-      const userId = new Uint8Array(16);
-      window.crypto.getRandomValues(userId);
-
+      const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
+      const userId = new Uint8Array(16); window.crypto.getRandomValues(userId);
       const workerName = isAdmin ? '최고관리자' : (currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자');
 
       const credential = await navigator.credentials.create({
         publicKey: {
-          challenge: challenge,
-          rp: { name: '제주 보일러 제어 시스템', id: window.location.hostname },
-          user: {
-            id: userId,
-            name: isAdmin ? 'jeju_admin' : (workerName || 'user'),
-            displayName: workerName
-          },
-          pubKeyCredParams: [
-            { alg: -7, type: 'public-key' },
-            { alg: -257, type: 'public-key' }
-          ],
-          authenticatorSelection: {
-            authenticatorAttachment: 'platform',
-            userVerification: 'preferred',
-            residentKey: 'preferred'
-          },
+          challenge, rp: { name: '제주 보일러 제어 시스템', id: window.location.hostname },
+          user: { id: userId, name: isAdmin ? 'jeju_admin' : (workerName || 'user'), displayName: workerName },
+          pubKeyCredParams: [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
+          authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'preferred', residentKey: 'preferred' },
           timeout: 60000
         }
       });
@@ -802,94 +783,65 @@
         const rawIdBase64 = uint8ArrayToBase64(new Uint8Array(credential.rawId));
         localStorage.setItem('jeju_bio_raw_id', rawIdBase64);
         localStorage.setItem('jeju_bio_user_name', workerName);
-
         if (isAdmin) {
           localStorage.setItem('jeju_admin_bio_auth', 'true');
-          alert('🎉 [최고관리자] 지문이 성공적으로 등록되었습니다!\n이제 언제든 [최고관리자 지문 즉시 로그인] 버튼을 누르면 즉시 입장됩니다.');
+          alert('🎉 [최고관리자] 지문이 성공적으로 등록되었습니다!');
         } else {
           localStorage.removeItem('jeju_admin_bio_auth');
           alert(`✅ [${workerName}] 님의 팀원 지문이 등록되었습니다.`);
         }
       }
     } catch (err) {
-      console.error('WebAuthn Create Error:', err);
-      if (err.name !== 'NotAllowedError') {
-        alert('❌ 지문 등록 중 오류가 발생했습니다: ' + (err.message || err.name));
-      }
+      if (err.name !== 'NotAllowedError') alert('❌ 지문 등록 실패: ' + (err.message || err.name));
     }
   }
 
-  /* --- 지문 로그인 로직 --- */
   async function loginBiometrics(isAdminLogin = false) {
     const rawIdBase64 = localStorage.getItem('jeju_bio_raw_id');
     const msgEl = isAdminLogin ? document.getElementById('adminBioLoginMsg') : document.getElementById('bioLoginMsg');
     msgEl.style.display = 'none';
 
     if (!rawIdBase64) {
-      msgEl.innerText = isAdminLogin
-        ? '⚠️ 등록된 지문 정보가 없습니다. 아래 [비밀번호 확인 후 이 기기 지문 등록] 버튼을 눌러 먼저 지문을 등록해 주세요.'
-        : '⚠️ 저장된 생체정보가 없습니다. 사번 로그인 후 우측 상단 [지문]을 등록하세요.';
-      msgEl.style.display = 'block';
-      return;
+      msgEl.innerText = isAdminLogin ? '⚠️ 등록된 지문이 없습니다. 마스터 비밀번호 접속 후 먼저 지문을 등록해 주세요.' : '⚠️ 저장된 지문이 없습니다.';
+      msgEl.style.display = 'block'; return;
     }
 
     try {
-      const challenge = new Uint8Array(32);
-      window.crypto.getRandomValues(challenge);
+      const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
       const rawIdBuffer = base64ToUint8Array(rawIdBase64);
-
       const assertion = await navigator.credentials.get({
-        publicKey: {
-          challenge: challenge,
-          rpId: window.location.hostname,
-          allowCredentials: [{ id: rawIdBuffer, type: 'public-key' }],
-          userVerification: 'preferred',
-          timeout: 60000
-        }
+        publicKey: { challenge, rpId: window.location.hostname, allowCredentials: [{ id: rawIdBuffer, type: 'public-key' }], userVerification: 'preferred', timeout: 60000 }
       });
 
       if (assertion) {
         if (isAdminLogin || localStorage.getItem('jeju_admin_bio_auth') === 'true') {
-          sessionStorage.setItem('jeju_admin_auth', 'true');
-          unlock('최고관리자', 'admin@jeju.com');
+          sessionStorage.setItem('jeju_admin_auth', 'true'); unlock('최고관리자', 'admin@jeju.com');
         } else {
-          const savedName = localStorage.getItem('jeju_bio_user_name') || '작업자';
-          unlock(savedName, `${savedName}@jeju.com`);
+          const savedName = localStorage.getItem('jeju_bio_user_name') || '작업자'; unlock(savedName, `${savedName}@jeju.com`);
         }
       }
     } catch (err) {
-      console.error('WebAuthn Get Error:', err);
-      if (err.name !== 'NotAllowedError') {
-        msgEl.innerText = '⚠️ 지문 인증 실패: 등록된 지문과 일치하지 않거나 만료되었습니다. 다시 등록해 주세요.';
-      } else {
-        msgEl.innerText = '⚠️ 지문 인증이 취소되었습니다.';
-      }
+      if (err.name !== 'NotAllowedError') msgEl.innerText = '⚠️ 지문 인증 실패: 일치하지 않거나 만료되었습니다.';
+      else msgEl.innerText = '⚠️ 지문 인증이 취소되었습니다.';
       msgEl.style.display = 'block';
     }
   }
 
   document.getElementById('btnBioLogin').addEventListener('click', (e) => { e.preventDefault(); loginBiometrics(false); });
   document.getElementById('btnAdminBioLogin').addEventListener('click', (e) => { e.preventDefault(); loginBiometrics(true); });
-  
   document.getElementById('btnDirectRegAdminBio').addEventListener('click', (e) => {
     e.preventDefault();
-    const inputPass = document.getElementById('adminPassInput').value.trim();
-    if (inputPass !== ADMIN_MASTER_PASS) {
-      alert('⚠️ 먼저 위의 [마스터 비밀번호]를 정확히 입력해 주세요.');
-      document.getElementById('adminPassInput').focus();
-      return;
-    }
+    if (document.getElementById('adminPassInput').value.trim() !== ADMIN_MASTER_PASS) { alert('⚠️ 마스터 비밀번호를 정확히 입력해 주세요.'); return; }
     registerBiometrics(true);
   });
-
   document.getElementById('btnRegisterBio').addEventListener('click', (e) => {
     e.preventDefault();
-    const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
-    registerBiometrics(isAdmin);
+    registerBiometrics(sessionStorage.getItem('jeju_admin_auth') === 'true');
   });
 
   window.switchMajor = function(major) {
     selectedMajor = major;
+    measureP1 = null; measureP2 = null; // 탭 이동 시 계측 리셋
     document.getElementById('btn-major-steam').classList.toggle('active', major === '기력');
     document.getElementById('btn-major-engine').classList.toggle('active', major === '내연');
 
@@ -906,6 +858,7 @@
 
   window.switchSubTab = function(sub) {
     selectedSubTab = sub;
+    measureP1 = null; measureP2 = null; // 탭 이동 시 계측 리셋
     if (selectedMajor === '기력') {
       document.getElementById('sub-steam-2').classList.toggle('active', sub === '2호기');
       document.getElementById('sub-steam-3').classList.toggle('active', sub === '3호기');
@@ -922,22 +875,16 @@
     const viewHist = document.getElementById('history-table-view');
     const floorBar = document.getElementById('floor-bar');
 
-    view3D.style.display = 'none';
-    viewFloor.style.display = 'none';
-    viewEmpty.style.display = 'none';
-    viewHist.style.display = 'none';
+    view3D.style.display = 'none'; viewFloor.style.display = 'none';
+    viewEmpty.style.display = 'none'; viewHist.style.display = 'none';
 
     if (sub === '관리이력') {
-      floorBar.style.display = 'none';
-      viewHist.style.display = 'block';
-      document.getElementById('historyTableTitle').innerText = `📋 [${selectedMajor}발전] 전체 점검 및 관리이력`;
-      renderHistoryTable();
+      floorBar.style.display = 'none'; viewHist.style.display = 'block';
+      document.getElementById('historyTableTitle').innerText = `📋 [${selectedMajor}발전] 전체 점검 및 관리이력`; renderHistoryTable();
     } else if (selectedMajor === '기력') {
-      floorBar.style.display = 'flex';
-      exitToOverall();
+      floorBar.style.display = 'flex'; exitToOverall();
     } else {
-      floorBar.style.display = 'none';
-      viewEmpty.style.display = 'flex';
+      floorBar.style.display = 'none'; viewEmpty.style.display = 'flex';
       document.getElementById('emptyEngineTitle').innerText = `내연 ${sub} 설비 공간`;
     }
     updateFloorTitle();
@@ -945,502 +892,187 @@
 
   function updateFloorTitle() {
     const floorTag = document.getElementById('currentFloorTag');
-    if (selectedSubTab === '관리이력') {
-      floorTag.innerText = `${selectedMajor} 관리이력`;
-    } else if (selectedMajor === '기력') {
+    if (selectedSubTab === '관리이력') floorTag.innerText = `${selectedMajor} 관리이력`;
+    else if (selectedMajor === '기력') {
       floorTag.innerText = selectedFloor === 'ALL' ? `기력 ${selectedSubTab} 전체` : `기력 ${selectedSubTab} ${selectedFloor}`;
       document.getElementById('roomTitleText').innerText = `📍 [기력 ${selectedSubTab} - ${selectedFloor}] 도면 공간`;
-    } else {
-      floorTag.innerText = `내연 ${selectedSubTab}`;
-    }
+    } else floorTag.innerText = `내연 ${selectedSubTab}`;
   }
 
   window.renderHistoryTable = function() {
     const tbody = document.getElementById('historyTableBody');
     const filterText = (document.getElementById('tableFilterInput').value || '').trim().toLowerCase();
     tbody.innerHTML = '';
-
     let allLogs = [];
     currentInstruments.forEach(inst => {
       let dbMajor = inst.major_category;
-      if (!dbMajor) {
-        dbMajor = (typeof inst.unit === 'string' && inst.unit.includes('내연')) ? '내연' : '기력';
-      }
-
+      if (!dbMajor) dbMajor = (typeof inst.unit === 'string' && inst.unit.includes('내연')) ? '내연' : '기력';
       if (dbMajor !== selectedMajor) return;
-
-      const logs = Array.isArray(inst.history_logs) ? inst.history_logs : [];
-      logs.forEach(log => {
-        allLogs.push({
-          category: `${dbMajor} ${inst.unit || ''}`.trim(),
-          date: log.date || '-',
-          tag_no: inst.tag_no || '-',
-          name: inst.name || '-',
-          author: log.author || '-',
-          content: log.content || '-',
-          photo: log.photo || null
-        });
+      (inst.history_logs || []).forEach(log => {
+        allLogs.push({ category: `${dbMajor} ${inst.unit || ''}`.trim(), date: log.date || '-', tag_no: inst.tag_no || '-', name: inst.name || '-', author: log.author || '-', content: log.content || '-', photo: log.photo || null });
       });
     });
-
     allLogs.sort((a, b) => (b.date > a.date ? 1 : -1));
-
-    if (filterText) {
-      allLogs = allLogs.filter(i => 
-        i.category.toLowerCase().includes(filterText) || i.date.toLowerCase().includes(filterText) ||
-        i.tag_no.toLowerCase().includes(filterText) || i.name.toLowerCase().includes(filterText) ||
-        i.author.toLowerCase().includes(filterText) || i.content.toLowerCase().includes(filterText)
-      );
-    }
-
-    if (allLogs.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px; color: #64748b;">등록된 점검 이력이 없습니다.</td></tr>`;
-      return;
-    }
-
+    if (filterText) allLogs = allLogs.filter(i => i.category.toLowerCase().includes(filterText) || i.date.toLowerCase().includes(filterText) || i.tag_no.toLowerCase().includes(filterText) || i.name.toLowerCase().includes(filterText) || i.author.toLowerCase().includes(filterText) || i.content.toLowerCase().includes(filterText));
+    if (allLogs.length === 0) { tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px; color: #64748b;">등록된 점검 이력이 없습니다.</td></tr>`; return; }
     allLogs.forEach(log => {
       const tr = document.createElement('tr');
       const isEngine = log.category.includes('내연');
-      tr.innerHTML = `
-        <td><span class="badge-category ${isEngine ? 'badge-engine' : 'badge-steam'}">${log.category}</span></td>
-        <td style="white-space: nowrap;">${log.date}</td>
-        <td style="font-weight: bold; color: #38bdf8; white-space: nowrap;">${log.tag_no}</td>
-        <td style="white-space: nowrap;">${log.name}</td>
-        <td style="white-space: nowrap;">${log.author}</td>
-        <td>
-          <div>${log.content}</div>
-          ${log.photo ? `<img src="${log.photo}" style="max-height: 45px; border-radius: 4px; margin-top: 4px; display: block;">` : ''}
-        </td>
-      `;
+      tr.innerHTML = `<td><span class="badge-category ${isEngine ? 'badge-engine' : 'badge-steam'}">${log.category}</span></td><td style="white-space: nowrap;">${log.date}</td><td style="font-weight: bold; color: #38bdf8; white-space: nowrap;">${log.tag_no}</td><td style="white-space: nowrap;">${log.name}</td><td style="white-space: nowrap;">${log.author}</td><td><div>${log.content}</div>${log.photo ? `<img src="${log.photo}" style="max-height: 45px; border-radius: 4px; margin-top: 4px; display: block;">` : ''}</td>`;
       tbody.appendChild(tr);
     });
   };
 
-  async function fetchManuals() {
-    const { data, error } = await supabaseClient.from('manuals').select('*');
-    if (!error && data) {
-      currentManuals = data;
-    } else {
-      currentManuals = [];
-    }
-  }
+  async function fetchManuals() { const { data } = await supabaseClient.from('manuals').select('*'); currentManuals = data || []; }
 
-  document.getElementById('btnOpenGemini').addEventListener('click', async () => {
-    document.getElementById('gemini-modal').style.display = 'block';
-    await fetchManuals();
-  });
+  document.getElementById('btnOpenGemini').addEventListener('click', async () => { document.getElementById('gemini-modal').style.display = 'block'; await fetchManuals(); });
 
-  /* --- Supabase Edge Function을 통한 보안 Gemini 호출 --- */
   async function callGemini(userPrompt, extraContext = '', targetPhotos = []) {
-    appendAiMsg('user', userPrompt);
-    appendAiMsg('bot', '⏳ Supabase 보안 서버를 통해 현장 데이터 및 이미지 분석 중...');
-
+    appendAiMsg('user', userPrompt); appendAiMsg('bot', '⏳ Supabase 보안 서버를 통해 현장 데이터 및 이미지 분석 중...');
     let photosToSend = [...targetPhotos];
     if (photosToSend.length === 0) {
       currentInstruments.forEach(inst => {
         if ((inst.tag_no && userPrompt.includes(inst.tag_no)) || (inst.name && userPrompt.includes(inst.name))) {
           const mainImg = inst.photo_url || inst.image_data;
           if (mainImg && !photosToSend.includes(mainImg)) photosToSend.push(mainImg);
-          (inst.history_logs || []).forEach(h => {
-            if (h.photo && !photosToSend.includes(h.photo)) photosToSend.push(h.photo);
-          });
+          (inst.history_logs || []).forEach(h => { if (h.photo && !photosToSend.includes(h.photo)) photosToSend.push(h.photo); });
         }
       });
     }
-
     try {
-      const { data, error } = await supabaseClient.functions.invoke('gemini-chat', {
-        body: {
-          prompt: userPrompt,
-          extraContext: extraContext,
-          photosToSend: photosToSend,
-          mode: 'chat'
-        }
-      });
-
+      const { data, error } = await supabaseClient.functions.invoke('gemini-chat', { body: { prompt: userPrompt, extraContext, photosToSend, mode: 'chat' } });
       const lastMsg = document.querySelector('#aiChatBox .ai-msg-bot:last-child');
-
-      if (!error && data && data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
+      if (!error && data?.candidates?.[0]?.content?.parts?.[0]?.text) {
         const reply = data.candidates[0].content.parts[0].text;
-        if (lastMsg && lastMsg.innerText.includes('⏳')) lastMsg.innerText = reply;
-        else appendAiMsg('bot', reply);
+        if (lastMsg && lastMsg.innerText.includes('⏳')) lastMsg.innerText = reply; else appendAiMsg('bot', reply);
       } else {
-        const errMsg = error ? error.message : (data?.error ? (typeof data.error === 'object' ? JSON.stringify(data.error) : data.error) : '응답 분석 오류');
-        if (lastMsg && lastMsg.innerText.includes('⏳')) {
-          lastMsg.innerText = `❌ 서버 처리 오류: ${errMsg}`;
-        }
+        const errMsg = error ? error.message : (data?.error ? JSON.stringify(data.error) : '응답 오류');
+        if (lastMsg && lastMsg.innerText.includes('⏳')) lastMsg.innerText = `❌ 오류: ${errMsg}`;
       }
-    } catch (err) {
-      const lastMsg = document.querySelector('#aiChatBox .ai-msg-bot:last-child');
-      if (lastMsg && lastMsg.innerText.includes('⏳')) {
-        lastMsg.innerText = `❌ 네트워크 통신 실패: ${err.message}`;
-      }
-    }
+    } catch (err) { const lastMsg = document.querySelector('#aiChatBox .ai-msg-bot:last-child'); if (lastMsg && lastMsg.innerText.includes('⏳')) lastMsg.innerText = `❌ 통신 실패: ${err.message}`; }
   }
 
-  /* --- 등록된 대표 사진에서 즉시 명판을 판독하여 업데이트하는 함수 --- */
   window.extractCurrentPhotoInfo = async function() {
     const target = currentInstruments.find(i => i.id === activeTargetId);
-    if (!target) return;
-    const imgUrl = target.photo_url || target.image_data;
-    if (!imgUrl) {
-      alert('⚠️ 현재 등록된 대표 사진이 없습니다. 상단에서 사진을 먼저 등록해 주세요.');
-      return;
-    }
-
+    if (!target || !(target.photo_url || target.image_data)) { alert('⚠️ 현재 등록된 대표 사진이 없습니다.'); return; }
     const extractBtn = document.getElementById('btnExtractCurrentPhoto');
-    const originalText = extractBtn ? extractBtn.innerText : '';
-    if (extractBtn) {
-      extractBtn.innerText = '⏳ 사진에서 명판 정보 정밀 추출 중...';
-      extractBtn.style.opacity = '0.7';
-      extractBtn.disabled = true;
-    }
-
-    try {
-      await autoFillTagFromPhoto(imgUrl, 'update');
-    } finally {
-      if (extractBtn) {
-        extractBtn.innerText = originalText;
-        extractBtn.style.opacity = '1';
-        extractBtn.disabled = false;
-      }
-    }
+    const origText = extractBtn ? extractBtn.innerText : '';
+    if (extractBtn) { extractBtn.innerText = '⏳ 사진에서 명판 정보 정밀 추출 중...'; extractBtn.style.opacity = '0.7'; extractBtn.disabled = true; }
+    try { await autoFillTagFromPhoto(target.photo_url || target.image_data, 'update'); } finally { if (extractBtn) { extractBtn.innerText = origText; extractBtn.style.opacity = '1'; extractBtn.disabled = false; } }
   };
 
-  /* --- 사용자가 직접 수정할 수 있는 OCR 모달 팝업 열기 --- */
   function openOcrEditModal(target, parsed) {
-    document.getElementById('ocrTagNo').value = parsed.tag_no || target.tag_no || '';
-    document.getElementById('ocrName').value = parsed.name || target.name || '';
-    document.getElementById('ocrModel').value = parsed.model || target.model || '';
-    document.getElementById('ocrRange').value = parsed.range || target.signal_range || '';
-
+    document.getElementById('ocrTagNo').value = parsed.tag_no || target.tag_no || ''; document.getElementById('ocrName').value = parsed.name || target.name || '';
+    document.getElementById('ocrModel').value = parsed.model || target.model || ''; document.getElementById('ocrRange').value = parsed.range || target.signal_range || '';
     document.getElementById('btnApplyOcrEdit').onclick = async () => {
-      const newTag = document.getElementById('ocrTagNo').value.trim();
-      const newName = document.getElementById('ocrName').value.trim();
-      const newModel = document.getElementById('ocrModel').value.trim();
-      const newRange = document.getElementById('ocrRange').value.trim();
-
-      const updateFields = {
-        tag_no: newTag,
-        name: newName,
-        model: newModel,
-        signal_range: newRange
-      };
-
-      const { error: upErr } = await supabaseClient.from('instruments').update(updateFields).eq('id', target.id);
-      if (!upErr) {
-        target.tag_no = newTag;
-        target.name = newName;
-        target.model = newModel;
-        target.signal_range = newRange;
-
-        closeOcrEditModal();
-        showDetail(target);
-        renderFloorPins();
-        render3DHotspots();
-
-        const hud = document.getElementById('measure-info-hud');
-        if (hud) {
-          hud.style.display = 'block';
-          hud.innerText = '✅ 수정하신 정보가 성공적으로 반영되었습니다!';
-          setTimeout(() => { if (!isMeasureMode) hud.style.display = 'none'; }, 2500);
-        }
-      } else {
-        alert('❌ 저장 실패: ' + upErr.message);
-      }
+      const updateFields = { tag_no: document.getElementById('ocrTagNo').value.trim(), name: document.getElementById('ocrName').value.trim(), model: document.getElementById('ocrModel').value.trim(), signal_range: document.getElementById('ocrRange').value.trim() };
+      const { error } = await supabaseClient.from('instruments').update(updateFields).eq('id', target.id);
+      if (!error) {
+        Object.assign(target, updateFields); closeOcrEditModal(); showDetail(target); renderFloorPins(); render3DHotspots();
+        const hud = document.getElementById('measure-info-hud'); if (hud) { hud.style.display = 'block'; hud.innerText = '✅ 수정하신 정보가 반영되었습니다!'; setTimeout(() => { if (!isMeasureMode) hud.style.display = 'none'; }, 2500); }
+      } else alert('❌ 저장 실패: ' + error.message);
     };
-
     document.getElementById('ocr-edit-modal').style.display = 'block';
   }
 
-  window.closeOcrEditModal = function() {
-    document.getElementById('ocr-edit-modal').style.display = 'none';
-  };
+  window.closeOcrEditModal = function() { document.getElementById('ocr-edit-modal').style.display = 'none'; };
 
-  /* --- 사진 속 명판(Tag No, 모델, 범위) 자동 OCR 판독 함수 --- */
   async function autoFillTagFromPhoto(fileOrUrl, targetMode = 'insert') {
     if (!fileOrUrl) return;
     const hud = document.getElementById('measure-info-hud');
-    if (hud) {
-      hud.style.display = 'block';
-      hud.innerText = '🔍 사진 속 명판(Tag Plate)을 정밀 판독 중입니다...';
-    }
-
-    let photoPayload = null;
-    if (typeof fileOrUrl === 'string') {
-      photoPayload = fileOrUrl;
-    } else {
-      photoPayload = await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target.result);
-        reader.readAsDataURL(fileOrUrl);
-      });
-    }
-
+    if (hud) { hud.style.display = 'block'; hud.innerText = '🔍 사진 속 명판(Tag Plate)을 정밀 판독 중입니다...'; }
+    let photoPayload = typeof fileOrUrl === 'string' ? fileOrUrl : await new Promise(res => { const r = new FileReader(); r.onload = e => res(e.target.result); r.readAsDataURL(fileOrUrl); });
     try {
-      const { data, error } = await supabaseClient.functions.invoke('gemini-chat', {
-        body: {
-          prompt: "사진 속 명판에서 tag_no, name, model, range 정보를 찾아 JSON으로만 응답해줘.",
-          photosToSend: [photoPayload],
-          mode: "ocr_tag"
-        }
-      });
-
-      if (!error && data && data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
-        const rawReply = data.candidates[0].content.parts[0].text;
-        const jsonMatch = rawReply.match(/\{[\s\S]*\}/);
+      const { data, error } = await supabaseClient.functions.invoke('gemini-chat', { body: { prompt: "사진 속 명판에서 tag_no, name, model, range 정보를 찾아 JSON으로만 응답해줘.", photosToSend: [photoPayload], mode: "ocr_tag" } });
+      if (!error && data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        const jsonMatch = data.candidates[0].content.parts[0].text.match(/\{[\s\S]*\}/);
         if (!jsonMatch) throw new Error('JSON 형식을 찾을 수 없음');
         const parsed = JSON.parse(jsonMatch[0]);
-
         if (targetMode === 'insert') {
-          if (parsed.tag_no) document.getElementById('tagNo').value = parsed.tag_no;
-          if (parsed.name) document.getElementById('name').value = parsed.name;
-          if (parsed.model) document.getElementById('model').value = parsed.model;
-          if (parsed.range) document.getElementById('range').value = parsed.range;
+          if (parsed.tag_no) document.getElementById('tagNo').value = parsed.tag_no; if (parsed.name) document.getElementById('name').value = parsed.name;
+          if (parsed.model) document.getElementById('model').value = parsed.model; if (parsed.range) document.getElementById('range').value = parsed.range;
           if (hud) hud.innerText = `✅ [${parsed.tag_no || '정보'}] 입력창에 자동 반영되었습니다. 내용을 확인 및 수정하세요.`;
         } else if (targetMode === 'update') {
           const target = currentInstruments.find(i => i.id === activeTargetId);
-          if (target) {
-            openOcrEditModal(target, parsed);
-            if (hud) hud.innerText = '✅ 명판 추출 완료! 입력창에서 최종 검토 후 적용하세요.';
-          }
+          if (target) { openOcrEditModal(target, parsed); if (hud) hud.innerText = '✅ 명판 추출 완료! 입력창에서 최종 검토 후 적용하세요.'; }
         }
-      } else {
-        if (hud) hud.innerText = '⚠️ 명판 정보를 명확히 인식하지 못했습니다.';
-      }
-    } catch (ocrErr) {
-      console.error(ocrErr);
-      if (hud) hud.innerText = '⚠️ 명판 자동 판독에 실패했습니다.';
-    }
-
-    setTimeout(() => {
-      if (!isMeasureMode && hud) hud.style.display = 'none';
-    }, 3500);
+      } else { if (hud) hud.innerText = '⚠️ 명판 정보를 명확히 인식하지 못했습니다.'; }
+    } catch (err) { if (hud) hud.innerText = '⚠️ 명판 자동 판독에 실패했습니다.'; }
+    setTimeout(() => { if (!isMeasureMode && hud) hud.style.display = 'none'; }, 3500);
   }
 
-  function appendAiMsg(role, text) {
-    const box = document.getElementById('aiChatBox');
-    const div = document.createElement('div');
-    div.className = `ai-msg ${role === 'user' ? 'ai-msg-user' : 'ai-msg-bot'}`;
-    div.innerText = text;
-    box.appendChild(div);
-    box.scrollTop = box.scrollHeight;
-  }
-
-  document.getElementById('btnSendAi').addEventListener('click', () => {
-    const input = document.getElementById('aiUserInput');
-    const prompt = input.value.trim();
-    if (!prompt) return;
-    input.value = '';
-    callGemini(prompt);
-  });
-
-  document.getElementById('aiUserInput').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') document.getElementById('btnSendAi').click();
-  });
-
-  window.askAiQuick = function(promptText) {
-    callGemini(promptText);
-  };
-
+  function appendAiMsg(role, text) { const box = document.getElementById('aiChatBox'); const div = document.createElement('div'); div.className = `ai-msg ${role === 'user' ? 'ai-msg-user' : 'ai-msg-bot'}`; div.innerText = text; box.appendChild(div); box.scrollTop = box.scrollHeight; }
+  document.getElementById('btnSendAi').addEventListener('click', () => { const input = document.getElementById('aiUserInput'); const p = input.value.trim(); if (!p) return; input.value = ''; callGemini(p); });
+  document.getElementById('aiUserInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('btnSendAi').click(); });
+  window.askAiQuick = function(promptText) { callGemini(promptText); };
   document.getElementById('btnAiAnalyzeThis').addEventListener('click', async () => {
-    const target = currentInstruments.find(i => i.id === activeTargetId);
-    if (!target) return;
-    document.getElementById('info-modal').style.display = 'none';
-    document.getElementById('gemini-modal').style.display = 'block';
-    await fetchManuals();
-
-    const targetContext = `
-Tag No: ${target.tag_no}
-기기명: ${target.name}
-설치위치: ${target.major_category || '기력'} ${target.unit} ${target.floor}
-모델명: ${target.model}
-측정범위: ${target.signal_range}
-대표 사진 등록여부: ${target.photo_url || target.image_data ? '등록됨' : '없음'}
-과거 점검/정비 이력: ${JSON.stringify(target.history_logs || [])}
-`;
-
-    const photos = [];
-    const mainImg = target.photo_url || target.image_data;
-    if (mainImg) photos.push(mainImg);
-    (target.history_logs || []).forEach(h => {
-      if (h.photo && !photos.includes(h.photo)) photos.push(h.photo);
-    });
-
-    callGemini(`이 계측기(${target.tag_no} ${target.name})의 첨부된 현장 사진을 정밀 시각 판독하고, 등록된 과거 점검 이력과 Supabase [정비 매뉴얼] 지침을 종합적으로 대조하여 이상 유무 및 조치 권장사항을 작성해줘.`, targetContext, photos);
+    const target = currentInstruments.find(i => i.id === activeTargetId); if (!target) return;
+    document.getElementById('info-modal').style.display = 'none'; document.getElementById('gemini-modal').style.display = 'block'; await fetchManuals();
+    const ctx = `Tag No: ${target.tag_no}\n기기명: ${target.name}\n설치위치: ${target.major_category || '기력'} ${target.unit} ${target.floor}\n모델명: ${target.model}\n측정범위: ${target.signal_range}\n대표사진: ${target.photo_url||target.image_data?'있음':'없음'}\n과거이력: ${JSON.stringify(target.history_logs || [])}`;
+    const photos = []; if (target.photo_url || target.image_data) photos.push(target.photo_url || target.image_data);
+    (target.history_logs || []).forEach(h => { if (h.photo && !photos.includes(h.photo)) photos.push(h.photo); });
+    callGemini(`이 계측기(${target.tag_no})의 사진, 과거 이력, [정비 매뉴얼]을 종합하여 이상 유무 및 권장사항을 작성해줘.`, ctx, photos);
   });
 
-  function previewImageFile(file, previewElementId) {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const preview = document.getElementById(previewElementId);
-      preview.src = e.target.result;
-      preview.style.display = 'block';
-    };
-    reader.readAsDataURL(file);
-  }
-
-  document.getElementById('instPhotoCam').addEventListener('change', (e) => {
-    pendingInstPhotoFile = e.target.files[0];
-    previewImageFile(pendingInstPhotoFile, 'photoPreview');
-    autoFillTagFromPhoto(pendingInstPhotoFile, 'insert');
-  });
-  document.getElementById('instPhotoGallery').addEventListener('change', (e) => {
-    pendingInstPhotoFile = e.target.files[0];
-    previewImageFile(pendingInstPhotoFile, 'photoPreview');
-    autoFillTagFromPhoto(pendingInstPhotoFile, 'insert');
-  });
-
-  document.getElementById('initHistPhotoCam').addEventListener('change', (e) => {
-    pendingInitHistPhotoFile = e.target.files[0];
-    previewImageFile(pendingInitHistPhotoFile, 'initHistPreview');
-  });
-  document.getElementById('initHistPhotoGallery').addEventListener('change', (e) => {
-    pendingInitHistPhotoFile = e.target.files[0];
-    previewImageFile(pendingInitHistPhotoFile, 'initHistPreview');
-  });
-
-  document.getElementById('histPhotoCam').addEventListener('change', (e) => {
-    pendingHistPhotoFile = e.target.files[0];
-    previewImageFile(pendingHistPhotoFile, 'histPhotoPreview');
-  });
-  document.getElementById('histPhotoGallery').addEventListener('change', (e) => {
-    pendingHistPhotoFile = e.target.files[0];
-    previewImageFile(pendingHistPhotoFile, 'histPhotoPreview');
-  });
-
+  function previewImageFile(file, previewElementId) { if (!file) return; const r = new FileReader(); r.onload = function(e) { const p = document.getElementById(previewElementId); p.src = e.target.result; p.style.display = 'block'; }; r.readAsDataURL(file); }
+  document.getElementById('instPhotoCam').addEventListener('change', (e) => { pendingInstPhotoFile = e.target.files[0]; previewImageFile(pendingInstPhotoFile, 'photoPreview'); autoFillTagFromPhoto(pendingInstPhotoFile, 'insert'); });
+  document.getElementById('instPhotoGallery').addEventListener('change', (e) => { pendingInstPhotoFile = e.target.files[0]; previewImageFile(pendingInstPhotoFile, 'photoPreview'); autoFillTagFromPhoto(pendingInstPhotoFile, 'insert'); });
+  document.getElementById('initHistPhotoCam').addEventListener('change', (e) => { pendingInitHistPhotoFile = e.target.files[0]; previewImageFile(pendingInitHistPhotoFile, 'initHistPreview'); });
+  document.getElementById('initHistPhotoGallery').addEventListener('change', (e) => { pendingInitHistPhotoFile = e.target.files[0]; previewImageFile(pendingInitHistPhotoFile, 'initHistPreview'); });
+  document.getElementById('histPhotoCam').addEventListener('change', (e) => { pendingHistPhotoFile = e.target.files[0]; previewImageFile(pendingHistPhotoFile, 'histPhotoPreview'); });
+  document.getElementById('histPhotoGallery').addEventListener('change', (e) => { pendingHistPhotoFile = e.target.files[0]; previewImageFile(pendingHistPhotoFile, 'histPhotoPreview'); });
   async function handleUpdateMainPhoto(file) {
-    if (!file) return;
-    const uploadedUrl = await uploadImageToStorage(file);
-    if (!uploadedUrl) return;
-
-    const target = currentInstruments.find(i => i.id === activeTargetId);
-    if (!target) return;
-    target.photo_url = uploadedUrl; target.image_data = uploadedUrl;
-    document.getElementById('infoMainImg').src = uploadedUrl;
-    document.getElementById('infoMainImg').style.display = 'block';
+    if (!file) return; const uploadedUrl = await uploadImageToStorage(file); if (!uploadedUrl) return;
+    const target = currentInstruments.find(i => i.id === activeTargetId); if (!target) return;
+    target.photo_url = uploadedUrl; target.image_data = uploadedUrl; document.getElementById('infoMainImg').src = uploadedUrl; document.getElementById('infoMainImg').style.display = 'block';
     await supabaseClient.from('instruments').update({ photo_url: uploadedUrl, image_data: uploadedUrl }).eq('id', activeTargetId);
-    renderFloorPins(); render3DHotspots();
-    autoFillTagFromPhoto(file, 'update');
+    renderFloorPins(); render3DHotspots(); autoFillTagFromPhoto(file, 'update');
   }
   document.getElementById('updateMainPhotoCam').addEventListener('change', (e) => handleUpdateMainPhoto(e.target.files[0]));
   document.getElementById('updateMainPhotoGallery').addEventListener('change', (e) => handleUpdateMainPhoto(e.target.files[0]));
 
-  /* --- 로그인 완료 및 기본 화면 렌더링 (초기 뷰포트 완전 초기화) --- */
   async function unlock(name, email = 'user@jeju.com') {
-    const savedName = localStorage.getItem('jeju_worker_name');
-    const finalName = savedName || name;
-    currentUserInfo = { name: finalName, email };
-    document.getElementById('auth-overlay').style.display = 'none';
-    
+    const savedName = localStorage.getItem('jeju_worker_name'); const finalName = savedName || name;
+    currentUserInfo = { name: finalName, email }; document.getElementById('auth-overlay').style.display = 'none';
     const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
     document.getElementById('loginUserBadge').innerText = isAdmin ? `👑 최고관리자` : `👤 ${finalName}`;
 
-    // 로그인 시 항상 [기력 발전 - 2호기 - 3D 조감도]로 뷰포트 리셋
-    selectedMajor = '기력';
-    selectedSubTab = '2호기';
-    selectedFloor = 'ALL';
-
-    document.getElementById('btn-major-steam').classList.add('active');
-    document.getElementById('btn-major-engine').classList.remove('active');
-    document.getElementById('sub-tabs-steam').style.display = 'flex';
-    document.getElementById('sub-tabs-engine').style.display = 'none';
-    document.getElementById('sub-steam-2').classList.add('active');
-    document.getElementById('sub-steam-3').classList.remove('active');
-    document.getElementById('sub-steam-hist').classList.remove('active');
-
-    document.getElementById('overall-3d-view').style.display = 'block';
-    document.getElementById('floor-room-view').style.display = 'none';
-    document.getElementById('empty-engine-view').style.display = 'none';
-    document.getElementById('history-table-view').style.display = 'none';
+    selectedMajor = '기력'; selectedSubTab = '2호기'; selectedFloor = 'ALL';
+    document.getElementById('btn-major-steam').classList.add('active'); document.getElementById('btn-major-engine').classList.remove('active');
+    document.getElementById('sub-tabs-steam').style.display = 'flex'; document.getElementById('sub-tabs-engine').style.display = 'none';
+    document.getElementById('sub-steam-2').classList.add('active'); document.getElementById('sub-steam-3').classList.remove('active'); document.getElementById('sub-steam-hist').classList.remove('active');
+    document.getElementById('overall-3d-view').style.display = 'block'; document.getElementById('floor-room-view').style.display = 'none';
+    document.getElementById('empty-engine-view').style.display = 'none'; document.getElementById('history-table-view').style.display = 'none';
     document.getElementById('floor-bar').style.display = 'flex';
 
-    updateFloorTitle();
-    await fetchManuals();
-    fetchInstruments();
+    updateFloorTitle(); await fetchManuals(); fetchInstruments();
   }
 
-  document.getElementById('btnGoAdmin').addEventListener('click', (e) => {
-    e.preventDefault();
-    document.getElementById('login-box').style.display = 'none';
-    document.getElementById('admin-login-box').style.display = 'block';
-  });
-  document.getElementById('linkBackLogin').addEventListener('click', (e) => {
-    e.preventDefault();
-    document.getElementById('admin-login-box').style.display = 'none';
-    document.getElementById('login-box').style.display = 'block';
-  });
-  document.getElementById('linkToRegister').addEventListener('click', (e) => {
-    e.preventDefault();
-    document.getElementById('login-box').style.display = 'none';
-    document.getElementById('register-box').style.display = 'block';
-    setTimeout(() => document.getElementById('regName').focus(), 150);
-  });
-  document.getElementById('linkBackLogin2').addEventListener('click', (e) => {
-    e.preventDefault();
-    document.getElementById('register-box').style.display = 'none';
-    document.getElementById('login-box').style.display = 'block';
-  });
-
+  document.getElementById('btnGoAdmin').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('login-box').style.display = 'none'; document.getElementById('admin-login-box').style.display = 'block'; });
+  document.getElementById('linkBackLogin').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('admin-login-box').style.display = 'none'; document.getElementById('login-box').style.display = 'block'; });
+  document.getElementById('linkToRegister').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('login-box').style.display = 'none'; document.getElementById('register-box').style.display = 'block'; setTimeout(() => document.getElementById('regName').focus(), 150); });
+  document.getElementById('linkBackLogin2').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('register-box').style.display = 'none'; document.getElementById('login-box').style.display = 'block'; });
   document.getElementById('btnAdminSubmit').addEventListener('click', (e) => {
-    e.preventDefault();
-    if (document.getElementById('adminPassInput').value.trim() === ADMIN_MASTER_PASS) {
-      sessionStorage.setItem('jeju_admin_auth', 'true');
-      unlock('최고관리자', 'admin@jeju.com');
-    } else {
-      document.getElementById('adminErrorMsg').style.display = 'block';
-    }
+    e.preventDefault(); if (document.getElementById('adminPassInput').value.trim() === ADMIN_MASTER_PASS) { sessionStorage.setItem('jeju_admin_auth', 'true'); unlock('최고관리자', 'admin@jeju.com'); } else document.getElementById('adminErrorMsg').style.display = 'block';
   });
-
   document.getElementById('btnMemberLogin').addEventListener('click', async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPassword').value.trim();
-    const msgEl = document.getElementById('loginMsg');
-    msgEl.style.display = 'none';
-
-    if (!email || !password) {
-      msgEl.innerText = '⚠️ 사번(이메일)과 비밀번호를 모두 입력해 주세요.';
-      msgEl.style.display = 'block';
-      return;
-    }
-
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
-      email: email,
-      password: password
-    });
-
-    if (error) {
-      msgEl.innerText = '❌ 로그인 실패: 승인되지 않은 사번이거나 비밀번호가 틀렸습니다.';
-      msgEl.style.display = 'block';
-      return;
-    }
-
-    const namePart = email.split('@')[0];
-    localStorage.setItem('jeju_worker_name', namePart);
-    unlock(namePart, email);
+    e.preventDefault(); const email = document.getElementById('loginEmail').value.trim(); const pass = document.getElementById('loginPassword').value.trim();
+    const msgEl = document.getElementById('loginMsg'); msgEl.style.display = 'none';
+    if (!email || !pass) { msgEl.innerText = '⚠️ 사번(이메일)과 비밀번호를 모두 입력해 주세요.'; msgEl.style.display = 'block'; return; }
+    const { error } = await supabaseClient.auth.signInWithPassword({ email: email, password: pass });
+    if (error) { msgEl.innerText = '❌ 로그인 실패: 승인되지 않은 사번이거나 비밀번호가 틀렸습니다.'; msgEl.style.display = 'block'; return; }
+    const namePart = email.split('@')[0]; localStorage.setItem('jeju_worker_name', namePart); unlock(namePart, email);
   });
-
   document.getElementById('btnRegisterSubmit').addEventListener('click', async (e) => {
-    e.preventDefault();
-    const name = document.getElementById('regName').value.trim();
-    const email = document.getElementById('regEmail').value.trim();
-    const pass = document.getElementById('regPassword').value.trim();
+    e.preventDefault(); const name = document.getElementById('regName').value.trim(); const email = document.getElementById('regEmail').value.trim(); const pass = document.getElementById('regPassword').value.trim();
     const regMsg = document.getElementById('regMsg');
-
     if (!name || !email || !pass) { regMsg.innerText = '⚠️ 빈칸을 모두 채워주세요.'; regMsg.style.display = 'block'; return; }
     if (pass.length < 6) { regMsg.innerText = '⚠️ 비밀번호는 최소 6자리 이상이어야 합니다.'; regMsg.style.display = 'block'; return; }
-    regMsg.style.display = 'none';
-    localStorage.setItem('jeju_worker_name', name);
+    regMsg.style.display = 'none'; localStorage.setItem('jeju_worker_name', name);
     try { await supabaseClient.auth.signUp({ email, password: pass }); } catch (err) {}
-    alert(`🎉 [${name}] 팀원님 가입 완료!`);
-    unlock(name, email);
+    alert(`🎉 [${name}] 팀원님 가입 완료!`); unlock(name, email);
   });
-
-  document.getElementById('btnLogout').addEventListener('click', () => {
-    sessionStorage.removeItem('jeju_admin_auth'); location.reload();
-  });
+  document.getElementById('btnLogout').addEventListener('click', () => { sessionStorage.removeItem('jeju_admin_auth'); location.reload(); });
 
   const canvasWrap = document.getElementById('floor-canvas-wrap');
   const board = document.getElementById('floor-board');
@@ -1452,39 +1084,61 @@ Tag No: ${target.tag_no}
   function updateMeasureHudPrompt() {
     if (!isMeasureMode) { measureHud.style.display = 'none'; return; }
     measureHud.style.display = 'block';
-    if (selectedFloor === 'ALL') {
-      measureHud.innerText = `📐 [${selectedMajor} ${selectedSubTab}] 3D 모델 표면 터치 시 좌표가 측정·복사됩니다.`;
+    if (measureP1) {
+      measureHud.innerHTML = `📍 <b>1번 지점(${measureP1.floor})</b> 선택됨. 거리를 잴 <b>두 번째 지점</b>을 선택하세요 (층 이동 가능).`;
     } else {
-      measureHud.innerText = `📐 [${selectedMajor} ${selectedSubTab} - ${selectedFloor} 도면] 터치 지점의 2D 도면 좌표가 측정·복사됩니다.`;
+      measureHud.innerHTML = selectedFloor === 'ALL' 
+        ? `📐 <b>[계측 모드]</b> 3D 모델에서 거리를 잴 <b>첫 번째 지점</b>을 터치하세요.`
+        : `📐 <b>[계측 모드]</b> 도면에서 거리를 잴 <b>첫 번째 지점</b>을 터치하세요.`;
     }
   }
 
   btnMeasure.addEventListener('click', () => {
     isMeasureMode = !isMeasureMode;
+    measureP1 = null; measureP2 = null; // 모드 토글 시 항상 초기화
+    
     if (isMeasureMode) {
       btnMeasure.classList.add('active'); btnMeasure.innerText = '📐 계측 ON'; updateMeasureHudPrompt();
     } else {
       btnMeasure.classList.remove('active'); btnMeasure.innerText = '📐 계측'; measureHud.style.display = 'none';
-      const m1 = viewer.querySelector('#temp-measure-marker'); if (m1) m1.remove();
-      const m2 = board.querySelector('#temp-measure-marker-2d'); if (m2) m2.remove();
+      document.querySelectorAll('.measure-marker-2d, .measure-line').forEach(e => e.remove());
+      viewer.querySelectorAll('.measure-marker-3d').forEach(e => e.remove());
     }
   });
+
+  // 3D 뷰어 평면 측정 및 마커 렌더링
+  function draw3DMarker(p, idStr) {
+    if (idStr === 'p1') viewer.querySelectorAll('.measure-marker-3d').forEach(e => e.remove());
+    const marker = document.createElement('button');
+    marker.className = `measure-marker measure-marker-3d measure-marker-${idStr}`;
+    marker.slot = `hotspot-measure-${idStr}`;
+    marker.dataset.position = `${p.x3d} ${p.y3d} ${p.z3d}`;
+    viewer.appendChild(marker);
+  }
 
   viewer.addEventListener('click', (event) => {
     if (!isMeasureMode) return;
     const rect = viewer.getBoundingClientRect();
     const hit = viewer.positionAndNormalFromPoint(event.clientX - rect.left, event.clientY - rect.top);
     if (hit) {
-      const posStr = `${hit.position.x.toFixed(2)} ${hit.position.y.toFixed(2)} ${hit.position.z.toFixed(2)}`;
-      let marker = viewer.querySelector('#temp-measure-marker');
-      if (!marker) {
-        marker = document.createElement('button'); marker.id = 'temp-measure-marker';
-        marker.className = 'measure-marker'; marker.slot = 'hotspot-measure-point';
-        viewer.appendChild(marker);
+      if (!measureP1 || (measureP1 && measureP2)) {
+        measureP1 = null; measureP2 = null;
+        measureP1 = { floor: '3D', x3d: hit.position.x, y3d: hit.position.y, z3d: hit.position.z };
+        draw3DMarker(measureP1, 'p1');
+        updateMeasureHudPrompt();
+      } else {
+        measureP2 = { floor: '3D', x3d: hit.position.x, y3d: hit.position.y, z3d: hit.position.z };
+        draw3DMarker(measureP2, 'p2');
+        
+        const dx = measureP2.x3d - measureP1.x3d;
+        const dy = measureP2.y3d - measureP1.y3d;
+        const dz = measureP2.z3d - measureP1.z3d;
+        const hDist = Math.hypot(dx, dz).toFixed(2);
+        const vDist = Math.abs(dy).toFixed(2);
+        const tDist = Math.sqrt(dx*dx + dy*dy + dz*dz).toFixed(2);
+        
+        measureHud.innerHTML = `📏 <b>[3D 모델 측정] 거리: <span style="color:#10b981;">${tDist} m</span></b><br><span style="font-size:10px; color:#94a3b8;">(수평: ${hDist}m, 수직: ${vDist}m)</span>`;
       }
-      marker.dataset.position = `${hit.position.x} ${hit.position.y} ${hit.position.z}`;
-      measureHud.innerHTML = `📍 3D 좌표: <b style="color:#38bdf8;">${posStr}</b> (복사됨)`;
-      navigator.clipboard.writeText(posStr).catch(() => {});
     }
   });
 
@@ -1493,6 +1147,38 @@ Tag No: ${target.tag_no}
     const pinScale = Math.max(0.5, Math.min(1.5, (380 / orbit.radius) * 1.0));
     document.querySelectorAll('.hotspot-pin').forEach(pin => pin.style.setProperty('--pin-scale', pinScale));
   });
+
+  // 2D 도면 계측 마커 및 선 렌더링 로직
+  function renderMeasureMarkers2D() {
+    document.querySelectorAll('.measure-marker-2d, .measure-line').forEach(el => el.remove());
+    
+    if (measureP1 && measureP1.floor === selectedFloor) {
+      const m = document.createElement('div');
+      m.className = 'measure-marker-2d measure-marker-p1';
+      m.style.left = `${measureP1.x}px`; m.style.top = `${measureP1.y}px`;
+      board.appendChild(m);
+    }
+    
+    if (measureP2 && measureP2.floor === selectedFloor) {
+      const m = document.createElement('div');
+      m.className = 'measure-marker-2d measure-marker-p2';
+      m.style.left = `${measureP2.x}px`; m.style.top = `${measureP2.y}px`;
+      board.appendChild(m);
+    }
+    
+    // 두 점 모두 현재 층이면 선 그리기
+    if (measureP1 && measureP2 && measureP1.floor === selectedFloor && measureP2.floor === selectedFloor) {
+      const line = document.createElement('div');
+      line.className = 'measure-line';
+      const length = Math.hypot(measureP2.x - measureP1.x, measureP2.y - measureP1.y);
+      const angle = Math.atan2(measureP2.y - measureP1.y, measureP2.x - measureP1.x) * 180 / Math.PI;
+      line.style.width = `${length}px`;
+      line.style.left = `${measureP1.x}px`;
+      line.style.top = `${measureP1.y}px`;
+      line.style.transform = `rotate(${angle}deg)`;
+      board.appendChild(line);
+    }
+  }
 
   window.openFloorRoom = function(floor, imgFile, btn) {
     selectedFloor = floor;
@@ -1505,7 +1191,12 @@ Tag No: ${target.tag_no}
     const testImg = new Image(); testImg.src = `./${imgFile}`;
     testImg.onload = () => { board.style.backgroundImage = `url('./${imgFile}')`; notice.style.display = 'none'; };
     testImg.onerror = () => { board.style.backgroundImage = 'none'; notice.innerText = `⚠️ [${imgFile}] 파일 부재`; notice.style.display = 'block'; };
-    resetCanvasView(); renderFloorPins(); updateMeasureHudPrompt();
+    resetCanvasView(); renderFloorPins(); 
+    
+    if (isMeasureMode) {
+      updateMeasureHudPrompt();
+      renderMeasureMarkers2D();
+    }
   };
 
   window.exitToOverall = function() {
@@ -1514,7 +1205,9 @@ Tag No: ${target.tag_no}
     document.getElementById('btn-ALL').classList.add('active');
     document.getElementById('floor-room-view').style.display = 'none';
     document.getElementById('overall-3d-view').style.display = 'block';
-    updateFloorTitle(); render3DHotspots(); updateMeasureHudPrompt();
+    updateFloorTitle(); render3DHotspots(); 
+    
+    if (isMeasureMode) updateMeasureHudPrompt();
   };
 
   function updateTransform() { board.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${scale})`; }
@@ -1562,15 +1255,35 @@ Tag No: ${target.tag_no}
     const curX = Math.round(Math.max(0, Math.min(1400, clickX)));
     const curY = Math.round(Math.max(0, Math.min(1000, clickY)));
 
+    // [계측 모드 동작 처리]
     if (isMeasureMode) {
-      let m = board.querySelector('#temp-measure-marker-2d');
-      if (!m) {
-        m = document.createElement('div'); m.id = 'temp-measure-marker-2d'; m.className = 'measure-marker-2d';
-        board.appendChild(m);
+      const p3d = get3DCoordFrom2D(selectedFloor, curX, curY);
+
+      if (!measureP1 || (measureP1 && measureP2)) {
+        // 첫 번째 지점 찍기
+        measureP1 = null; measureP2 = null;
+        measureP1 = { floor: selectedFloor, x: curX, y: curY, ...p3d };
+        updateMeasureHudPrompt();
+      } else {
+        // 두 번째 지점 찍기
+        measureP2 = { floor: selectedFloor, x: curX, y: curY, ...p3d };
+        
+        // 거리 계산 로직
+        const dx = measureP2.x3d - measureP1.x3d;
+        const dy = measureP2.y3d - measureP1.y3d;
+        const dz = measureP2.z3d - measureP1.z3d;
+        
+        const hDist = Math.hypot(dx, dz).toFixed(2);
+        const vDist = Math.abs(dy).toFixed(2);
+        const tDist = Math.sqrt(dx*dx + dy*dy + dz*dz).toFixed(2);
+
+        if (measureP1.floor === measureP2.floor) {
+          measureHud.innerHTML = `📏 <b>[${selectedFloor}] 수평 직선거리: <span style="color:#10b981;">${hDist} m</span></b>`;
+        } else {
+          measureHud.innerHTML = `📏 <b>[${measureP1.floor} ↔ ${measureP2.floor}] 3D 입체거리: <span style="color:#f59e0b;">${tDist} m</span></b><br><span style="font-size:10px; color:#94a3b8;">(수평: ${hDist}m, 층고(높이차): ${vDist}m)</span>`;
+        }
       }
-      m.style.left = `${curX}px`; m.style.top = `${curY}px`;
-      measureHud.innerHTML = `📍 2D 도면 좌표: <b style="color:#38bdf8;">X:${curX}, Y:${curY}</b> (복사됨)`;
-      navigator.clipboard.writeText(`X:${curX} Y:${curY}`).catch(() => {});
+      renderMeasureMarkers2D();
       return;
     }
 
