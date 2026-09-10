@@ -3,311 +3,85 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>보일러 계측제어 3D 시스템</title>
+  <title>보일러 계측제어 관리 시스템</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
   <style>
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
-    html, body {
-      margin: 0; padding: 0; width: 100vw; height: 100vh;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background-color: #080d1a; color: #fff; overflow: hidden; position: fixed;
-    }
-    input, textarea, select, button, a {
-      user-select: auto !important; -webkit-user-select: auto !important;
-      pointer-events: auto !important; cursor: pointer;
-    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; width: 100vw; height: 100vh; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #080d1a; color: #fff; overflow: hidden; position: fixed; }
 
-    #auth-overlay {
-      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: #0b132b; display: flex; align-items: center; justify-content: center;
-      z-index: 999999; pointer-events: auto;
-    }
-    .auth-box {
-      background: #1c2541; padding: 28px 24px; border-radius: 16px;
-      border: 1px solid #3a506b; width: 90%; max-width: 340px; text-align: center;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.8); position: relative; z-index: 1000000;
-    }
+    #auth-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0b132b; display: flex; align-items: center; justify-content: center; z-index: 99999; }
+    .auth-box { background: #1c2541; padding: 28px 24px; border-radius: 16px; border: 1px solid #3a506b; width: 90%; max-width: 340px; text-align: center; }
     .auth-title { font-size: 20px; font-weight: bold; margin-bottom: 6px; color: #48cae4; }
     .auth-desc { font-size: 13px; color: #94a3b8; margin-bottom: 20px; line-height: 1.4; }
-    .auth-input {
-      width: 100%; padding: 12px; background: #0b132b; border: 1px solid #3a506b;
-      border-radius: 8px; color: #fff; font-size: 15px; margin-bottom: 12px; outline: none; -webkit-appearance: none;
-    }
-    .auth-btn {
-      width: 100%; padding: 14px; background: #00b4d8; color: #0b132b;
-      border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 6px; display: block;
-    }
-    .auth-btn:active { background: #0096c7; }
-    
-    .btn-biometric {
-      width: 100%; padding: 14px; background: #10b981; color: #fff;
-      border: none; border-radius: 8px; font-size: 15px; font-weight: bold;
-      cursor: pointer; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;
-    }
-    .btn-biometric:active { background: #059669; }
-
+    .auth-input { width: 100%; padding: 12px; background: #0b132b; border: 1px solid #3a506b; border-radius: 8px; color: #fff; font-size: 15px; margin-bottom: 12px; outline: none; }
+    .auth-btn { width: 100%; padding: 12px; background: #00b4d8; color: #0b132b; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 6px; }
+    .btn-biometric { width: 100%; padding: 12px; background: #10b981; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; }
     .auth-divider { display: flex; align-items: center; margin: 16px 0; color: #64748b; font-size: 12px; }
     .auth-divider::before, .auth-divider::after { content: ''; flex: 1; border-bottom: 1px solid #334155; }
     .auth-divider span { padding: 0 10px; }
-    
-    .btn-admin-pass {
-      width: 100%; padding: 12px; background: #111a33; border: 1px solid #3b82f6;
-      color: #93c5fd; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer;
-    }
-    .btn-admin-pass:active { background: #1e3a8a; }
-
-    .auth-toggle-link {
-      margin-top: 16px; font-size: 13px; color: #94a3b8; cursor: pointer; text-decoration: underline;
-      padding: 6px; display: inline-block;
-    }
+    .btn-admin-pass { width: 100%; padding: 11px; background: #111a33; border: 1px solid #3b82f6; color: #93c5fd; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; }
+    .auth-toggle-link { margin-top: 14px; font-size: 13px; color: #94a3b8; cursor: pointer; text-decoration: underline; }
     .auth-status-error { color: #ef4444; font-size: 12px; margin-top: 10px; display: none; line-height: 1.4; }
     #admin-login-box, #register-box { display: none; }
 
-    #header {
-      position: fixed; top: 0; left: 0; width: 100vw; height: 50px;
-      background: #1c2541; display: flex; align-items: center; justify-content: space-between;
-      padding: 0 10px; border-bottom: 1px solid #3a506b; z-index: 5000;
-    }
-    .brand { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
-    .location-tag { background: #48cae4; color: #0b132b; padding: 3px 6px; border-radius: 10px; font-size: 11px; font-weight: bold; }
-    .header-btns { display: flex; gap: 5px; align-items: center; }
-    .btn-search-top { background: #0284c7; border: 1px solid #38bdf8; color: #fff; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
-    .btn-measure { background: #334155; border: 1px solid #64748b; color: #f8fafc; padding: 5px 7px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
-    .btn-measure.active { background: #f59e0b; border-color: #fbbf24; color: #111827; }
-    .btn-bio-reg { background: #065f46; border: 1px solid #10b981; color: #a7f3d0; padding: 5px 7px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
-    .btn-logout { background: transparent; border: 1px solid #64748b; color: #cbd5e1; padding: 5px 7px; border-radius: 6px; cursor: pointer; font-size: 11px; }
+    #header { height: 52px; background: #1c2541; display: flex; align-items: center; justify-content: space-between; padding: 0 14px; border-bottom: 2px solid #3a506b; z-index: 1000; }
+    #header .brand { font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+    #header .floor-tag { background: #48cae4; color: #0b132b; padding: 3px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+    .header-btns { display: flex; gap: 6px; align-items: center; }
+    .btn-bio-reg { background: #065f46; border: 1px solid #10b981; color: #a7f3d0; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
+    .btn-logout { background: transparent; border: 1px solid #64748b; color: #cbd5e1; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; }
 
-    /* 대분류 & 하위 호기 선택 바 */
-    #unit-selector-bar {
-      position: fixed; top: 50px; left: 0; width: 100vw; height: 76px;
-      background: #0f172a; border-bottom: 2px solid #3a506b; display: flex;
-      flex-direction: column; justify-content: center; gap: 6px; z-index: 4900;
-      padding: 6px 10px;
-    }
-    .selector-row {
-      display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
-    }
-    .major-tab-btn {
-      flex: 1; max-width: 160px; height: 28px; border: 1px solid #475569;
-      background: #1e293b; color: #cbd5e1; font-size: 12px; font-weight: bold;
-      border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center;
-    }
-    .major-tab-btn.active {
-      background: #0284c7; color: #fff; border-color: #38bdf8;
-      box-shadow: 0 0 10px rgba(2, 132, 199, 0.7);
-    }
-    .sub-tab-btn {
-      flex: 1; max-width: 115px; height: 26px; border: 1px solid #334155;
-      background: #111a33; color: #94a3b8; font-size: 11px; font-weight: bold;
-      border-radius: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center;
-    }
-    .sub-tab-btn.active {
-      background: #38bdf8; color: #0b132b; border-color: #7dd3fc;
-      box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
-    }
-
-    #measure-info-hud {
-      display: none; position: absolute; top: 132px; left: 50%; transform: translateX(-50%);
-      background: rgba(15, 23, 42, 0.95); border: 2px solid #f59e0b; padding: 8px 16px;
-      border-radius: 20px; font-size: 12px; font-weight: bold; color: #fde68a; z-index: 6000;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.6); pointer-events: none; text-align: center;
-      max-width: 90vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-
-    #main-viewport {
-      position: fixed; top: 126px; bottom: 65px; left: 0; width: 100vw;
-      background: radial-gradient(circle at center, #1b2838 0%, #080d1a 100%);
-      z-index: 10; overflow: hidden;
-    }
-    #overall-3d-view { width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
-    model-viewer { width: 100%; height: 100%; --poster-color: transparent; }
-    model-viewer::part(default-progress-bar), model-viewer::part(prompt) { display: none !important; }
-
-    /* 빈 화면(내연 호기) */
-    #empty-engine-view {
-      display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0;
-      background: #080d1a; display: flex; flex-direction: column; align-items: center; justify-content: center;
-      color: #64748b; font-size: 14px; text-align: center; line-height: 1.6;
-    }
-
-    /* 관리이력 테이블 뷰 */
-    #history-table-view {
-      display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0;
-      background: #080d1a; z-index: 50; overflow-y: auto; padding: 12px;
-    }
-    .history-table-header {
-      display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
-      border-bottom: 1px solid #334155; padding-bottom: 8px;
-    }
-    .history-table-title { font-size: 15px; font-weight: bold; color: #38bdf8; }
-    .history-search-bar {
-      padding: 6px 10px; background: #111a33; border: 1px solid #334155; border-radius: 6px;
-      color: #fff; font-size: 12px; outline: none; width: 160px;
-    }
-    .custom-history-table {
-      width: 100%; border-collapse: collapse; text-align: left; font-size: 12px;
-    }
-    .custom-history-table th {
-      background: #1e293b; color: #38bdf8; padding: 8px 6px; border-bottom: 2px solid #334155;
-      font-weight: bold; white-space: nowrap;
-    }
-    .custom-history-table td {
-      padding: 8px 6px; border-bottom: 1px solid #1e293b; color: #cbd5e1; vertical-align: middle;
-    }
-    .custom-history-table tr:hover { background: #111a33; }
-    .badge-category {
-      padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; white-space: nowrap;
-    }
-    .badge-steam { background: #0284c7; color: #fff; }
-    .badge-engine { background: #d97706; color: #fff; }
-
-    .hotspot-pin {
-      background: #00b4d8; border: 2px solid #ffffff; border-radius: 50%;
-      width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
-      font-size: 12px; font-weight: bold; color: #0b132b; cursor: pointer;
-      box-shadow: 0 0 10px rgba(0, 180, 216, 0.9);
-      transform: translate(-50%, -50%) scale(var(--pin-scale, 1));
-      transition: transform 0.1s ease-out; background-size: cover; background-position: center;
-    }
-    .hotspot-pin span {
-      position: absolute; top: -24px; left: 50%; transform: translateX(-50%);
-      background: rgba(11, 19, 43, 0.92); color: #38bdf8; padding: 2px 6px;
-      border-radius: 4px; font-size: 10px; white-space: nowrap; border: 1px solid #38bdf8; pointer-events: none;
-    }
-    .measure-marker {
-      background: #ef4444; border: 2px solid #ffffff; border-radius: 50%;
-      width: 16px; height: 16px; transform: translate(-50%, -50%);
-      box-shadow: 0 0 10px #ef4444; pointer-events: none;
-    }
-    .measure-marker-2d {
-      position: absolute; background: #f59e0b; border: 2px solid #ffffff; border-radius: 50%;
-      width: 14px; height: 14px; transform: translate(-50%, -50%);
-      box-shadow: 0 0 10px #f59e0b; pointer-events: none; z-index: 99;
-    }
-
-    #floor-room-view {
-      display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0;
-      background: #080d1a; touch-action: none;
-    }
-    #floor-room-header {
-      position: absolute; top: 12px; left: 12px; right: 12px;
-      background: rgba(15, 23, 42, 0.95); border: 1px solid #00b4d8;
-      border-radius: 10px; padding: 10px 14px; display: flex;
-      justify-content: space-between; align-items: center; z-index: 30;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.7);
-    }
-    .room-title { font-size: 15px; font-weight: bold; color: #38bdf8; }
-    .room-desc { font-size: 11px; color: #94a3b8; margin-top: 2px; }
-    .btn-exit-room {
-      background: #0284c7; color: #fff; border: none; padding: 6px 12px;
-      border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer;
-    }
-
-    #floor-canvas-wrap { width: 100%; height: 100%; position: absolute; top: 0; left: 0; cursor: grab; overflow: hidden; touch-action: none; }
-    #floor-board {
-      width: 1400px; height: 1000px; position: absolute;
-      top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.65);
-      transform-origin: center center; background-color: #ffffff;
-      background-repeat: no-repeat; background-position: center center; background-size: contain;
-      border: 2px solid #0284c7; border-radius: 12px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; touch-action: none;
-    }
-    .no-img-notice {
-      color: #ef4444; font-size: 15px; font-weight: bold; pointer-events: none;
-      background: rgba(15, 23, 42, 0.9); padding: 12px 20px; border-radius: 8px; border: 1px dashed #334155;
-    }
-
-    .floor-inst-pin {
-      position: absolute; width: 36px; height: 36px; border-radius: 50%;
-      background: #00b4d8; border: 2px solid #ffffff; box-shadow: 0 0 14px rgba(0, 180, 216, 1);
-      display: flex; align-items: center; justify-content: center;
-      color: #0b132b; font-size: 14px; font-weight: bold; cursor: grab;
-      transform: translate(-50%, -50%); z-index: 50; background-size: cover; background-position: center;
-      touch-action: none; transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-    }
-    .floor-inst-pin.pin-pressing {
-      transform: translate(-50%, -50%) scale(1.15); border-color: #facc15; box-shadow: 0 0 20px rgba(250, 204, 21, 0.9);
-    }
-    .floor-inst-pin.pin-dragging {
-      border-color: #f59e0b; box-shadow: 0 0 25px rgba(245, 158, 11, 1), 0 0 45px rgba(245, 158, 11, 0.7);
-      transform: translate(-50%, -50%) scale(1.45) !important; z-index: 9999 !important; cursor: grabbing !important;
-    }
-    .floor-inst-pin.pin-highlight { animation: pinPulse 1.2s infinite alternate; border-color: #ec4899 !important; }
-    @keyframes pinPulse {
-      0% { transform: translate(-50%, -50%) scale(1.0); box-shadow: 0 0 10px #ec4899; }
-      100% { transform: translate(-50%, -50%) scale(1.5); box-shadow: 0 0 35px #ec4899; }
-    }
-    .floor-inst-pin span {
-      position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%);
-      background: rgba(11, 19, 43, 0.9); color: #fff; padding: 2px 6px;
-      border-radius: 4px; font-size: 11px; white-space: nowrap; border: 1px solid #38bdf8; pointer-events: none;
-    }
-
-    .canvas-zoom-ctrl { position: absolute; right: 14px; bottom: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 40; }
-    .zoom-btn {
-      width: 44px; height: 44px; border-radius: 10px; background: rgba(15, 23, 42, 0.92);
-      border: 1px solid #38bdf8; color: #fff; font-size: 20px; font-weight: bold;
-      display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-    }
-
-    #floor-bar {
-      position: fixed; bottom: 0; left: 0; width: 100vw; height: 65px;
-      background: #111a33; border-top: 2px solid #3a506b; display: flex;
-      align-items: center; padding: 0 10px; gap: 6px; z-index: 5000;
-      overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
-    }
-    #floor-bar::-webkit-scrollbar { display: none; }
-    .floor-btn {
-      flex-shrink: 0; height: 42px; min-width: 58px; padding: 0 10px;
-      background: #1c2541; color: #94a3b8; border: 1px solid #3a506b;
-      border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; white-space: nowrap;
-    }
+    #container { display: flex; height: calc(100vh - 52px); width: 100vw; position: relative; }
+    #floor-selector { width: 72px; background: #111a33; border-right: 1px solid #1c2541; display: flex; flex-direction: column; gap: 6px; padding: 8px 6px; z-index: 500; overflow-y: auto; }
+    .floor-btn { width: 100%; height: 44px; background: #1c2541; color: #94a3b8; border: 1px solid #3a506b; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; }
     .floor-btn.active { background: #00b4d8; color: #0b132b; border-color: #90e0ef; }
+    #map-wrapper { flex: 1; height: 100%; position: relative; background: #070d1d; }
+    #map { width: 100%; height: 100%; background: #070d1d; z-index: 10; }
 
-    #modal, #info-modal, #history-modal, #search-modal {
-      display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      background: #ffffff; padding: 20px; border-radius: 12px; z-index: 9999999;
-      width: 92%; max-width: 380px; color: #333; max-height: 88vh; overflow-y: auto;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.8); pointer-events: auto;
-    }
-    #modal h3, #info-modal h3, #history-modal h3, #search-modal h3 { margin: 0 0 12px 0; font-size: 16px; color: #0b132b; }
+    .leaflet-popup-content-wrapper { background: #1c2541; color: #fff; border-radius: 12px; border: 1px solid #3a506b; }
+    .leaflet-popup-tip { background: #1c2541; }
+    .popup-card { font-size: 13px; line-height: 1.5; min-width: 190px; }
+    .popup-card b { font-size: 15px; color: #48cae4; display: block; margin-bottom: 4px; }
+    .popup-img { width: 100%; max-height: 160px; object-fit: cover; border-radius: 6px; margin: 6px 0; }
+    .btn-delete-pin { width: 100%; padding: 7px; margin-top: 8px; background: #ef4444; border: none; border-radius: 6px; color: #fff; font-size: 12px; font-weight: bold; cursor: pointer; }
+
+    #modal { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #ffffff; padding: 20px; border-radius: 12px; z-index: 2000; width: 88%; max-width: 360px; color: #333; max-height: 90vh; overflow-y: auto; }
+    #modal h3 { margin: 0 0 12px 0; font-size: 16px; color: #0b132b; }
     .form-group { margin-bottom: 10px; }
     .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #334155; }
-    .form-group input, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; font-family: inherit; color: #111; }
-    
-    .photo-btn-group { display: flex; gap: 6px; }
-    .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; flex: 1; }
-    .btn-file-upload { background: #0284c7; color: #fff; padding: 9px; width: 100%; border-radius: 6px; font-weight: bold; text-align: center; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 4px; }
-    .btn-file-upload.btn-secondary { background: #e2e8f0; border: 1px solid #cbd5e1; color: #334155; }
-    .file-input-wrapper input[type=file] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; height: 100%; width: 100%; }
-    .preview-img { display: none; width: 100%; max-height: 140px; object-fit: contain; margin-top: 8px; border-radius: 8px; border: 1px solid #cbd5e1; }
-
+    .form-group input { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; }
     .btn-wrap { display: flex; gap: 8px; margin-top: 14px; }
     .btn-wrap button { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
     .btn-save { background: #0077b6; color: #fff; }
     .btn-cancel { background: #e2e8f0; color: #475569; }
+    .photo-preview { width: 100%; height: 110px; background: #f1f5f9; border: 1px dashed #94a3b8; border-radius: 6px; display: flex; align-items: center; justify-content: center; margin-top: 6px; overflow: hidden; }
+    .photo-preview img { width: 100%; height: 100%; object-fit: cover; display: none; }
 
-    .history-section { margin-top: 12px; padding-top: 10px; border-top: 1px dashed #cbd5e1; }
-    .history-title { font-size: 13px; font-weight: bold; color: #0284c7; margin-bottom: 8px; }
-    .history-list { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
-    .history-item { background: #f8fafc; border-left: 3px solid #0284c7; padding: 8px; border-radius: 4px; font-size: 12px; position: relative; }
-    .history-item-header { display: flex; justify-content: space-between; align-items: center; color: #64748b; font-size: 11px; margin-bottom: 4px; }
-    .history-actions { display: flex; gap: 6px; }
-    .btn-hist-action { background: transparent; border: none; cursor: pointer; font-size: 11px; font-weight: bold; padding: 2px 4px; border-radius: 3px; }
-    .btn-hist-edit { color: #0284c7; }
-    .btn-hist-del { color: #ef4444; }
-    .hist-img { width: 100%; max-height: 100px; object-fit: cover; border-radius: 4px; margin-top: 6px; }
-    .btn-add-history-quick { width: 100%; padding: 9px; background: #0284c7; color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; margin-bottom: 6px; }
-    .btn-delete-pin { width: 100%; padding: 8px; background: #ef4444; border: none; border-radius: 6px; color: #fff; font-size: 12px; font-weight: bold; cursor: pointer; }
-
-    .search-input-box { width: 100%; padding: 10px 12px; border: 2px solid #00b4d8; border-radius: 8px; font-size: 14px; outline: none; margin-bottom: 12px; }
-    .search-results-list { max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
-    .search-result-item { background: #f1f5f9; padding: 10px; border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border: 1px solid #cbd5e1; }
-    .search-result-item:hover { background: #e2e8f0; border-color: #0284c7; }
-    .search-item-main { font-size: 13px; font-weight: bold; color: #0b132b; }
-    .search-item-sub { font-size: 11px; color: #64748b; margin-top: 2px; }
-    .search-item-badge { background: #0284c7; color: #fff; padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; white-space: nowrap; }
+    /* Gemini 플로팅 챗봇 버튼 & 창 */
+    #ai-fab-btn {
+      position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; border-radius: 28px;
+      background: linear-gradient(135deg, #00b4d8, #0077b6); color: #fff; border: 2px solid #90e0ef;
+      font-size: 26px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; z-index: 4000; box-shadow: 0 6px 20px rgba(0,180,216,0.5);
+    }
+    #ai-chat-panel {
+      display: none; position: fixed; bottom: 90px; right: 20px; width: 340px; height: 480px;
+      background: #1c2541; border: 1px solid #3a506b; border-radius: 16px; z-index: 4000;
+      flex-direction: column; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.7);
+    }
+    .ai-chat-header {
+      background: #111a33; padding: 12px 16px; display: flex; justify-content: space-between;
+      align-items: center; border-bottom: 1px solid #3a506b; font-weight: bold; font-size: 14px; color: #48cae4;
+    }
+    .ai-chat-messages { flex: 1; padding: 12px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; font-size: 13px; }
+    .ai-msg { max-width: 85%; padding: 8px 12px; border-radius: 10px; line-height: 1.4; word-break: break-word; }
+    .ai-msg.user { align-self: flex-end; background: #0077b6; color: #fff; border-bottom-right-radius: 2px; }
+    .ai-msg.gemini { align-self: flex-start; background: #0b132b; color: #e2e8f0; border: 1px solid #3a506b; border-bottom-left-radius: 2px; white-space: pre-wrap; }
+    .ai-chat-input-wrap { display: flex; padding: 10px; background: #111a33; border-top: 1px solid #3a506b; gap: 6px; }
+    .ai-chat-input-wrap input { flex: 1; background: #0b132b; border: 1px solid #3a506b; border-radius: 8px; color: #fff; padding: 8px 12px; font-size: 13px; outline: none; }
+    .ai-chat-input-wrap button { background: #00b4d8; color: #0b132b; border: none; border-radius: 8px; padding: 8px 14px; font-weight: bold; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -315,1182 +89,381 @@
 <div id="auth-overlay">
   <div id="login-box" class="auth-box">
     <div class="auth-title">🔐 시스템 로그인</div>
-    <div class="auth-desc">보일러 계측제어 관리 시스템</div>
-    <button class="btn-biometric" id="btnBioLogin" type="button">👆 기기 생체/지문 즉시 로그인</button>
+    <div class="auth-desc">보일러 계측기 관리 시스템</div>
+    <button class="btn-biometric" id="btnBioLogin">👆 태블릿 생체/지문 즉시 로그인</button>
     <div id="bioLoginMsg" class="auth-status-error"></div>
     <div class="auth-divider"><span>또는 사번 로그인</span></div>
-    <input type="text" id="loginEmail" class="auth-input" placeholder="사번(이메일: 12345@jeju.com)">
+    <input type="text" id="loginEmail" class="auth-input" placeholder="사번(이메일 형태: 12345@jeju.com)">
     <input type="password" id="loginPassword" class="auth-input" placeholder="비밀번호">
-    <button class="auth-btn" id="btnMemberLogin" type="button">팀원 로그인</button>
+    <button class="auth-btn" id="btnMemberLogin">팀원 로그인</button>
     <div id="loginMsg" class="auth-status-error"></div>
-    <div class="auth-toggle-link" id="linkToRegister">신규 팀원 계정 신청</div>
+    <div class="auth-toggle-link" id="linkToRegister">신규 팀원 계정 등록(신청)</div>
     <div class="auth-divider"><span>또는</span></div>
-    <button class="btn-admin-pass" id="btnGoAdmin" type="button">👑 최고관리자 즉시 입장</button>
+    <button class="btn-admin-pass" id="btnGoAdmin">👑 관리자 비밀번호로 즉시 입장</button>
   </div>
 
   <div id="admin-login-box" class="auth-box">
-    <div class="auth-title" style="color: #38bdf8;">👑 최고관리자 모드</div>
+    <div class="auth-title" style="color: #38bdf8;">👑 관리자 마스터 모드</div>
+    <div class="auth-desc">마스터 비밀번호를 입력하세요.</div>
     <input type="password" id="adminPassInput" class="auth-input" placeholder="마스터 비밀번호">
-    <button class="auth-btn" style="background: #38bdf8;" id="btnAdminSubmit" type="button">관리자 접속</button>
-    <div id="adminErrorMsg" class="auth-status-error">⚠️ 비밀번호가 틀렸습니다.</div>
-    <div class="auth-toggle-link" id="linkBackLogin">돌아가기</div>
+    <button class="auth-btn" style="background: #38bdf8;" id="btnAdminSubmit">관리자 즉시 접속</button>
+    <div id="adminErrorMsg" class="auth-status-error">⚠️ 비밀번호가 일치하지 않습니다.</div>
+    <div class="auth-toggle-link" id="linkBackLogin">일반 로그인으로 돌아가기</div>
   </div>
 
   <div id="register-box" class="auth-box">
-    <div class="auth-title">📝 신규 팀원 가입</div>
+    <div class="auth-title">📝 신규 팀원 등록</div>
+    <div class="auth-desc">신청 후 관리자 승인이 필요합니다.</div>
     <input type="text" id="regName" class="auth-input" placeholder="이름 (예: 홍길동)">
-    <input type="text" id="regEmail" class="auth-input" placeholder="사번 (12345@jeju.com)">
+    <input type="text" id="regEmail" class="auth-input" placeholder="사번 (예: 12345@jeju.com)">
     <input type="password" id="regPassword" class="auth-input" placeholder="비밀번호 (6자리 이상)">
-    <button class="auth-btn" id="btnRegisterSubmit" type="button">가입 신청 및 입장</button>
+    <button class="auth-btn" id="btnRegisterSubmit">가입 신청</button>
     <div id="regMsg" class="auth-status-error"></div>
-    <div class="auth-toggle-link" id="linkBackLogin2">돌아가기</div>
+    <div class="auth-toggle-link" id="linkBackLogin2">로그인 화면으로 돌아가기</div>
   </div>
 </div>
 
 <div id="header">
   <div class="brand">
-    <span>⚡ 제주 발전제어</span>
-    <span class="location-tag" id="currentFloorTag">기력 2호기 전체</span>
+    <span>🏢 보일러 계측제어 맵</span>
+    <span class="floor-tag" id="current-floor-badge">1F (Boiler)</span>
   </div>
   <div class="header-btns">
-    <span id="loginUserBadge" style="font-size:11px; color:#38bdf8; font-weight:bold; margin-right:2px;"></span>
-    <button class="btn-search-top" id="btnOpenSearch">🔍 검색</button>
-    <button class="btn-measure" id="btnToggleMeasure">📐 계측</button>
-    <button class="btn-bio-reg" id="btnRegisterBio">👆 지문</button>
+    <button class="btn-bio-reg" id="btnRegisterBio">👆 지문 등록</button>
     <button class="btn-logout" id="btnLogout">로그아웃</button>
   </div>
 </div>
 
-<!-- 대분류 & 세부 탭 선택 바 -->
-<div id="unit-selector-bar">
-  <div class="selector-row">
-    <button class="major-tab-btn active" id="btn-major-steam" onclick="switchMajor('기력')">⚡ 기력 발전</button>
-    <button class="major-tab-btn" id="btn-major-engine" onclick="switchMajor('내연')">🔥 내연 발전</button>
+<div id="container">
+  <div id="floor-selector">
+    <button class="floor-btn" data-floor="8">8F</button>
+    <button class="floor-btn" data-floor="7">7F</button>
+    <button class="floor-btn" data-floor="6">6F</button>
+    <button class="floor-btn" data-floor="5">5F</button>
+    <button class="floor-btn" data-floor="4">4F</button>
+    <button class="floor-btn" data-floor="3">3F</button>
+    <button class="floor-btn" data-floor="2">2F</button>
+    <button class="floor-btn active" data-floor="1">1F</button>
   </div>
-  <!-- 기력 세부 탭 -->
-  <div class="selector-row" id="sub-tabs-steam">
-    <button class="sub-tab-btn active" id="sub-steam-2" onclick="switchSubTab('2호기')">2호기</button>
-    <button class="sub-tab-btn" id="sub-steam-3" onclick="switchSubTab('3호기')">3호기</button>
-    <button class="sub-tab-btn" id="sub-steam-hist" onclick="switchSubTab('관리이력')">📋 관리이력</button>
-  </div>
-  <!-- 내연 세부 탭 -->
-  <div class="selector-row" id="sub-tabs-engine" style="display: none;">
-    <button class="sub-tab-btn active" id="sub-engine-1" onclick="switchSubTab('1호기')">1호기</button>
-    <button class="sub-tab-btn" id="sub-engine-2" onclick="switchSubTab('2호기')">2호기</button>
-    <button class="sub-tab-btn" id="sub-engine-hist" onclick="switchSubTab('관리이력')">📋 관리이력</button>
-  </div>
-</div>
-
-<div id="measure-info-hud">📐 모델 위 모서리를 터치하면 좌표가 자동 복사됩니다.</div>
-
-<div id="main-viewport">
-  <!-- 3D 뷰 (기력 2호기/3호기) -->
-  <div id="overall-3d-view">
-    <model-viewer id="boilerViewer" src="./boiler.glb"
-      interaction-prompt="none"
-      orientation="90deg 270deg 210deg"
-      camera-orbit="0deg 75deg 380m"
-      camera-target="auto auto auto"
-      camera-controls
-      touch-action="pan-y"
-      interpolation-decay="150"
-      environment-image="neutral"
-      shadow-intensity="1.5"
-      shadow-softness="0.5"
-      exposure="1.0">
-    </model-viewer>
-  </div>
-
-  <!-- 2D 도면 뷰 (기력 2호기/3호기) -->
-  <div id="floor-room-view">
-    <div id="floor-room-header">
-      <div>
-        <div class="room-title" id="roomTitleText">📍 1층 도면 공간</div>
-        <div class="room-desc">2초간 길게 누르면 핀 이동 | 짧게 터치 시 정보 확인</div>
-      </div>
-      <button class="btn-exit-room" onclick="exitToOverall()">🌐 조감도로 나가기</button>
-    </div>
-
-    <div id="floor-canvas-wrap">
-      <div id="floor-board">
-        <div class="no-img-notice" id="noImgNotice" style="display:none;">도면 이미지 로딩 중...</div>
-      </div>
-    </div>
-
-    <div class="canvas-zoom-ctrl">
-      <button class="zoom-btn" onclick="zoomCanvas(0.25)">＋</button>
-      <button class="zoom-btn" onclick="zoomCanvas(-0.25)">－</button>
-      <button class="zoom-btn" onclick="resetCanvasView()" style="font-size: 12px;">리셋</button>
-    </div>
-  </div>
-
-  <!-- 빈 화면 뷰 (내연 1호기/2호기) -->
-  <div id="empty-engine-view">
-    <div style="font-size: 40px; margin-bottom: 12px;">⚙️</div>
-    <div style="font-size: 16px; font-weight: bold; color: #38bdf8;" id="emptyEngineTitle">내연 1호기 설비 공간</div>
-    <div style="margin-top: 6px;">현재 모델링 및 도면 데이터가 준비 중입니다.</div>
-  </div>
-
-  <!-- 전체 관리이력 표 뷰 -->
-  <div id="history-table-view">
-    <div class="history-table-header">
-      <div class="history-table-title" id="historyTableTitle">📋 [기력발전] 통합 점검 및 관리이력</div>
-      <input type="text" id="tableFilterInput" class="history-search-bar" placeholder="이력 검색..." oninput="renderHistoryTable()">
-    </div>
-    <div style="overflow-x: auto;">
-      <table class="custom-history-table">
-        <thead>
-          <tr>
-            <th>구분</th>
-            <th>날짜</th>
-            <th>Tag No</th>
-            <th>기기명</th>
-            <th>작업자</th>
-            <th>점검 내용</th>
-          </tr>
-        </thead>
-        <tbody id="historyTableBody">
-          <!-- 동적 렌더링 -->
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
-<div id="floor-bar">
-  <button class="floor-btn active" id="btn-ALL" onclick="exitToOverall()">전체</button>
-  <button class="floor-btn" onclick="openFloorRoom('1층', 'floor_1f.jpg', this)">1층</button>
-  <button class="floor-btn" onclick="openFloorRoom('2층', 'floor_2f.jpg', this)">2층</button>
-  <button class="floor-btn" onclick="openFloorRoom('2.5층', 'floor_2_5f.jpg', this)">2.5층</button>
-  <button class="floor-btn" onclick="openFloorRoom('3층', 'floor_3f.jpg', this)">3층</button>
-  <button class="floor-btn" onclick="openFloorRoom('3.1/3층', 'floor_3_1_3f.jpg', this)">3.1/3층</button>
-  <button class="floor-btn" onclick="openFloorRoom('3.2/3층', 'floor_3_2_3f.jpg', this)">3.2/3층</button>
-  <button class="floor-btn" onclick="openFloorRoom('4층', 'floor_4f.jpg', this)">4층</button>
-  <button class="floor-btn" onclick="openFloorRoom('4.5층', 'floor_4_5f.jpg', this)">4.5층</button>
-  <button class="floor-btn" onclick="openFloorRoom('5층', 'floor_5f.jpg', this)">5층</button>
-  <button class="floor-btn" onclick="openFloorRoom('5.5층', 'floor_5_5f.jpg', this)">5.5층</button>
-  <button class="floor-btn" onclick="openFloorRoom('6층', 'floor_6f.jpg', this)">6층</button>
-  <button class="floor-btn" onclick="openFloorRoom('7층', 'floor_7f.jpg', this)">7층</button>
-</div>
-
-<!-- 검색 모달 -->
-<div id="search-modal">
-  <h3>🔍 계측기 검색 및 바로가기</h3>
-  <input type="text" id="searchInput" class="search-input-box" placeholder="Tag No 또는 기기명 검색 (예: 20-PT-101)">
-  <div class="search-results-list" id="searchResultsList">
-    <div style="color: #94a3b8; font-size: 12px; text-align: center; padding: 20px;">검색어를 입력하세요.</div>
-  </div>
-  <div class="btn-wrap" style="margin-top: 14px;">
-    <button class="btn-cancel" onclick="document.getElementById('search-modal').style.display='none'">닫기</button>
+  <div id="map-wrapper">
+    <div id="map"></div>
   </div>
 </div>
 
 <!-- 계측기 등록 모달 -->
 <div id="modal">
-  <h3>계측기 등록 (<span id="modalUnitText" style="color:#0284c7; font-weight:bold;">기력 2호기</span> <span id="modalFloorText" style="color:#00b4d8; font-weight:bold;">1층</span>)</h3>
+  <h3>계측기 등록 (<span id="modal-floor-text">1F</span>)</h3>
   <div class="form-group"><label>Tag No.</label><input type="text" id="tagNo" placeholder="예: 20-PT-101"></div>
-  <div class="form-group"><label>기기명</label><input type="text" id="name" placeholder="예: 급수 압력 전송기"></div>
-  <div class="form-group"><label>모델명</label><input type="text" id="model"></div>
-  <div class="form-group"><label>측정범위 / 신호</label><input type="text" id="range"></div>
-  
+  <div class="form-group"><label>기기명</label><input type="text" id="name" placeholder="예: 보일러 급수 압력"></div>
+  <div class="form-group"><label>모델명</label><input type="text" id="model" placeholder="예: Rosemount 3051S"></div>
+  <div class="form-group"><label>측정범위 / 신호</label><input type="text" id="range" placeholder="예: 0~25 MPa"></div>
+  <div class="form-group"><label>실례가</label><input type="text" id="price"></div>
   <div class="form-group">
-    <label>기기 사진 첨부 (기본: 카메라 촬영)</label>
-    <div class="photo-btn-group">
-      <div class="file-input-wrapper">
-        <div class="btn-file-upload">📷 즉시 촬영</div>
-        <input type="file" id="instPhotoCam" accept="image/*" capture="environment">
-      </div>
-      <div class="file-input-wrapper">
-        <div class="btn-file-upload btn-secondary">🖼️ 앨범 선택</div>
-        <input type="file" id="instPhotoGallery" accept="image/*">
-      </div>
-    </div>
-    <img id="photoPreview" class="preview-img">
-  </div>
-
-  <div class="history-section" style="background:#f8fafc; padding:10px; border-radius:8px; margin-top:14px; border:1px solid #e2e8f0;">
-    <div class="history-title" style="margin-bottom:6px;">📋 최초 점검/설치 이력 작성 (선택)</div>
-    <div class="form-group"><label>작업자 성명</label><input type="text" id="initHistAuthor" placeholder="작업자 이름"></div>
-    <div class="form-group"><label>설치/점검 내용</label><textarea id="initHistContent" rows="2" placeholder="신규 설치 및 상태 점검 내용"></textarea></div>
-    <div class="form-group">
-      <label>조치 현장 사진</label>
-      <div class="photo-btn-group">
-        <div class="file-input-wrapper">
-          <div class="btn-file-upload">📷 즉시 촬영</div>
-          <input type="file" id="initHistPhotoCam" accept="image/*" capture="environment">
-        </div>
-        <div class="file-input-wrapper">
-          <div class="btn-file-upload btn-secondary">🖼️ 앨범 선택</div>
-          <input type="file" id="initHistPhotoGallery" accept="image/*">
-        </div>
-      </div>
-      <img id="initHistPreview" class="preview-img">
+    <label>현장 사진 첨부</label>
+    <input type="file" id="instPhoto" accept="image/*" capture="environment">
+    <div class="photo-preview">
+      <span id="photoPreviewText" style="font-size: 12px; color: #94a3b8;">촬영 또는 사진 선택</span>
+      <img id="photoPreviewImg" src="" alt="미리보기">
     </div>
   </div>
-
   <div class="btn-wrap">
-    <button class="btn-save" id="btnSaveInst">저장하기</button>
-    <button class="btn-cancel" onclick="document.getElementById('modal').style.display='none'">취소</button>
+    <button class="btn-save" id="btnSaveInst">저장</button>
+    <button class="btn-cancel" id="btnCancelInst">취소</button>
   </div>
 </div>
 
-<!-- 상세 정보 모달 -->
-<div id="info-modal">
-  <h3 id="infoTitle">계측기 상세</h3>
-  <img id="infoMainImg" class="preview-img" style="margin-bottom:6px;">
-  <div class="photo-btn-group" style="margin-bottom: 12px;">
-    <div class="file-input-wrapper">
-      <div class="btn-file-upload" style="padding: 7px; font-size: 11px;">📷 대표사진 촬영 변경</div>
-      <input type="file" id="updateMainPhotoCam" accept="image/*" capture="environment">
-    </div>
-    <div class="file-input-wrapper">
-      <div class="btn-file-upload btn-secondary" style="padding: 7px; font-size: 11px;">🖼️ 앨범에서 선택 변경</div>
-      <input type="file" id="updateMainPhotoGallery" accept="image/*">
-    </div>
+<!-- Gemini 챗봇 플로팅 버튼 & 창 -->
+<div id="ai-fab-btn" onclick="toggleAIChat()">🤖</div>
+<div id="ai-chat-panel">
+  <div class="ai-chat-header">
+    <span>🤖 계측 정비 AI 가이드</span>
+    <span style="cursor:pointer; font-size:16px;" onclick="toggleAIChat()">✖</span>
   </div>
-  <div id="infoBody" style="font-size: 13px; line-height: 1.5;"></div>
-  <div class="history-section">
-    <div class="history-title">📋 정비/점검 이력 관리</div>
-    <div class="history-list" id="infoHistoryList"></div>
-    <button class="btn-add-history-quick" id="btnAddHistBtn">+ 새 점검 이력 추가</button>
+  <div class="ai-chat-messages" id="aiChatMsgs">
+    <div class="ai-msg gemini">안녕하세요! 계측기 고장 진단, 점검 절차, 영점 조정, 에러코드 대처법을 편하게 질문해 주세요.</div>
   </div>
-  <button class="btn-delete-pin" id="btnDeletePin">🗑️ 계측기 완전히 삭제</button>
-  <div class="btn-wrap" style="margin-top: 10px;">
-    <button class="btn-cancel" onclick="document.getElementById('info-modal').style.display='none'">닫기</button>
-  </div>
-</div>
-
-<!-- 이력 추가 / 수정 모달 -->
-<div id="history-modal">
-  <h3 id="histModalTitle">📋 정비/점검 이력 관리</h3>
-  <div style="font-size: 13px; color: #0284c7; font-weight: bold; margin-bottom: 12px;" id="histTargetTag"></div>
-  <div class="form-group"><label>작업일자</label><input type="date" id="histDate"></div>
-  <div class="form-group"><label>작업자 성명</label><input type="text" id="histAuthor" placeholder="홍길동"></div>
-  <div class="form-group"><label>점검 내용</label><textarea id="histContent" rows="3" placeholder="점검 및 조치 내역 입력"></textarea></div>
-  <div class="form-group">
-    <label>점검/조치 현장 사진</label>
-    <div class="photo-btn-group">
-      <div class="file-input-wrapper">
-        <div class="btn-file-upload">📷 즉시 촬영</div>
-        <input type="file" id="histPhotoCam" accept="image/*" capture="environment">
-      </div>
-      <div class="file-input-wrapper">
-        <div class="btn-file-upload btn-secondary">🖼️ 앨범 선택</div>
-        <input type="file" id="histPhotoGallery" accept="image/*">
-      </div>
-    </div>
-    <img id="histPhotoPreview" class="preview-img">
-  </div>
-  <div class="btn-wrap">
-    <button class="btn-save" id="btnSaveHist">이력 저장</button>
-    <button class="btn-cancel" onclick="document.getElementById('history-modal').style.display='none'">취소</button>
+  <div class="ai-chat-input-wrap">
+    <input type="text" id="aiInput" placeholder="예: PT 오차 발생 시 점검 순서는?" onkeydown="if(event.key==='Enter') sendAIMessage()">
+    <button onclick="sendAIMessage()">전송</button>
   </div>
 </div>
 
 <script>
+  // 업데이트해주신 Gemini API 키 반영 완료
+  const GEMINI_API_KEY = 'AIzaSyAevsssJ-WerHFSPaX31ZL5x9IHxr1VbLY';
+
   const ADMIN_MASTER_PASS = 'dydy423156!!##';
   const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_p3OXbhWhj04w_eFGMpu83w_ZbybQ_t_';
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+  const FLOOR_IMAGES = { 1: './floor1.png', 2: './floor2.jpg' };
+  let currentFloor = 1;
+  let currentCoord = { x: 0, y: 0 };
   let currentInstruments = [];
+  let currentMarkerObjects = [];
+  let mapInstance = null;
+  let selectedPhotoBlob = null;
   let currentUserInfo = { name: '', email: '' };
 
-  // 신규 분류 체계 상태
-  let selectedMajor = '기력'; // '기력' 또는 '내연'
-  let selectedSubTab = '2호기'; // 기력: '2호기', '3호기', '관리이력' | 내연: '1호기', '2호기', '관리이력'
-  let selectedFloor = 'ALL';
+  function bufferToBase64(buffer) { return btoa(String.fromCharCode(...new Uint8Array(buffer))); }
+  function base64ToBuffer(base64) { return Uint8Array.from(atob(base64), c => c.charCodeAt(0)).buffer; }
 
-  let activeTargetId = null;
-  let editingHistoryIndex = null;
-  let clickedFloorCoord = { x: 0, y: 0 };
-  let isMeasureMode = false;
-  
-  let currentInstPhotoBase64 = '';
-  let initHistPhotoBase64 = '';
-  let currentHistPhotoBase64 = '';
-
-  let scale = 0.65;
-  let panX = 0, panY = 0;
-  let isDragging = false;
-  let dragStartX = 0, dragStartY = 0;
-  let initialPinchDist = 0;
-  let initialScale = 0.65;
-
-  let activeDraggingPin = null;
-  let activeDraggingItem = null;
-  let isPinMoving = false;
-
-  const floor3DHeights = {
-    '1층': 8.14, '2층': 11.50, '2.5층': 14.50, '3층': 17.50, '3.1/3층': 20.50,
-    '3.2/3층': 23.50, '4층': 26.50, '4.5층': 29.50, '5층': 32.50, '5.5층': 35.50,
-    '6층': 38.50, '7층': 44.80
-  };
-
-  const floorCorners2D = {
-    '1층':     { c1: { x: 397, y: 216 }, c4: { x: 1118, y: 928 } },
-    '2층':     { c1: { x: 372, y: 216 }, c4: { x: 1016, y: 838 } },
-    '2.5층':   { c1: { x: 493, y: 230 }, c4: { x: 1130, y: 856 } },
-    '3층':     { c1: { x: 374, y: 245 }, c4: { x: 1058, y: 929 } },
-    '3.1/3층': { c1: { x: 425, y: 199 }, c4: { x: 1100, y: 859 } },
-    '3.2/3층': { c1: { x: 402, y: 219 }, c4: { x: 1047, y: 829 } },
-    '4층':     { c1: { x: 466, y: 168 }, c4: { x: 1155, y: 821 } },
-    '4.5층':   { c1: { x: 589, y: 185 }, c4: { x: 1039, y: 838 } },
-    '5층':     { c1: { x: 535, y: 187 }, c4: { x: 962,  y: 816 } },
-    '5.5층':   { c1: { x: 591, y: 174 }, c4: { x: 1044, y: 844 } },
-    '6층':     { c1: { x: 554, y: 170 }, c4: { x: 993,  y: 822 } },
-    '7층':     { c1: { x: 132, y: 242 }, c4: { x: 569,  y: 855 } }
-  };
-
-  /* --- WebAuthn 표준 바이트 변환 --- */
-  function uint8ArrayToBase64(uint8Array) {
-    let binary = '';
-    for (let i = 0; i < uint8Array.length; i++) binary += String.fromCharCode(uint8Array[i]);
-    return btoa(binary);
-  }
-
-  function base64ToUint8Array(base64) {
-    let clean = base64.replace(/-/g, '+').replace(/_/g, '/');
-    while (clean.length % 4) clean += '=';
-    const binary = atob(clean);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return bytes;
-  }
-
-  // 생체인증 등록
-  async function registerBiometrics() {
-    if (!window.PublicKeyCredential) { alert('⚠️ 브라우저에서 생체인식을 지원하지 않습니다.'); return; }
-    const workerName = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자';
-    try {
-      const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
-      const userId = new TextEncoder().encode(workerName);
-      const credential = await navigator.credentials.create({
-        publicKey: {
-          challenge, rp: { name: '제주 보일러 제어 시스템' },
-          user: { id: userId, name: workerName, displayName: workerName },
-          pubKeyCredParams: [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
-          authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'preferred', residentKey: 'preferred' },
-          timeout: 60000
-        }
-      });
-      if (credential) {
-        const rawIdBase64 = uint8ArrayToBase64(new Uint8Array(credential.rawId));
-        localStorage.setItem('jeju_bio_raw_id', rawIdBase64);
-        localStorage.setItem('jeju_bio_user_name', workerName);
-        alert(`✅ [${workerName}] 님의 기기 생체인증이 등록되었습니다.\n이제 로그인 화면에서 지문 버튼으로 입장하실 수 있습니다.`);
-      }
-    } catch (err) {
-      if (err.name !== 'NotAllowedError') alert('❌ 등록 실패: ' + (err.message || '인증이 취소되었습니다.'));
-    }
-  }
-
-  // 생체인증 로그인
-  async function loginBiometrics() {
-    const rawIdBase64 = localStorage.getItem('jeju_bio_raw_id') || localStorage.getItem('jeju_bio_credential_id');
-    const savedName = localStorage.getItem('jeju_bio_user_name') || '작업자';
-    const msgEl = document.getElementById('bioLoginMsg');
-    msgEl.style.display = 'none';
-
-    if (!rawIdBase64) {
-      msgEl.innerText = '⚠️ 기기에 저장된 생체 정보가 없습니다. 먼저 팀원 로그인 후 우측 상단의 [지문] 버튼으로 등록해 주세요.';
-      msgEl.style.display = 'block'; return;
-    }
-
-    try {
-      const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
-      const rawIdBytes = base64ToUint8Array(rawIdBase64);
-      const assertion = await navigator.credentials.get({
-        publicKey: {
-          challenge, allowCredentials: [{ id: rawIdBytes.buffer, type: 'public-key' }],
-          userVerification: 'preferred', timeout: 60000
-        }
-      });
-      if (assertion) unlock(savedName, `${savedName}@jeju.com`);
-    } catch (err) {
-      if (err.name === 'NotAllowedError') msgEl.innerText = '⚠️ 생체 인증이 취소되었습니다.';
-      else msgEl.innerText = '⚠️ 인증키 불일치. 사번 로그인 후 [지문]을 1회 재등록하세요.';
-      msgEl.style.display = 'block';
-    }
-  }
-
-  document.getElementById('btnBioLogin').addEventListener('click', (e) => { e.preventDefault(); loginBiometrics(); });
-  document.getElementById('btnRegisterBio').addEventListener('click', (e) => { e.preventDefault(); registerBiometrics(); });
-
-  /* --- 신규 분류 체계 라우팅 로직 --- */
-  // 1. 대분류 전환 (기력 <-> 내연)
-  window.switchMajor = function(major) {
-    selectedMajor = major;
-    document.getElementById('btn-major-steam').classList.toggle('active', major === '기력');
-    document.getElementById('btn-major-engine').classList.toggle('active', major === '내연');
-
-    if (major === '기력') {
-      document.getElementById('sub-tabs-steam').style.display = 'flex';
-      document.getElementById('sub-tabs-engine').style.display = 'none';
-      switchSubTab('2호기');
-    } else {
-      document.getElementById('sub-tabs-steam').style.display = 'none';
-      document.getElementById('sub-tabs-engine').style.display = 'flex';
-      switchSubTab('1호기');
-    }
-  };
-
-  // 2. 세부 탭 전환 (2호기, 3호기, 관리이력 등)
-  window.switchSubTab = function(sub) {
-    selectedSubTab = sub;
-
-    // 탭 버튼 스타일 갱신
-    if (selectedMajor === '기력') {
-      document.getElementById('sub-steam-2').classList.toggle('active', sub === '2호기');
-      document.getElementById('sub-steam-3').classList.toggle('active', sub === '3호기');
-      document.getElementById('sub-steam-hist').classList.toggle('active', sub === '관리이력');
-    } else {
-      document.getElementById('sub-engine-1').classList.toggle('active', sub === '1호기');
-      document.getElementById('sub-engine-2').classList.toggle('active', sub === '2호기');
-      document.getElementById('sub-engine-hist').classList.toggle('active', sub === '관리이력');
-    }
-
-    // 뷰포트 전환 분기
-    const view3D = document.getElementById('overall-3d-view');
-    const viewFloor = document.getElementById('floor-room-view');
-    const viewEmpty = document.getElementById('empty-engine-view');
-    const viewHist = document.getElementById('history-table-view');
-    const floorBar = document.getElementById('floor-bar');
-
-    view3D.style.display = 'none';
-    viewFloor.style.display = 'none';
-    viewEmpty.style.display = 'none';
-    viewHist.style.display = 'none';
-
-    if (sub === '관리이력') {
-      // 📋 관리이력 탭 선택 시
-      floorBar.style.display = 'none';
-      viewHist.style.display = 'block';
-      document.getElementById('historyTableTitle').innerText = `📋 [${selectedMajor}발전] 전체 점검 및 관리이력`;
-      renderHistoryTable();
-    } else if (selectedMajor === '기력') {
-      // ⚡ 기력 발전 (2호기, 3호기) -> 기존 3D/도면 뷰
-      floorBar.style.display = 'flex';
-      exitToOverall();
-    } else {
-      // 🔥 내연 발전 (1호기, 2호기) -> 빈 화면
-      floorBar.style.display = 'none';
-      viewEmpty.style.display = 'flex';
-      document.getElementById('emptyEngineTitle').innerText = `내연 ${sub} 설비 공간`;
-    }
-
-    updateFloorTitle();
-  };
-
-  function updateFloorTitle() {
-    const floorTag = document.getElementById('currentFloorTag');
-    if (selectedSubTab === '관리이력') {
-      floorTag.innerText = `${selectedMajor} 관리이력`;
-    } else if (selectedMajor === '기력') {
-      floorTag.innerText = selectedFloor === 'ALL' ? `기력 ${selectedSubTab} 전체` : `기력 ${selectedSubTab} ${selectedFloor}`;
-      document.getElementById('roomTitleText').innerText = `📍 [기력 ${selectedSubTab} - ${selectedFloor}] 도면 공간`;
-    } else {
-      floorTag.innerText = `내연 ${selectedSubTab}`;
-    }
-  }
-
-  // 관리이력 표(Table) 동적 렌더링
-  window.renderHistoryTable = function() {
-    const tbody = document.getElementById('historyTableBody');
-    const filterText = (document.getElementById('tableFilterInput').value || '').trim().toLowerCase();
-    tbody.innerHTML = '';
-
-    // 전체 기기에서 이력 로그 취합
-    let allLogs = [];
-    currentInstruments.forEach(inst => {
-      // 기력/내연 구분 추출
-      let category = '기력';
-      if (inst.major_category) {
-        category = inst.major_category;
-      } else if (typeof inst.unit === 'string' && inst.unit.includes('내연')) {
-        category = '내연';
-      }
-
-      // 현재 선택된 대분류('기력' 또는 '내연') 데이터만 필터링
-      if (category !== selectedMajor) return;
-
-      const logs = Array.isArray(inst.history_logs) ? inst.history_logs : [];
-      logs.forEach(log => {
-        allLogs.push({
-          category: `${category} ${inst.unit || ''}`.trim(),
-          date: log.date || '-',
-          tag_no: inst.tag_no || '-',
-          name: inst.name || '-',
-          author: log.author || '-',
-          content: log.content || '-',
-          photo: log.photo || null
-        });
-      });
-    });
-
-    // 날짜 역순(최신순) 정렬
-    allLogs.sort((a, b) => (b.date > a.date ? 1 : -1));
-
-    // 검색어 필터링
-    if (filterText) {
-      allLogs = allLogs.filter(item => 
-        item.category.toLowerCase().includes(filterText) ||
-        item.date.toLowerCase().includes(filterText) ||
-        item.tag_no.toLowerCase().includes(filterText) ||
-        item.name.toLowerCase().includes(filterText) ||
-        item.author.toLowerCase().includes(filterText) ||
-        item.content.toLowerCase().includes(filterText)
-      );
-    }
-
-    if (allLogs.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px; color: #64748b;">등록된 점검 이력이 없습니다.</td></tr>`;
-      return;
-    }
-
-    allLogs.forEach(log => {
-      const tr = document.createElement('tr');
-      const isEngine = log.category.includes('내연');
-      const badgeClass = isEngine ? 'badge-engine' : 'badge-steam';
-
-      tr.innerHTML = `
-        <td><span class="badge-category ${badgeClass}">${log.category}</span></td>
-        <td style="white-space: nowrap;">${log.date}</td>
-        <td style="font-weight: bold; color: #38bdf8; white-space: nowrap;">${log.tag_no}</td>
-        <td style="white-space: nowrap;">${log.name}</td>
-        <td style="white-space: nowrap;">${log.author}</td>
-        <td>
-          <div>${log.content}</div>
-          ${log.photo ? `<img src="${log.photo}" style="max-height: 45px; border-radius: 4px; margin-top: 4px; display: block;">` : ''}
-        </td>
-      `;
-      tbody.appendChild(tr);
-    });
-  };
-
-  function compressImage(file, callback) {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const img = new Image();
-      img.onload = function() {
-        const canvas = document.createElement('canvas');
-        const MAX_SIZE = 300; 
-        let width = img.width; let height = img.height;
-        if (width > height && width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
-        else if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
-        canvas.width = width; canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-        callback(canvas.toDataURL('image/jpeg', 0.65));
-      };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-  }
-
-  function handleInstPhoto(file) {
-    compressImage(file, (base64) => {
-      currentInstPhotoBase64 = base64;
-      const preview = document.getElementById('photoPreview');
-      preview.src = base64; preview.style.display = 'block';
-    });
-  }
-  document.getElementById('instPhotoCam').addEventListener('change', (e) => handleInstPhoto(e.target.files[0]));
-  document.getElementById('instPhotoGallery').addEventListener('change', (e) => handleInstPhoto(e.target.files[0]));
-
-  function handleInitHistPhoto(file) {
-    compressImage(file, (base64) => {
-      initHistPhotoBase64 = base64;
-      const preview = document.getElementById('initHistPreview');
-      preview.src = base64; preview.style.display = 'block';
-    });
-  }
-  document.getElementById('initHistPhotoCam').addEventListener('change', (e) => handleInitHistPhoto(e.target.files[0]));
-  document.getElementById('initHistPhotoGallery').addEventListener('change', (e) => handleInitHistPhoto(e.target.files[0]));
-
-  function handleHistPhoto(file) {
-    compressImage(file, (base64) => {
-      currentHistPhotoBase64 = base64;
-      const preview = document.getElementById('histPhotoPreview');
-      preview.src = base64; preview.style.display = 'block';
-    });
-  }
-  document.getElementById('histPhotoCam').addEventListener('change', (e) => handleHistPhoto(e.target.files[0]));
-  document.getElementById('histPhotoGallery').addEventListener('change', (e) => handleHistPhoto(e.target.files[0]));
-
-  function handleUpdateMainPhoto(file) {
-    compressImage(file, async (base64) => {
-      const target = currentInstruments.find(i => i.id === activeTargetId);
-      if (!target) return;
-      target.photo_url = base64; target.image_data = base64;
-      document.getElementById('infoMainImg').src = base64;
-      document.getElementById('infoMainImg').style.display = 'block';
-      await supabaseClient.from('instruments').update({ photo_url: base64, image_data: base64 }).eq('id', activeTargetId);
-      renderFloorPins(); render3DHotspots();
-      alert('✅ 기기 대표 사진이 업데이트되었습니다.');
-    });
-  }
-  document.getElementById('updateMainPhotoCam').addEventListener('change', (e) => handleUpdateMainPhoto(e.target.files[0]));
-  document.getElementById('updateMainPhotoGallery').addEventListener('change', (e) => handleUpdateMainPhoto(e.target.files[0]));
-
-  function unlock(name, email = 'user@jeju.com') {
-    const savedName = localStorage.getItem('jeju_worker_name');
-    const finalName = savedName || name;
-    currentUserInfo = { name: finalName, email };
-    document.getElementById('auth-overlay').style.display = 'none';
-    document.getElementById('loginUserBadge').innerText = `👤 ${finalName}`;
-    fetchInstruments();
-  }
-
-  document.getElementById('btnGoAdmin').addEventListener('click', (e) => {
-    e.preventDefault();
+  // 인증 제어
+  document.getElementById('btnGoAdmin').addEventListener('click', () => {
     document.getElementById('login-box').style.display = 'none';
     document.getElementById('admin-login-box').style.display = 'block';
   });
-  document.getElementById('linkBackLogin').addEventListener('click', (e) => {
-    e.preventDefault();
+  document.getElementById('linkBackLogin').addEventListener('click', () => {
     document.getElementById('admin-login-box').style.display = 'none';
     document.getElementById('login-box').style.display = 'block';
   });
-  document.getElementById('linkToRegister').addEventListener('click', (e) => {
-    e.preventDefault();
+  document.getElementById('linkToRegister').addEventListener('click', () => {
     document.getElementById('login-box').style.display = 'none';
     document.getElementById('register-box').style.display = 'block';
-    setTimeout(() => document.getElementById('regName').focus(), 150);
   });
-  document.getElementById('linkBackLogin2').addEventListener('click', (e) => {
-    e.preventDefault();
+  document.getElementById('linkBackLogin2').addEventListener('click', () => {
     document.getElementById('register-box').style.display = 'none';
     document.getElementById('login-box').style.display = 'block';
   });
 
-  document.getElementById('btnAdminSubmit').addEventListener('click', (e) => {
-    e.preventDefault();
+  document.getElementById('btnAdminSubmit').addEventListener('click', () => {
     if (document.getElementById('adminPassInput').value.trim() === ADMIN_MASTER_PASS) {
       sessionStorage.setItem('jeju_admin_auth', 'true');
-      const defaultName = localStorage.getItem('jeju_worker_name') || '관리자';
-      unlock(defaultName, 'admin@jeju.com');
+      unlock('👑 최고관리자', 'admin@jeju.com');
     } else {
       document.getElementById('adminErrorMsg').style.display = 'block';
     }
   });
 
-  document.getElementById('btnMemberLogin').addEventListener('click', (e) => {
-    e.preventDefault();
-    const email = document.getElementById('loginEmail').value.trim();
-    if (!email) { alert('사번(이메일)을 입력해 주세요.'); return; }
-    const namePart = email.split('@')[0];
-    localStorage.setItem('jeju_worker_name', namePart);
-    unlock(namePart, email);
+  document.getElementById('btnLogout').addEventListener('click', () => {
+    sessionStorage.removeItem('jeju_admin_auth');
+    supabaseClient.auth.signOut().then(() => location.reload());
   });
 
-  document.getElementById('btnRegisterSubmit').addEventListener('click', async (e) => {
-    e.preventDefault();
+  function unlock(name, email = 'user@jeju.com') {
+    currentUserInfo = { name: name, email: email };
+    document.getElementById('auth-overlay').style.display = 'none';
+    initMapOnce();
+    switchFloor(1);
+  }
+
+  // 지문 등록 / 로그인
+  document.getElementById('btnRegisterBio').addEventListener('click', async () => {
+    if (!window.PublicKeyCredential) { alert('생체인식 센서를 지원하지 않는 기기입니다.'); return; }
+    try {
+      const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
+      const userId = new Uint8Array(16); window.crypto.getRandomValues(userId);
+      const credential = await navigator.credentials.create({
+        publicKey: {
+          challenge: challenge,
+          rp: { name: "보일러 계측관리 시스템", id: window.location.hostname },
+          user: { id: userId, name: currentUserInfo.email || "user@jeju.com", displayName: currentUserInfo.name || "사용자" },
+          pubKeyCredParams: [{ alg: -7, type: "public-key" }, { alg: -257, type: "public-key" }],
+          authenticatorSelection: { authenticatorAttachment: "platform", residentKey: "preferred", userVerification: "required" },
+          timeout: 60000
+        }
+      });
+      if (credential) {
+        localStorage.setItem('jeju_bio_credential_id', bufferToBase64(credential.rawId));
+        localStorage.setItem('jeju_bio_user', currentUserInfo.name || "사용자");
+        localStorage.setItem('jeju_bio_email', currentUserInfo.email || "user@jeju.com");
+        alert('✅ 기기 지문 등록 완료!');
+      }
+    } catch (err) { alert('지문 등록 실패: ' + err.message); }
+  });
+
+  document.getElementById('btnBioLogin').addEventListener('click', async () => {
+    const credIdBase64 = localStorage.getItem('jeju_bio_credential_id');
+    const msg = document.getElementById('bioLoginMsg');
+    if (!credIdBase64) {
+      msg.innerText = '⚠️ 이 기기에 등록된 지문 키가 없습니다. 사번 로그인 후 [지문 등록]을 먼저 진행해 주세요.';
+      msg.style.display = 'block'; return;
+    }
+    try {
+      const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
+      const assertion = await navigator.credentials.get({
+        publicKey: {
+          challenge: challenge, rpId: window.location.hostname,
+          allowCredentials: [{ id: base64ToBuffer(credIdBase64), type: 'public-key' }],
+          userVerification: "required", timeout: 60000
+        }
+      });
+      if (assertion) {
+        sessionStorage.setItem('jeju_admin_auth', 'true');
+        unlock(localStorage.getItem('jeju_bio_user') || '팀원', localStorage.getItem('jeju_bio_email') || 'user@jeju.com');
+      }
+    } catch (err) {
+      msg.innerText = '⚠️ 지문 인증 실패: ' + err.message; msg.style.display = 'block';
+    }
+  });
+
+  document.getElementById('btnMemberLogin').addEventListener('click', async () => {
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass = document.getElementById('loginPassword').value;
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email: email, password: pass });
+    if (error) { document.getElementById('loginMsg').innerText = '⚠️ 사번 또는 비밀번호가 틀립니다.'; document.getElementById('loginMsg').style.display = 'block'; return; }
+    if (data.user.user_metadata?.approved !== true) { alert('🚫 승인 대기 중인 계정입니다.'); await supabaseClient.auth.signOut(); return; }
+    unlock(data.user.user_metadata?.full_name || '팀원', data.user.email);
+  });
+
+  document.getElementById('btnRegisterSubmit').addEventListener('click', async () => {
     const name = document.getElementById('regName').value.trim();
     const email = document.getElementById('regEmail').value.trim();
-    const pass = document.getElementById('regPassword').value.trim();
-    const regMsg = document.getElementById('regMsg');
-
-    if (!name || !email || !pass) {
-      regMsg.innerText = '⚠️ 빈칸을 모두 채워주세요.'; regMsg.style.display = 'block'; return;
-    }
-    if (pass.length < 6) {
-      regMsg.innerText = '⚠️ 비밀번호는 최소 6자리 이상이어야 합니다.'; regMsg.style.display = 'block'; return;
-    }
-    regMsg.style.display = 'none';
-    localStorage.setItem('jeju_worker_name', name);
-    try { await supabaseClient.auth.signUp({ email, password: pass }); } catch (err) {}
-    alert(`🎉 [${name}] 팀원님 등록 완료!`);
-    unlock(name, email);
+    const pass = document.getElementById('regPassword').value;
+    const { error } = await supabaseClient.auth.signUp({ email: email, password: pass, options: { data: { full_name: name, approved: false } } });
+    if (error) { document.getElementById('regMsg').innerText = error.message; document.getElementById('regMsg').style.display = 'block'; }
+    else { alert('가입 신청 완료! 관리자 승인 후 로그인하세요.'); location.reload(); }
   });
 
-  document.getElementById('btnLogout').addEventListener('click', () => {
-    sessionStorage.removeItem('jeju_admin_auth'); location.reload();
-  });
+  // 지도 생성 (가로 3000 x 세로 2100)
+  const mapWidth = 3000, mapHeight = 2100;
+  const bounds = [[0, 0], [mapHeight, mapWidth]];
+  let floorLayer = null;
 
-  const canvasWrap = document.getElementById('floor-canvas-wrap');
-  const board = document.getElementById('floor-board');
-  const notice = document.getElementById('noImgNotice');
-  const viewer = document.getElementById('boilerViewer');
-  const measureHud = document.getElementById('measure-info-hud');
-  const btnMeasure = document.getElementById('btnToggleMeasure');
-
-  function updateMeasureHudPrompt() {
-    if (!isMeasureMode) { measureHud.style.display = 'none'; return; }
-    measureHud.style.display = 'block';
-    if (selectedFloor === 'ALL') {
-      measureHud.innerText = `📐 [${selectedMajor} ${selectedSubTab}] 3D 모델 표면 터치 시 좌표가 측정·복사됩니다.`;
-    } else {
-      measureHud.innerText = `📐 [${selectedMajor} ${selectedSubTab} - ${selectedFloor} 도면] 터치 지점의 2D 도면 좌표가 측정·복사됩니다.`;
-    }
+  function initMapOnce() {
+    if (mapInstance) return;
+    mapInstance = L.map('map', { crs: L.CRS.Simple, minZoom: -3, maxZoom: 3, zoomSnap: 0.1, zoomDelta: 0.5, attributionControl: false });
+    mapInstance.on('click', (e) => {
+      if (e.latlng.lat < 0 || e.latlng.lat > mapHeight || e.latlng.lng < 0 || e.latlng.lng > mapWidth) return;
+      currentCoord.y = Math.round(e.latlng.lat);
+      currentCoord.x = Math.round(e.latlng.lng);
+      selectedPhotoBlob = null;
+      document.getElementById('tagNo').value = '';
+      document.getElementById('name').value = '';
+      document.getElementById('model').value = '';
+      document.getElementById('range').value = '';
+      document.getElementById('price').value = '';
+      document.getElementById('instPhoto').value = '';
+      document.getElementById('photoPreviewImg').style.display = 'none';
+      document.getElementById('photoPreviewText').style.display = 'block';
+      document.getElementById('modal').style.display = 'block';
+    });
   }
 
-  btnMeasure.addEventListener('click', () => {
-    isMeasureMode = !isMeasureMode;
-    if (isMeasureMode) {
-      btnMeasure.classList.add('active'); btnMeasure.innerText = '📐 계측 ON'; updateMeasureHudPrompt();
-    } else {
-      btnMeasure.classList.remove('active'); btnMeasure.innerText = '📐 계측'; measureHud.style.display = 'none';
-      const m1 = viewer.querySelector('#temp-measure-marker'); if (m1) m1.remove();
-      const m2 = board.querySelector('#temp-measure-marker-2d'); if (m2) m2.remove();
-    }
+  function drawGrid(floor) {
+    const canvas = document.createElement('canvas');
+    canvas.width = mapWidth; canvas.height = mapHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#0a1128'; ctx.fillRect(0, 0, mapWidth, mapHeight);
+    ctx.strokeStyle = '#162347'; ctx.lineWidth = 1;
+    for (let i = 0; i <= mapWidth; i += 50) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, mapHeight); ctx.stroke(); }
+    for (let i = 0; i <= mapHeight; i += 50) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(mapWidth, i); ctx.stroke(); }
+    ctx.strokeStyle = '#00b4d8'; ctx.lineWidth = 8;
+    ctx.strokeRect(10, 10, mapWidth - 20, mapHeight - 20);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+    ctx.font = 'bold 400px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(`${floor}F`, mapWidth / 2, mapHeight / 2);
+    return canvas.toDataURL();
+  }
+
+  function switchFloor(f) {
+    currentFloor = f;
+    document.getElementById('current-floor-badge').innerText = `${f}F (Boiler)`;
+    document.getElementById('modal-floor-text').innerText = `${f}F`;
+    document.querySelectorAll('.floor-btn').forEach(b => b.classList.toggle('active', parseInt(b.dataset.floor) === f));
+    if (floorLayer) mapInstance.removeLayer(floorLayer);
+    floorLayer = L.imageOverlay(FLOOR_IMAGES[f] || drawGrid(f), bounds).addTo(mapInstance);
+    mapInstance.fitBounds(bounds);
+    fetchInstruments(f);
+  }
+
+  document.querySelectorAll('.floor-btn').forEach(btn => {
+    btn.addEventListener('click', () => switchFloor(parseInt(btn.dataset.floor)));
   });
 
-  viewer.addEventListener('click', (event) => {
-    if (!isMeasureMode) return;
-    const rect = viewer.getBoundingClientRect();
-    const hit = viewer.positionAndNormalFromPoint(event.clientX - rect.left, event.clientY - rect.top);
-    if (hit) {
-      const posStr = `${hit.position.x.toFixed(2)} ${hit.position.y.toFixed(2)} ${hit.position.z.toFixed(2)}`;
-      let marker = viewer.querySelector('#temp-measure-marker');
-      if (!marker) {
-        marker = document.createElement('button'); marker.id = 'temp-measure-marker';
-        marker.className = 'measure-marker'; marker.slot = 'hotspot-measure-point';
-        viewer.appendChild(marker);
-      }
-      marker.dataset.position = `${hit.position.x} ${hit.position.y} ${hit.position.z}`;
-      measureHud.innerHTML = `📍 3D 좌표: <b style="color:#38bdf8;">${posStr}</b> (복사됨)`;
-      navigator.clipboard.writeText(posStr).catch(() => {});
-    }
-  });
+  async function fetchInstruments(floor) {
+    const { data } = await supabaseClient.from('instruments').select('*').eq('floor', floor);
+    currentInstruments = data || [];
+    currentMarkerObjects.forEach(m => mapInstance.removeLayer(m));
+    currentMarkerObjects = [];
 
-  viewer.addEventListener('camera-change', () => {
-    const orbit = viewer.getCameraOrbit(); if (!orbit) return;
-    const pinScale = Math.max(0.5, Math.min(1.5, (380 / orbit.radius) * 1.0));
-    document.querySelectorAll('.hotspot-pin').forEach(pin => pin.style.setProperty('--pin-scale', pinScale));
-  });
+    currentInstruments.forEach(item => {
+      const marker = L.marker([item.y_coord, item.x_coord]).addTo(mapInstance);
+      let popupContent = `
+        <div class="popup-card">
+          <b>${item.tag_no}</b>
+          <div>기기명: ${item.name}</div>
+          ${item.model ? `<div>모델명: ${item.model}</div>` : ''}
+          ${item.signal_range ? `<div>범위: ${item.signal_range}</div>` : ''}
+          ${item.photo_url ? `<img src="${item.photo_url}" class="popup-img">` : ''}
+          <button class="btn-delete-pin" onclick="deleteInst(${item.id})">🗑️ 삭제</button>
+        </div>`;
+      marker.bindPopup(popupContent);
+      currentMarkerObjects.push(marker);
+    });
+  }
 
-  window.openFloorRoom = function(floor, imgFile, btn) {
-    selectedFloor = floor;
-    document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
-    if (btn) btn.classList.add('active');
-    document.getElementById('overall-3d-view').style.display = 'none';
-    document.getElementById('floor-room-view').style.display = 'block';
-    updateFloorTitle();
-
-    const testImg = new Image(); testImg.src = `./${imgFile}`;
-    testImg.onload = () => { board.style.backgroundImage = `url('./${imgFile}')`; notice.style.display = 'none'; };
-    testImg.onerror = () => { board.style.backgroundImage = 'none'; notice.innerText = `⚠️ [${imgFile}] 파일 부재`; notice.style.display = 'block'; };
-    resetCanvasView(); renderFloorPins(); updateMeasureHudPrompt();
+  window.deleteInst = async function(id) {
+    if (!confirm('삭제하시겠습니까?')) return;
+    mapInstance.closePopup();
+    await supabaseClient.from('instruments').delete().eq('id', id);
+    fetchInstruments(currentFloor);
   };
 
-  window.exitToOverall = function() {
-    selectedFloor = 'ALL';
-    document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('btn-ALL').classList.add('active');
-    document.getElementById('floor-room-view').style.display = 'none';
-    document.getElementById('overall-3d-view').style.display = 'block';
-    updateFloorTitle(); render3DHotspots(); updateMeasureHudPrompt();
-  };
-
-  function updateTransform() { board.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${scale})`; }
-  window.zoomCanvas = function(delta) { scale = Math.max(0.3, Math.min(3.5, scale + delta)); updateTransform(); };
-  window.resetCanvasView = function() { scale = 0.65; panX = 0; panY = 0; updateTransform(); };
-
-  canvasWrap.addEventListener('touchstart', (e) => {
-    if (isPinMoving || e.target.closest('.floor-inst-pin')) return;
-    if (e.touches.length === 1) {
-      isDragging = true; dragStartX = e.touches[0].clientX - panX; dragStartY = e.touches[0].clientY - panY;
-    } else if (e.touches.length === 2) {
-      isDragging = false; initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-      initialScale = scale;
-    }
-  }, { passive: false });
-
-  canvasWrap.addEventListener('touchmove', (e) => {
-    if (isPinMoving || e.target.closest('.floor-inst-pin')) return;
-    e.preventDefault();
-    if (e.touches.length === 1 && isDragging) {
-      panX = e.touches[0].clientX - dragStartX; panY = e.touches[0].clientY - dragStartY; updateTransform();
-    } else if (e.touches.length === 2) {
-      const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-      if (initialPinchDist > 0) { scale = Math.max(0.3, Math.min(3.5, initialScale * (dist / initialPinchDist))); updateTransform(); }
-    }
-  }, { passive: false });
-
-  canvasWrap.addEventListener('touchend', () => { isDragging = false; });
-  canvasWrap.addEventListener('mousedown', (e) => {
-    if (isPinMoving || e.target.closest('.floor-inst-pin')) return;
-    isDragging = true; dragStartX = e.clientX - panX; dragStartY = e.clientY - panY; canvasWrap.style.cursor = 'grabbing';
-  });
-  window.addEventListener('mousemove', (e) => {
-    if (isPinMoving || !isDragging) return;
-    panX = e.clientX - dragStartX; panY = e.clientY - dragStartY; updateTransform();
-  });
-  window.addEventListener('mouseup', () => { isDragging = false; canvasWrap.style.cursor = 'grab'; });
-  canvasWrap.addEventListener('wheel', (e) => { e.preventDefault(); zoomCanvas(e.deltaY < 0 ? 0.15 : -0.15); }, { passive: false });
-
-  board.addEventListener('click', (e) => {
-    if (isPinMoving || e.target.closest('.floor-inst-pin')) return;
-    const rect = board.getBoundingClientRect();
-    const curX = Math.round(Math.max(0, Math.min(1400, (e.clientX - rect.left) / scale)));
-    const curY = Math.round(Math.max(0, Math.min(1000, (e.clientY - rect.top) / scale)));
-
-    if (isMeasureMode) {
-      let m = board.querySelector('#temp-measure-marker-2d');
-      if (!m) {
-        m = document.createElement('div'); m.id = 'temp-measure-marker-2d'; m.className = 'measure-marker-2d';
-        board.appendChild(m);
-      }
-      m.style.left = `${curX}px`; m.style.top = `${curY}px`;
-      measureHud.innerHTML = `📍 2D 도면 좌표: <b style="color:#38bdf8;">X:${curX}, Y:${curY}</b> (복사됨)`;
-      navigator.clipboard.writeText(`X:${curX} Y:${curY}`).catch(() => {});
-      return;
-    }
-
-    clickedFloorCoord = { x: curX, y: curY };
-    document.getElementById('tagNo').value = ''; document.getElementById('name').value = '';
-    document.getElementById('model').value = ''; document.getElementById('range').value = '';
-    currentInstPhotoBase64 = '';
-    document.getElementById('instPhotoCam').value = ''; document.getElementById('instPhotoGallery').value = '';
-    document.getElementById('photoPreview').style.display = 'none';
-    initHistPhotoBase64 = '';
-    document.getElementById('initHistPhotoCam').value = ''; document.getElementById('initHistPhotoGallery').value = '';
-    document.getElementById('initHistPreview').style.display = 'none';
-    document.getElementById('initHistAuthor').value = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '';
-    document.getElementById('initHistContent').value = '';
-    document.getElementById('modalUnitText').innerText = `${selectedMajor} ${selectedSubTab}`;
-    document.getElementById('modalFloorText').innerText = selectedFloor;
-    document.getElementById('modal').style.display = 'block';
-  });
-
+  document.getElementById('btnCancelInst').addEventListener('click', () => { document.getElementById('modal').style.display = 'none'; });
   document.getElementById('btnSaveInst').addEventListener('click', async () => {
-    const tag = document.getElementById('tagNo').value.trim();
+    const tagNo = document.getElementById('tagNo').value.trim();
     const name = document.getElementById('name').value.trim();
-    if (!tag || !name) { alert('Tag No와 기기명을 입력하세요.'); return; }
+    if (!tagNo || !name) { alert('Tag No와 기기명은 필수입니다.'); return; }
 
-    const initialLogs = [];
-    const initContent = document.getElementById('initHistContent').value.trim();
-    const initAuthor = document.getElementById('initHistAuthor').value.trim() || currentUserInfo.name || '관리자';
-    if (initContent) {
-      initialLogs.push({ date: new Date().toISOString().slice(0, 10), author: initAuthor, content: initContent, photo: initHistPhotoBase64 || null });
-      localStorage.setItem('jeju_worker_name', initAuthor);
-      currentUserInfo.name = initAuthor;
-      document.getElementById('loginUserBadge').innerText = `👤 ${initAuthor}`;
-    }
+    await supabaseClient.from('instruments').insert([{
+      floor: currentFloor,
+      tag_no: tagNo,
+      name: name,
+      model: document.getElementById('model').value.trim(),
+      signal_range: document.getElementById('range').value.trim(),
+      price: document.getElementById('price').value.trim(),
+      x_coord: currentCoord.x,
+      y_coord: currentCoord.y
+    }]);
 
-    const insertData = {
-      tag_no: tag, name: name, model: document.getElementById('model').value.trim() || 'EMPTY',
-      signal_range: document.getElementById('range').value.trim() || 'EMPTY',
-      floor: selectedFloor, unit: selectedSubTab,
-      coord_x: clickedFloorCoord.x, coord_y: clickedFloorCoord.y,
-      x_coord: clickedFloorCoord.x, y_coord: clickedFloorCoord.y,
-      model_position: '0 0 0', history_logs: initialLogs,
-      photo_url: currentInstPhotoBase64 || null, image_data: currentInstPhotoBase64 || null
-    };
-
-    let { error } = await supabaseClient.from('instruments').insert([insertData]);
-    if (error && error.message && error.message.toLowerCase().includes('unit')) {
-      delete insertData.unit;
-      insertData.floor = `${selectedSubTab}_${selectedFloor}`;
-      const fallback = await supabaseClient.from('instruments').insert([insertData]);
-      error = fallback.error;
-    }
-
-    if (!error) {
-      document.getElementById('modal').style.display = 'none';
-      alert(`✅ [${selectedMajor} ${selectedSubTab}] ${selectedFloor}에 등록되었습니다!`);
-      fetchInstruments();
-    } else {
-      alert('❌ 저장 실패!\n' + error.message);
-    }
+    document.getElementById('modal').style.display = 'none';
+    fetchInstruments(currentFloor);
   });
 
-  async function fetchInstruments() {
-    const { data, error } = await supabaseClient.from('instruments').select('*');
-    if (!error) {
-      currentInstruments = (data || []).map(item => {
-        let f = item.floor; let u = item.unit || '2호기';
-        if (typeof f === 'string' && f.includes('_')) {
-          const parts = f.split('_'); u = parts[0]; f = parts[1];
-        }
-        if (f !== null && f !== undefined) {
-          f = String(f); if (!f.includes('층')) f += '층';
-        } else { f = '6층'; }
-        let cx = parseFloat(item.coord_x ?? item.x_coord ?? 400) || 400;
-        let cy = parseFloat(item.coord_y ?? item.y_coord ?? 400) || 400;
-        const img = item.photo_url || item.image_data || null;
-        return { ...item, floor: f, unit: u, coord_x: cx, coord_y: cy, photo_url: img, image_data: img, history_logs: Array.isArray(item.history_logs) ? item.history_logs : [] };
-      });
-      renderFloorPins(); render3DHotspots();
-      if (selectedSubTab === '관리이력') renderHistoryTable();
-    }
+  // ================= Gemini AI 질의 연동 =================
+  function toggleAIChat() {
+    const panel = document.getElementById('ai-chat-panel');
+    panel.style.display = panel.style.display === 'flex' ? 'none' : 'flex';
   }
 
-  function renderFloorPins() {
-    board.querySelectorAll('.floor-inst-pin').forEach(el => el.remove());
-    currentInstruments.forEach(item => {
-      // 기력 발전의 경우 호기와 층 일치 여부 확인
-      if (item.unit !== selectedSubTab || item.floor !== selectedFloor) return;
-      const pin = document.createElement('div');
-      pin.id = `floor-pin-${item.id}`; pin.className = 'floor-inst-pin';
-      pin.style.left = `${item.coord_x}px`; pin.style.top = `${item.coord_y}px`;
-      const img = item.photo_url || item.image_data;
-      pin.style.backgroundImage = img ? `url(${img})` : 'none';
-      pin.innerHTML = img ? `<span>${item.tag_no}</span>` : `📍<span>${item.tag_no}</span>`;
+  async function sendAIMessage() {
+    const input = document.getElementById('aiInput');
+    const q = input.value.trim();
+    if (!q) return;
 
-      let pressTimer = null; let startClientX = 0; let startClientY = 0; let isLongPressed = false;
-      pin.oncontextmenu = (e) => { e.preventDefault(); return false; };
+    const chatMsgs = document.getElementById('aiChatMsgs');
+    chatMsgs.innerHTML += `<div class="ai-msg user">${q}</div>`;
+    input.value = '';
+    chatMsgs.scrollTop = chatMsgs.scrollHeight;
 
-      pin.addEventListener('pointerdown', (e) => {
-        if (e.button !== 0 && e.pointerType === 'mouse') return;
-        e.stopPropagation();
-        startClientX = e.clientX; startClientY = e.clientY; isLongPressed = false;
-        pin.classList.add('pin-pressing');
-        measureHud.style.display = 'block';
-        measureHud.innerText = `⏳ [${item.tag_no}] 2초간 누르고 있으면 이동할 수 있습니다...`;
+    const loadingId = 'loading-' + Date.now();
+    chatMsgs.innerHTML += `<div class="ai-msg gemini" id="${loadingId}">답변 생성 중... ⏳</div>`;
+    chatMsgs.scrollTop = chatMsgs.scrollHeight;
 
-        pressTimer = setTimeout(() => {
-          isLongPressed = true; isPinMoving = true; activeDraggingPin = pin; activeDraggingItem = item;
-          pin.classList.remove('pin-pressing'); pin.classList.add('pin-dragging');
-          pin.setPointerCapture(e.pointerId);
-          if (navigator.vibrate) navigator.vibrate([80, 50, 80]);
-          measureHud.innerText = `📍 [${item.tag_no}] 이동 모드 활성화! 원하는 위치로 드래그하세요.`;
-        }, 2000);
+    try {
+      const systemInstruction = `당신은 화력발전소 보일러 계측제어 정비 엔지니어입니다. PT(압력 전송기), FT(유량계), TE(온도센서), LT(레벨 전송기), 제어밸브 등의 오차 점검 절차, 영점 조정 방법, 에러 코드 해결법을 실무 작업자 입장에서 간결하고 이해하기 쉬운 1단계, 2단계 순서로 답변하세요.`;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: `${systemInstruction}\n\n[작업자 질문]: ${q}` }] }]
+        })
       });
 
-      pin.addEventListener('pointermove', (e) => {
-        if (isLongPressed && isPinMoving) {
-          e.preventDefault(); e.stopPropagation();
-          const rect = board.getBoundingClientRect();
-          const curX = Math.round(Math.max(0, Math.min(1400, (e.clientX - rect.left) / scale)));
-          const curY = Math.round(Math.max(0, Math.min(1000, (e.clientY - rect.top) / scale)));
-          pin.style.left = `${curX}px`; pin.style.top = `${curY}px`;
-        } else if (pressTimer) {
-          if (Math.hypot(e.clientX - startClientX, e.clientY - startClientY) > 10) {
-            clearTimeout(pressTimer); pressTimer = null;
-            pin.classList.remove('pin-pressing');
-            if (!isMeasureMode) measureHud.style.display = 'none';
-          }
-        }
-      });
-
-      const handlePointerUp = async (e) => {
-        if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
-        pin.classList.remove('pin-pressing');
-        if (isLongPressed && isPinMoving) {
-          e.stopPropagation();
-          try { pin.releasePointerCapture(e.pointerId); } catch(err) {}
-          pin.classList.remove('pin-dragging'); isPinMoving = false;
-          const fx = parseInt(pin.style.left); const fy = parseInt(pin.style.top);
-          item.coord_x = fx; item.coord_y = fx; item.x_coord = fx; item.y_coord = fy;
-          measureHud.innerText = `✅ [${item.tag_no}] 위치가 변경되었습니다.`;
-          setTimeout(() => { if (!isMeasureMode) measureHud.style.display = 'none'; }, 2000);
-          await supabaseClient.from('instruments').update({ coord_x: fx, coord_y: fy, x_coord: fx, y_coord: fy }).eq('id', item.id);
-          render3DHotspots(); activeDraggingPin = null; activeDraggingItem = null;
-        } else {
-          if (!isMeasureMode) measureHud.style.display = 'none';
-          showDetail(item);
-        }
-      };
-
-      pin.addEventListener('pointerup', handlePointerUp);
-      pin.addEventListener('pointercancel', handlePointerUp);
-      board.appendChild(pin);
-    });
-  }
-
-  function render3DHotspots() {
-    viewer.querySelectorAll('.hotspot-pin').forEach(el => el.remove());
-    currentInstruments.forEach(item => {
-      if (item.unit !== selectedSubTab) return;
-      let pos = item.model_position;
-      if (!pos || pos === '0 0 0') {
-        const h = floor3DHeights[item.floor] !== undefined ? floor3DHeights[item.floor] : 26;
-        const bounds = floorCorners2D[item.floor] || floorCorners2D['1층'];
-        const u = (item.coord_x - bounds.c1.x) / (bounds.c4.x - bounds.c1.x || 1);
-        const v = (item.coord_y - bounds.c1.y) / (bounds.c4.y - bounds.c1.y || 1);
-        const x3d = 19.96 + (u * (30.93 - 19.96)) + (v * (1.65 - 19.96));
-        const z3d = -11.43 + (u * (6.89 - (-11.43))) + (v * (-0.47 - (-11.43)));
-        pos = `${x3d.toFixed(2)} ${h} ${z3d.toFixed(2)}`;
-      }
-
-      const btn = document.createElement('button');
-      btn.className = 'hotspot-pin'; btn.slot = `hotspot-${item.id}`; btn.dataset.position = pos;
-      const img = item.photo_url || item.image_data;
-      btn.style.backgroundImage = img ? `url(${img})` : 'none';
-      btn.innerHTML = img ? `<span>${item.floor} (${item.tag_no})</span>` : `📍<span>${item.floor} (${item.tag_no})</span>`;
-      btn.onclick = (e) => { e.stopPropagation(); showDetail(item); };
-      viewer.appendChild(btn);
-    });
-  }
-
-  function showDetail(item) {
-    activeTargetId = item.id;
-    document.getElementById('infoTitle').innerText = `[${item.tag_no}] ${item.name}`;
-    const mainImg = document.getElementById('infoMainImg');
-    const img = item.photo_url || item.image_data;
-    mainImg.style.display = img ? 'block' : 'none';
-    if (img) mainImg.src = img;
-
-    document.getElementById('infoBody').innerHTML = `
-      <div><b>설비 구분:</b> <span style="color:#38bdf8; font-weight:bold;">${selectedMajor} ${item.unit || '2호기'}</span></div>
-      <div><b>도면 층:</b> <span style="color:#0284c7; font-weight:bold;">${item.floor}</span></div>
-      <div><b>모델명:</b> ${item.model || '-'}</div>
-      <div><b>측정범위:</b> ${item.signal_range || '-'}</div>
-    `;
-
-    renderHistoryList(item);
-
-    document.getElementById('btnAddHistBtn').onclick = () => {
-      editingHistoryIndex = null;
-      document.getElementById('info-modal').style.display = 'none';
-      document.getElementById('histModalTitle').innerText = '📋 새 점검/정비 이력 추가';
-      document.getElementById('histTargetTag').innerText = `[${item.tag_no}] ${item.name}`;
-      document.getElementById('histDate').value = new Date().toISOString().slice(0, 10);
-      document.getElementById('histAuthor').value = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '';
-      document.getElementById('histContent').value = '';
-      currentHistPhotoBase64 = '';
-      document.getElementById('histPhotoCam').value = ''; document.getElementById('histPhotoGallery').value = '';
-      document.getElementById('histPhotoPreview').style.display = 'none';
-      document.getElementById('history-modal').style.display = 'block';
-    };
-
-    document.getElementById('btnDeletePin').onclick = async () => {
-      if (!confirm('해당 계측기와 모든 이력을 삭제하시겠습니까?')) return;
-      await supabaseClient.from('instruments').delete().eq('id', item.id);
-      document.getElementById('info-modal').style.display = 'none';
-      fetchInstruments();
-    };
-
-    document.getElementById('info-modal').style.display = 'block';
-  }
-
-  function renderHistoryList(item) {
-    const logs = Array.isArray(item.history_logs) ? item.history_logs : [];
-    const listEl = document.getElementById('infoHistoryList');
-    if (logs.length === 0) {
-      listEl.innerHTML = '<div style="color:#94a3b8; font-size:11px;">등록된 점검 이력이 없습니다.</div>';
-      return;
+      const data = await response.json();
+      const answer = data.candidates?.[0]?.content?.parts?.[0]?.text || '⚠️ 답변을 가져오지 못했습니다.';
+      document.getElementById(loadingId).innerText = answer;
+    } catch (err) {
+      document.getElementById(loadingId).innerText = '⚠️ 오류 발생: ' + err.message;
     }
-
-    listEl.innerHTML = logs.map((h, idx) => `
-      <div class="history-item">
-        <div class="history-item-header">
-          <span>${h.date} | 👤 ${h.author}</span>
-          <div class="history-actions">
-            <button class="btn-hist-action btn-hist-edit" onclick="openEditHistory(${idx})">✏️ 수정</button>
-            <button class="btn-hist-action btn-hist-del" onclick="deleteHistoryItem(${idx})">🗑️ 삭제</button>
-          </div>
-        </div>
-        <div style="color:#111; font-weight:bold; font-size:12px; margin-top:2px;">${h.content}</div>
-        ${h.photo ? `<img src="${h.photo}" class="hist-img">` : ''}
-      </div>
-    `).join('');
+    chatMsgs.scrollTop = chatMsgs.scrollHeight;
   }
-
-  window.openEditHistory = function(idx) {
-    const target = currentInstruments.find(i => i.id === activeTargetId);
-    if (!target || !target.history_logs[idx]) return;
-    const h = target.history_logs[idx];
-    editingHistoryIndex = idx;
-
-    document.getElementById('info-modal').style.display = 'none';
-    document.getElementById('histModalTitle').innerText = '✏️ 점검/정비 이력 수정';
-    document.getElementById('histTargetTag').innerText = `[${target.tag_no}] ${target.name}`;
-    document.getElementById('histDate').value = h.date || new Date().toISOString().slice(0, 10);
-    document.getElementById('histAuthor').value = h.author || '';
-    document.getElementById('histContent').value = h.content || '';
-    currentHistPhotoBase64 = h.photo || '';
-    const preview = document.getElementById('histPhotoPreview');
-    preview.style.display = currentHistPhotoBase64 ? 'block' : 'none';
-    if (currentHistPhotoBase64) preview.src = currentHistPhotoBase64;
-    document.getElementById('histPhotoCam').value = ''; document.getElementById('histPhotoGallery').value = '';
-    document.getElementById('history-modal').style.display = 'block';
-  };
-
-  window.deleteHistoryItem = async function(idx) {
-    if (!confirm('해당 점검 이력을 삭제하시겠습니까?')) return;
-    const target = currentInstruments.find(i => i.id === activeTargetId);
-    if (!target) return;
-    target.history_logs.splice(idx, 1);
-    const { error } = await supabaseClient.from('instruments').update({ history_logs: target.history_logs }).eq('id', activeTargetId);
-    if (!error) { renderHistoryList(target); alert('✅ 삭제 완료'); }
-  };
-
-  document.getElementById('btnSaveHist').addEventListener('click', async () => {
-    const text = document.getElementById('histContent').value.trim();
-    const workerName = document.getElementById('histAuthor').value.trim();
-    if (!workerName || !text) { alert('작업자와 내용을 입력하세요.'); return; }
-
-    localStorage.setItem('jeju_worker_name', workerName);
-    currentUserInfo.name = workerName;
-    document.getElementById('loginUserBadge').innerText = `👤 ${workerName}`;
-
-    const target = currentInstruments.find(i => i.id === activeTargetId);
-    if (!target) return;
-    const logs = Array.isArray(target.history_logs) ? [...target.history_logs] : [];
-    const entryData = { date: document.getElementById('histDate').value, author: workerName, content: text, photo: currentHistPhotoBase64 || null };
-
-    if (editingHistoryIndex !== null) logs[editingHistoryIndex] = entryData;
-    else logs.unshift(entryData);
-
-    const { error } = await supabaseClient.from('instruments').update({ history_logs: logs }).eq('id', activeTargetId);
-    if (!error) {
-      target.history_logs = logs;
-      document.getElementById('history-modal').style.display = 'none';
-      renderHistoryList(target);
-      document.getElementById('info-modal').style.display = 'block';
-      alert(editingHistoryIndex !== null ? '✅ 수정 완료' : '✅ 등록 완료');
-      editingHistoryIndex = null;
-      if (selectedSubTab === '관리이력') renderHistoryTable();
-    }
-  });
-
-  const searchModal = document.getElementById('search-modal');
-  const searchInput = document.getElementById('searchInput');
-  const searchResultsList = document.getElementById('searchResultsList');
-
-  document.getElementById('btnOpenSearch').addEventListener('click', () => {
-    searchInput.value = ''; renderSearchResults('');
-    searchModal.style.display = 'block';
-    setTimeout(() => searchInput.focus(), 100);
-  });
-
-  searchInput.addEventListener('input', (e) => renderSearchResults(e.target.value.trim()));
-
-  function renderSearchResults(query) {
-    if (!query) { searchResultsList.innerHTML = '<div style="color:#94a3b8; font-size:12px; text-align:center; padding:20px;">검색어를 입력하세요.</div>'; return; }
-    const filtered = currentInstruments.filter(item => {
-      const q = query.toLowerCase();
-      return (item.tag_no || '').toLowerCase().includes(q) || (item.name || '').toLowerCase().includes(q) || (item.model || '').toLowerCase().includes(q);
-    });
-    if (filtered.length === 0) { searchResultsList.innerHTML = '<div style="color:#ef4444; font-size:12px; text-align:center; padding:20px;">검색 결과가 없습니다.</div>'; return; }
-    searchResultsList.innerHTML = filtered.map(item => `
-      <div class="search-result-item" onclick="jumpToInstrument(${item.id})">
-        <div><div class="search-item-main">[${item.tag_no}] ${item.name}</div><div class="search-item-sub">모델: ${item.model || '-'} | 범위: ${item.signal_range || '-'}</div></div>
-        <div class="search-item-badge">기력 ${item.unit || '2호기'} ${item.floor}</div>
-      </div>
-    `).join('');
-  }
-
-  window.jumpToInstrument = function(instId) {
-    const item = currentInstruments.find(i => i.id === instId);
-    if (!item) return;
-    searchModal.style.display = 'none';
-
-    switchMajor('기력');
-    switchSubTab(item.unit || '2호기');
-
-    const floorFileNameMap = {
-      '1층': 'floor_1f.jpg', '2층': 'floor_2f.jpg', '2.5층': 'floor_2_5f.jpg', '3층': 'floor_3f.jpg',
-      '3.1/3층': 'floor_3_1_3f.jpg', '3.2/3층': 'floor_3_2_3f.jpg', '4층': 'floor_4f.jpg', '4.5층': 'floor_4_5f.jpg',
-      '5층': 'floor_5f.jpg', '5.5층': 'floor_5_5f.jpg', '6층': 'floor_6f.jpg', '7층': 'floor_7f.jpg'
-    };
-    openFloorRoom(item.floor, floorFileNameMap[item.floor] || 'floor_1f.jpg', null);
-
-    scale = 1.0; panX = (700 - item.coord_x) * scale; panY = (500 - item.coord_y) * scale;
-    updateTransform();
-    setTimeout(() => {
-      const pinEl = document.getElementById(`floor-pin-${item.id}`);
-      if (pinEl) { pinEl.classList.add('pin-highlight'); setTimeout(() => pinEl.classList.remove('pin-highlight'), 3500); }
-      showDetail(item);
-    }, 200);
-  };
 
   if (sessionStorage.getItem('jeju_admin_auth') === 'true') {
-    unlock(localStorage.getItem('jeju_worker_name') || '관리자', 'admin@jeju.com');
+    unlock('👑 최고관리자', 'admin@jeju.com');
   }
 </script>
 </body>
