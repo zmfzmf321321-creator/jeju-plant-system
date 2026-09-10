@@ -373,12 +373,14 @@
   <div class="selector-row" id="sub-tabs-steam">
     <button class="sub-tab-btn active" id="sub-steam-2" onclick="switchSubTab('2호기')">2호기</button>
     <button class="sub-tab-btn" id="sub-steam-3" onclick="switchSubTab('3호기')">3호기</button>
-    <button class="sub-tab-btn" id="sub-steam-hist" onclick="switchSubTab('관리이력')">📋 관리이력</button>
+    <button class="sub-tab-btn" id="sub-steam-hist2" onclick="switchSubTab('2호기 관리이력')">📋 2호기 이력</button>
+    <button class="sub-tab-btn" id="sub-steam-hist3" onclick="switchSubTab('3호기 관리이력')">📋 3호기 이력</button>
   </div>
   <div class="selector-row" id="sub-tabs-engine" style="display: none;">
     <button class="sub-tab-btn active" id="sub-engine-1" onclick="switchSubTab('1호기')">1호기</button>
     <button class="sub-tab-btn" id="sub-engine-2" onclick="switchSubTab('2호기')">2호기</button>
-    <button class="sub-tab-btn" id="sub-engine-hist" onclick="switchSubTab('관리이력')">📋 관리이력</button>
+    <button class="sub-tab-btn" id="sub-engine-hist1" onclick="switchSubTab('1호기 관리이력')">📋 1호기 이력</button>
+    <button class="sub-tab-btn" id="sub-engine-hist2" onclick="switchSubTab('2호기 관리이력')">📋 2호기 이력</button>
   </div>
 </div>
 
@@ -431,7 +433,7 @@
 
   <div id="history-table-view">
     <div class="history-table-header">
-      <div class="history-table-title" id="historyTableTitle">📋 [기력발전] 통합 점검 및 관리이력</div>
+      <div class="history-table-title" id="historyTableTitle">📋 [발전설비] 점검 및 관리이력</div>
       <input type="text" id="tableFilterInput" class="history-search-bar" placeholder="이력 검색..." oninput="renderHistoryTable()">
     </div>
     <div style="overflow-x: auto;">
@@ -793,11 +795,13 @@
     if (selectedMajor === '기력') {
       document.getElementById('sub-steam-2').classList.toggle('active', sub === '2호기');
       document.getElementById('sub-steam-3').classList.toggle('active', sub === '3호기');
-      document.getElementById('sub-steam-hist').classList.toggle('active', sub === '관리이력');
+      document.getElementById('sub-steam-hist2').classList.toggle('active', sub === '2호기 관리이력');
+      document.getElementById('sub-steam-hist3').classList.toggle('active', sub === '3호기 관리이력');
     } else {
       document.getElementById('sub-engine-1').classList.toggle('active', sub === '1호기');
       document.getElementById('sub-engine-2').classList.toggle('active', sub === '2호기');
-      document.getElementById('sub-engine-hist').classList.toggle('active', sub === '관리이력');
+      document.getElementById('sub-engine-hist1').classList.toggle('active', sub === '1호기 관리이력');
+      document.getElementById('sub-engine-hist2').classList.toggle('active', sub === '2호기 관리이력');
     }
 
     const view3D = document.getElementById('overall-3d-view');
@@ -811,10 +815,11 @@
     viewEmpty.style.display = 'none';
     viewHist.style.display = 'none';
 
-    if (sub === '관리이력') {
+    if (sub.includes('관리이력')) {
       floorBar.style.display = 'none';
       viewHist.style.display = 'block';
-      document.getElementById('historyTableTitle').innerText = `📋 [${selectedMajor}발전] 전체 점검 및 관리이력`;
+      const targetUnit = sub.includes('2호기') ? '2호기' : (sub.includes('3호기') ? '3호기' : '1호기');
+      document.getElementById('historyTableTitle').innerText = `📋 [${selectedMajor} ${targetUnit}] 점검 및 관리이력`;
       renderHistoryTable();
     } else if (selectedMajor === '기력') {
       floorBar.style.display = 'flex';
@@ -829,8 +834,8 @@
 
   function updateFloorTitle() {
     const floorTag = document.getElementById('currentFloorTag');
-    if (selectedSubTab === '관리이력') {
-      floorTag.innerText = `${selectedMajor} 관리이력`;
+    if (selectedSubTab.includes('관리이력')) {
+      floorTag.innerText = `${selectedMajor} ${selectedSubTab}`;
     } else if (selectedMajor === '기력') {
       floorTag.innerText = selectedFloor === 'ALL' ? `기력 ${selectedSubTab} 전체` : `기력 ${selectedSubTab} ${selectedFloor}`;
       document.getElementById('roomTitleText').innerText = `📍 [기력 ${selectedSubTab} - ${selectedFloor}] 도면 공간`;
@@ -839,11 +844,14 @@
     }
   }
 
-  /* --- 관리이력 통합 렌더링 함수 (선택된 대분류의 모든 호기 데이터를 누락 없이 통합) --- */
+  /* --- 호기별 독립 관리이력 렌더링 함수 --- */
   window.renderHistoryTable = function() {
     const tbody = document.getElementById('historyTableBody');
     const filterText = (document.getElementById('tableFilterInput').value || '').trim().toLowerCase();
     tbody.innerHTML = '';
+
+    // 현재 선택된 관리이력 탭에 해당하는 호기 문자열 추출 (예: '2호기', '3호기', '1호기')
+    const targetUnit = selectedSubTab.includes('3호기') ? '3호기' : (selectedSubTab.includes('2호기') ? '2호기' : '1호기');
 
     let allLogs = [];
     currentInstruments.forEach(inst => {
@@ -852,13 +860,13 @@
         dbMajor = (typeof inst.unit === 'string' && inst.unit.includes('내연')) ? '내연' : '기력';
       }
 
-      // 현재 선택된 대분류와 일치하는 기기만 수집
-      if (dbMajor !== selectedMajor) return;
+      // 대분류(기력/내연) 및 정확한 호기(unit)가 일치하는 기기만 필터링
+      if (dbMajor !== selectedMajor || inst.unit !== targetUnit) return;
 
       const logs = Array.isArray(inst.history_logs) ? inst.history_logs : [];
       logs.forEach(log => {
         allLogs.push({
-          category: `${dbMajor} ${inst.unit || ''}`.trim(),
+          category: `${dbMajor} ${inst.unit}`,
           date: log.date || '-',
           tag_no: inst.tag_no || '-',
           name: inst.name || '-',
@@ -880,7 +888,7 @@
     }
 
     if (allLogs.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px; color: #64748b;">등록된 점검 이력이 없습니다.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px; color: #64748b;">[${selectedMajor} ${targetUnit}]에 등록된 점검 이력이 없습니다.</td></tr>`;
       return;
     }
 
@@ -1430,7 +1438,7 @@ Tag No: ${target.tag_no}
         return { ...item, floor: f, unit: u, major_category: major, coord_x: cx, coord_y: cy, photo_url: img, image_data: img, history_logs: Array.isArray(item.history_logs) ? item.history_logs : [] };
       });
       renderFloorPins(); render3DHotspots();
-      if (selectedSubTab === '관리이력') renderHistoryTable();
+      if (selectedSubTab.includes('관리이력')) renderHistoryTable();
     }
   }
 
@@ -1624,7 +1632,7 @@ Tag No: ${target.tag_no}
     if (!error) { 
       renderHistoryListModal(target); 
       alert('✅ 삭제 완료'); 
-      if (selectedSubTab === '관리이력') renderHistoryTable();
+      if (selectedSubTab.includes('관리이력')) renderHistoryTable();
     }
   };
 
@@ -1662,7 +1670,7 @@ Tag No: ${target.tag_no}
       document.getElementById('info-modal').style.display = 'block';
       alert(editingHistoryIndex !== null ? '✅ 수정 완료' : '✅ 등록 완료');
       editingHistoryIndex = null;
-      if (selectedSubTab === '관리이력') renderHistoryTable();
+      if (selectedSubTab.includes('관리이력')) renderHistoryTable();
     }
   });
 
@@ -1721,7 +1729,7 @@ Tag No: ${target.tag_no}
   };
 
   if (sessionStorage.getItem('jeju_admin_auth') === 'true') {
-    unlock(localStorage.getItem('jeju_worker_name') || '관리자', 'admin@jeju.com');
+    unlock(localStorage.getItem('jeju_worker_name'] || '관리자', 'admin@jeju.com');
   }
 </script>
 </body>
