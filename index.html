@@ -85,7 +85,7 @@
       flex-direction: column; justify-content: center; gap: 6px; z-index: 4900;
       padding: 6px 10px;
     }
-    .selector-row { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; }
+    .selector-row { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; }
     .major-tab-btn {
       flex: 1; max-width: 160px; height: 28px; border: 1px solid #475569;
       background: #1e293b; color: #cbd5e1; font-size: 12px; font-weight: bold;
@@ -96,10 +96,9 @@
       box-shadow: 0 0 10px rgba(2, 132, 199, 0.7);
     }
     .sub-tab-btn {
-      flex: 1; height: 26px; border: 1px solid #334155;
+      flex: 1; max-width: 115px; height: 26px; border: 1px solid #334155;
       background: #111a33; color: #94a3b8; font-size: 11px; font-weight: bold;
       border-radius: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center;
-      white-space: nowrap; padding: 0 4px;
     }
     .sub-tab-btn.active {
       background: #38bdf8; color: #0b132b; border-color: #7dd3fc;
@@ -366,7 +365,6 @@
   </div>
 </div>
 
-<!-- 상단 네비게이션: 대분류 클릭 시 해당 소분류 및 이력 탭이 동적으로 노출됨 -->
 <div id="unit-selector-bar">
   <div class="selector-row">
     <button class="major-tab-btn active" id="btn-major-steam" onclick="switchMajor('기력')">⚡ 기력 발전</button>
@@ -778,7 +776,7 @@
   document.getElementById('btnBioLogin').addEventListener('click', (e) => { e.preventDefault(); loginBiometrics(); });
   document.getElementById('btnRegisterBio').addEventListener('click', (e) => { e.preventDefault(); registerBiometrics(); });
 
-  /* --- 대분류 클릭 시 소분류 탭 토글 및 연동 --- */
+  /* --- 대분류 및 탭 라우팅 --- */
   window.switchMajor = function(major) {
     selectedMajor = major;
     document.getElementById('btn-major-steam').classList.toggle('active', major === '기력');
@@ -821,7 +819,7 @@
     if (sub === '관리이력') {
       floorBar.style.display = 'none';
       viewHist.style.display = 'block';
-      document.getElementById('historyTableTitle').innerText = `📋 [${selectedMajor}발전] 전체 점검 및 관리이력`;
+      document.getElementById('historyTableTitle').innerText = `📋 [${selectedMajor}발전] 통합 점검 및 관리이력`;
       renderHistoryTable();
     } else if (selectedMajor === '기력') {
       floorBar.style.display = 'flex';
@@ -846,7 +844,6 @@
     }
   }
 
-  /* --- 관리이력 렌더링 함수 (통합 및 호기 필터링) --- */
   window.renderHistoryTable = function() {
     const tbody = document.getElementById('historyTableBody');
     const filterText = (document.getElementById('tableFilterInput').value || '').trim().toLowerCase();
@@ -1194,10 +1191,31 @@ Tag No: ${target.tag_no}
     }
   });
 
-  document.getElementById('btnMemberLogin').addEventListener('click', (e) => {
+  /* --- 보안 강화된 실제 Supabase Auth 승인 계정 로그인 --- */
+  document.getElementById('btnMemberLogin').addEventListener('click', async (e) => {
     e.preventDefault();
     const email = document.getElementById('loginEmail').value.trim();
-    if (!email) { alert('사번(이메일)을 입력해 주세요.'); return; }
+    const password = document.getElementById('loginPassword').value.trim();
+    const msgEl = document.getElementById('loginMsg');
+    msgEl.style.display = 'none';
+
+    if (!email || !password) {
+      msgEl.innerText = '⚠️ 사번(이메일)과 비밀번호를 모두 입력해 주세요.';
+      msgEl.style.display = 'block';
+      return;
+    }
+
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email: email,
+      password: password
+    });
+
+    if (error) {
+      msgEl.innerText = '❌ 로그인 실패: 승인되지 않은 사번이거나 비밀번호가 틀렸습니다.';
+      msgEl.style.display = 'block';
+      return;
+    }
+
     const namePart = email.split('@')[0];
     localStorage.setItem('jeju_worker_name', namePart);
     unlock(namePart, email);
@@ -1215,7 +1233,7 @@ Tag No: ${target.tag_no}
     regMsg.style.display = 'none';
     localStorage.setItem('jeju_worker_name', name);
     try { await supabaseClient.auth.signUp({ email, password: pass }); } catch (err) {}
-    alert(`🎉 [${name}] 팀원님 등록 완료!`);
+    alert(`🎉 [${name}] 팀원님 가입 완료!`);
     unlock(name, email);
   });
 
