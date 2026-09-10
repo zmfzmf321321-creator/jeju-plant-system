@@ -703,7 +703,7 @@
     }
   }
 
-  /* --- WebAuthn 생체인식 --- */
+  /* --- 안정화된 WebAuthn 생체인식 --- */
   function uint8ArrayToBase64(uint8Array) {
     let binary = '';
     for (let i = 0; i < uint8Array.length; i++) binary += String.fromCharCode(uint8Array[i]);
@@ -724,7 +724,7 @@
     const workerName = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자';
     try {
       const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
-      const userId = new TextEncoder().encode('jeju_' + workerName);
+      const userId = new TextEncoder().encode(workerName);
       const credential = await navigator.credentials.create({
         publicKey: {
           challenge, rp: { name: '제주 보일러 제어 시스템' },
@@ -757,9 +757,9 @@
 
     try {
       const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
-      const rawIdBytes = base64ToUint8Array(rawIdBase64);
+      const rawIdBuffer = base64ToUint8Array(rawIdBase64);
       const assertion = await navigator.credentials.get({
-        publicKey: { challenge, allowCredentials: [{ id: rawIdBytes.buffer, type: 'public-key' }], userVerification: 'preferred', timeout: 60000 }
+        publicKey: { challenge, allowCredentials: [{ id: rawIdBuffer, type: 'public-key' }], userVerification: 'preferred', timeout: 60000 }
       });
       if (assertion) unlock(savedName, `${savedName}@jeju.com`);
     } catch (err) {
@@ -839,7 +839,7 @@
     }
   }
 
-  /* --- 관리이력 통합 렌더링 함수 (해당 대분류의 모든 호기 데이터를 누락 없이 수집) --- */
+  /* --- 관리이력 통합 렌더링 함수 (선택된 대분류의 모든 호기 데이터를 누락 없이 통합) --- */
   window.renderHistoryTable = function() {
     const tbody = document.getElementById('historyTableBody');
     const filterText = (document.getElementById('tableFilterInput').value || '').trim().toLowerCase();
@@ -847,13 +847,12 @@
 
     let allLogs = [];
     currentInstruments.forEach(inst => {
-      // 데이터베이스에 저장된 major_category 또는 unit 문자열을 바탕으로 대분류 판별
       let dbMajor = inst.major_category;
       if (!dbMajor) {
         dbMajor = (typeof inst.unit === 'string' && inst.unit.includes('내연')) ? '내연' : '기력';
       }
 
-      // 현재 선택된 대분류(기력 또는 내연)와 일치하는 기기만 허용
+      // 현재 선택된 대분류와 일치하는 기기만 수집
       if (dbMajor !== selectedMajor) return;
 
       const logs = Array.isArray(inst.history_logs) ? inst.history_logs : [];
