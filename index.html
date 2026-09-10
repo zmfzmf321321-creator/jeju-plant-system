@@ -265,13 +265,13 @@
     }
     .floor-btn.active { background: #00b4d8; color: #0b132b; border-color: #90e0ef; }
 
-    #modal, #info-modal, #history-modal, #search-modal, #gemini-modal {
+    #modal, #info-modal, #history-modal, #search-modal, #gemini-modal, #ocr-edit-modal {
       display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
       background: #ffffff; padding: 20px; border-radius: 12px; z-index: 9999999;
       width: 92%; max-width: 420px; color: #333; max-height: 88vh; overflow-y: auto;
       box-shadow: 0 10px 40px rgba(0,0,0,0.8); pointer-events: auto;
     }
-    #modal h3, #info-modal h3, #history-modal h3, #search-modal h3, #gemini-modal h3 { margin: 0 0 12px 0; font-size: 16px; color: #0b132b; }
+    #modal h3, #info-modal h3, #history-modal h3, #search-modal h3, #gemini-modal h3, #ocr-edit-modal h3 { margin: 0 0 12px 0; font-size: 16px; color: #0b132b; }
     .form-group { margin-bottom: 10px; }
     .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #334155; }
     .form-group input, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; font-family: inherit; color: #111; }
@@ -597,6 +597,22 @@
   <button class="btn-delete-pin" id="btnDeletePin">🗑️ 계측기 완전히 삭제</button>
   <div class="btn-wrap" style="margin-top: 10px;">
     <button class="btn-cancel" onclick="document.getElementById('info-modal').style.display='none'">닫기</button>
+  </div>
+</div>
+
+<!-- AI 명판 추출 정보 검토 및 사용자 직접 수정 모달 -->
+<div id="ocr-edit-modal">
+  <h3>🔍 명판 추출 정보 확인 및 수정</h3>
+  <div style="font-size: 12px; color: #64748b; margin-bottom: 12px; line-height: 1.4;">
+    사진에서 AI가 판독한 내용입니다. 필요 시 직접 수정 후 [최종 수정 적용]을 눌러주세요.
+  </div>
+  <div class="form-group"><label>Tag No.</label><input type="text" id="ocrTagNo"></div>
+  <div class="form-group"><label>기기명</label><input type="text" id="ocrName"></div>
+  <div class="form-group"><label>모델명</label><input type="text" id="ocrModel"></div>
+  <div class="form-group"><label>측정범위 / 신호</label><input type="text" id="ocrRange"></div>
+  <div class="btn-wrap">
+    <button class="btn-save" id="btnApplyOcrEdit">최종 수정 적용</button>
+    <button class="btn-cancel" onclick="closeOcrEditModal()">취소</button>
   </div>
 </div>
 
@@ -1001,6 +1017,56 @@
     }
   };
 
+  /* --- 사용자가 직접 수정할 수 있는 OCR 모달 팝업 열기 --- */
+  function openOcrEditModal(target, parsed) {
+    document.getElementById('ocrTagNo').value = parsed.tag_no || target.tag_no || '';
+    document.getElementById('ocrName').value = parsed.name || target.name || '';
+    document.getElementById('ocrModel').value = parsed.model || target.model || '';
+    document.getElementById('ocrRange').value = parsed.range || target.signal_range || '';
+
+    document.getElementById('btnApplyOcrEdit').onclick = async () => {
+      const newTag = document.getElementById('ocrTagNo').value.trim();
+      const newName = document.getElementById('ocrName').value.trim();
+      const newModel = document.getElementById('ocrModel').value.trim();
+      const newRange = document.getElementById('ocrRange').value.trim();
+
+      const updateFields = {
+        tag_no: newTag,
+        name: newName,
+        model: newModel,
+        signal_range: newRange
+      };
+
+      const { error: upErr } = await supabaseClient.from('instruments').update(updateFields).eq('id', target.id);
+      if (!upErr) {
+        target.tag_no = newTag;
+        target.name = newName;
+        target.model = newModel;
+        target.signal_range = newRange;
+
+        closeOcrEditModal();
+        showDetail(target);
+        renderFloorPins();
+        render3DHotspots();
+
+        const hud = document.getElementById('measure-info-hud');
+        if (hud) {
+          hud.style.display = 'block';
+          hud.innerText = '✅ 수정하신 정보가 성공적으로 반영되었습니다!';
+          setTimeout(() => { if (!isMeasureMode) hud.style.display = 'none'; }, 2500);
+        }
+      } else {
+        alert('❌ 저장 실패: ' + upErr.message);
+      }
+    };
+
+    document.getElementById('ocr-edit-modal').style.display = 'block';
+  }
+
+  window.closeOcrEditModal = function() {
+    document.getElementById('ocr-edit-modal').style.display = 'none';
+  };
+
   /* --- 사진 속 명판(Tag No, 모델, 범위) 자동 OCR 판독 함수 --- */
   async function autoFillTagFromPhoto(fileOrUrl, targetMode = 'insert') {
     if (!fileOrUrl) return;
@@ -1041,46 +1107,13 @@
           if (parsed.name) document.getElementById('name').value = parsed.name;
           if (parsed.model) document.getElementById('model').value = parsed.model;
           if (parsed.range) document.getElementById('range').value = parsed.range;
-          if (hud) hud.innerText = `✅ [${parsed.tag_no || '정보'}] 입력창에 자동 반영되었습니다.`;
+          if (hud) hud.innerText = `✅ [${parsed.tag_no || '정보'}] 입력창에 자동 반영되었습니다. 내용을 확인 및 수정하세요.`;
         } else if (targetMode === 'update') {
           const target = currentInstruments.find(i => i.id === activeTargetId);
           if (target) {
-            const newTag = parsed.tag_no || target.tag_no;
-            const newName = parsed.name || target.name;
-            const newModel = parsed.model || target.model;
-            const newRange = parsed.range || target.signal_range;
-
-            const confirmMsg = `AI가 사진 속 명판을 판독했습니다:\n\n` +
-              `• Tag No: ${target.tag_no} ➔ ${newTag}\n` +
-              `• 기기명: ${target.name} ➔ ${newName}\n` +
-              `• 모델명: ${target.model || '-'} ➔ ${newModel}\n` +
-              `• 측정범위: ${target.signal_range || '-'} ➔ ${newRange}\n\n` +
-              `이 내용으로 계측기 정보를 업데이트하시겠습니까?`;
-
-            if (confirm(confirmMsg)) {
-              const updateFields = {
-                tag_no: newTag,
-                name: newName,
-                model: newModel,
-                signal_range: newRange
-              };
-              
-              const { error: upErr } = await supabaseClient.from('instruments').update(updateFields).eq('id', target.id);
-              if (!upErr) {
-                target.tag_no = newTag;
-                target.name = newName;
-                target.model = newModel;
-                target.signal_range = newRange;
-                showDetail(target);
-                renderFloorPins();
-                render3DHotspots();
-                if (hud) hud.innerText = '✅ 계측기 정보가 성공적으로 업데이트되었습니다.';
-              } else {
-                alert('업데이트 실패: ' + upErr.message);
-              }
-            } else {
-              if (hud) hud.innerText = '업데이트가 취소되었습니다.';
-            }
+            // 바로 수정 가능한 입력 팝업창 띄우기
+            openOcrEditModal(target, parsed);
+            if (hud) hud.innerText = '✅ 명판 추출 완료! 입력창에서 최종 검토 후 적용하세요.';
           }
         }
       } else {
