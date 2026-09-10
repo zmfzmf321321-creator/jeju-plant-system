@@ -64,20 +64,22 @@
     .auth-status-error { color: #ef4444; font-size: 12px; margin-top: 10px; display: none; line-height: 1.4; }
     #admin-login-box, #register-box { display: none; }
 
+    /* 모바일 최적화 헤더 및 버튼 스타일 */
     #header {
       position: fixed; top: 0; left: 0; width: 100vw; height: 50px;
       background: #1c2541; display: flex; align-items: center; justify-content: space-between;
-      padding: 0 10px; border-bottom: 1px solid #3a506b; z-index: 5000;
+      padding: 0 6px; border-bottom: 1px solid #3a506b; z-index: 5000;
     }
-    .brand { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
-    .location-tag { background: #48cae4; color: #0b132b; padding: 3px 6px; border-radius: 10px; font-size: 11px; font-weight: bold; }
-    .header-btns { display: flex; gap: 5px; align-items: center; }
-    .btn-ai-top { background: linear-gradient(135deg, #6366f1, #a855f7); border: 1px solid #c084fc; color: #fff; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
-    .btn-search-top { background: #0284c7; border: 1px solid #38bdf8; color: #fff; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
-    .btn-measure { background: #334155; border: 1px solid #64748b; color: #f8fafc; padding: 5px 7px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
+    .brand { font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+    .location-tag { background: #48cae4; color: #0b132b; padding: 2px 5px; border-radius: 8px; font-size: 10px; font-weight: bold; }
+    
+    .header-btns { display: flex; gap: 3px; align-items: center; flex-shrink: 0; }
+    .btn-ai-top { background: linear-gradient(135deg, #6366f1, #a855f7); border: 1px solid #c084fc; color: #fff; padding: 4px 6px; border-radius: 5px; cursor: pointer; font-size: 10px; font-weight: bold; }
+    .btn-search-top { background: #0284c7; border: 1px solid #38bdf8; color: #fff; padding: 4px 6px; border-radius: 5px; cursor: pointer; font-size: 10px; font-weight: bold; }
+    .btn-measure { background: #334155; border: 1px solid #64748b; color: #f8fafc; padding: 4px 6px; border-radius: 5px; cursor: pointer; font-size: 10px; font-weight: bold; }
     .btn-measure.active { background: #f59e0b; border-color: #fbbf24; color: #111827; }
-    .btn-bio-reg { background: #065f46; border: 1px solid #10b981; color: #a7f3d0; padding: 5px 7px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; }
-    .btn-logout { background: transparent; border: 1px solid #64748b; color: #cbd5e1; padding: 5px 7px; border-radius: 6px; cursor: pointer; font-size: 11px; }
+    .btn-bio-reg { background: #065f46; border: 1px solid #10b981; color: #a7f3d0; padding: 4px 6px; border-radius: 5px; cursor: pointer; font-size: 10px; font-weight: bold; }
+    .btn-logout { background: transparent; border: 1px solid #64748b; color: #cbd5e1; padding: 4px 6px; border-radius: 5px; cursor: pointer; font-size: 11px; }
 
     #unit-selector-bar {
       position: fixed; top: 50px; left: 0; width: 100vw; height: 76px;
@@ -352,16 +354,16 @@
 
 <div id="header">
   <div class="brand">
-    <span>⚡ 제주 발전제어</span>
-    <span class="location-tag" id="currentFloorTag">기력 2호기 전체</span>
+    <span>⚡ 제주 발전</span>
+    <span class="location-tag" id="currentFloorTag">2호기 전체</span>
   </div>
   <div class="header-btns">
-    <span id="loginUserBadge" style="font-size:11px; color:#38bdf8; font-weight:bold; margin-right:2px;"></span>
-    <button class="btn-ai-top" id="btnOpenGemini">🤖 AI 분석</button>
+    <span id="loginUserBadge" style="font-size:10px; color:#38bdf8; font-weight:bold; margin-right:1px; max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"></span>
+    <button class="btn-ai-top" id="btnOpenGemini">🤖 AI</button>
     <button class="btn-search-top" id="btnOpenSearch">🔍 검색</button>
     <button class="btn-measure" id="btnToggleMeasure">📐 계측</button>
     <button class="btn-bio-reg" id="btnRegisterBio">👆 지문</button>
-    <button class="btn-logout" id="btnLogout">로그아웃</button>
+    <button class="btn-logout" id="btnLogout" title="로그아웃">🚪</button>
   </div>
 </div>
 
@@ -674,7 +676,6 @@
     '7층':     { c1: { x: 132, y: 242 }, c4: { x: 569,  y: 855 } }
   };
 
-  /* --- Supabase Storage 파일 업로드 함수 --- */
   async function uploadImageToStorage(file) {
     if (!file) return null;
     try {
@@ -703,7 +704,6 @@
     }
   }
 
-  /* --- WebAuthn 생체인식 --- */
   function uint8ArrayToBase64(uint8Array) {
     let binary = '';
     for (let i = 0; i < uint8Array.length; i++) binary += String.fromCharCode(uint8Array[i]);
@@ -776,7 +776,6 @@
   document.getElementById('btnBioLogin').addEventListener('click', (e) => { e.preventDefault(); loginBiometrics(); });
   document.getElementById('btnRegisterBio').addEventListener('click', (e) => { e.preventDefault(); registerBiometrics(); });
 
-  /* --- 대분류 및 탭 라우팅 --- */
   window.switchMajor = function(major) {
     selectedMajor = major;
     document.getElementById('btn-major-steam').classList.toggle('active', major === '기력');
@@ -819,7 +818,7 @@
     if (sub === '관리이력') {
       floorBar.style.display = 'none';
       viewHist.style.display = 'block';
-      document.getElementById('historyTableTitle').innerText = `📋 [${selectedMajor}발전] 통합 점검 및 관리이력`;
+      document.getElementById('historyTableTitle').innerText = `📋 [${selectedMajor}발전] 전체 점검 및 관리이력`;
       renderHistoryTable();
     } else if (selectedMajor === '기력') {
       floorBar.style.display = 'flex';
@@ -905,7 +904,6 @@
     });
   };
 
-  /* --- Supabase 매뉴얼 데이터 가져오기 --- */
   async function fetchManuals() {
     const { data, error } = await supabaseClient.from('manuals').select('*');
     if (!error && data) {
@@ -915,7 +913,6 @@
     }
   }
 
-  /* --- Gemini API 연동 모듈 --- */
   function getGeminiApiKey() {
     return (localStorage.getItem('jeju_gemini_api_key') || '').trim();
   }
@@ -1088,7 +1085,6 @@ Tag No: ${target.tag_no}
     callGemini(`이 계측기(${target.tag_no} ${target.name})의 점검 이력과 Supabase에 등록된 [정비 매뉴얼] 내용을 대조하여, 올바른 정비 지침과 조치 방안을 안내해줘.`, targetContext);
   });
 
-  /* --- 파일 선택 및 미리보기 핸들러 --- */
   function previewImageFile(file, previewElementId) {
     if (!file) return;
     const reader = new FileReader();
@@ -1191,7 +1187,6 @@ Tag No: ${target.tag_no}
     }
   });
 
-  /* --- 보안 강화된 실제 Supabase Auth 승인 계정 로그인 --- */
   document.getElementById('btnMemberLogin').addEventListener('click', async (e) => {
     e.preventDefault();
     const email = document.getElementById('loginEmail').value.trim();
