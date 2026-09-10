@@ -518,13 +518,9 @@
 <!-- 계측기 등록 모달 -->
 <div id="modal">
   <h3>계측기 등록 (<span id="modalUnitText" style="color:#0284c7; font-weight:bold;">기력 2호기</span> <span id="modalFloorText" style="color:#00b4d8; font-weight:bold;">1층</span>)</h3>
-  <div class="form-group"><label>Tag No.</label><input type="text" id="tagNo" placeholder="예: 20-PT-101"></div>
-  <div class="form-group"><label>기기명</label><input type="text" id="name" placeholder="예: 급수 압력 전송기"></div>
-  <div class="form-group"><label>모델명</label><input type="text" id="model"></div>
-  <div class="form-group"><label>측정범위 / 신호</label><input type="text" id="range"></div>
   
   <div class="form-group">
-    <label>기기 사진 첨부</label>
+    <label>기기 사진 첨부 (명판 촬영 시 Tag 자동 완성)</label>
     <div class="photo-btn-group">
       <div class="file-input-wrapper">
         <div class="btn-file-upload">📷 즉시 촬영</div>
@@ -537,6 +533,11 @@
     </div>
     <img id="photoPreview" class="preview-img">
   </div>
+
+  <div class="form-group"><label>Tag No.</label><input type="text" id="tagNo" placeholder="예: 20-PT-101"></div>
+  <div class="form-group"><label>기기명</label><input type="text" id="name" placeholder="예: 급수 압력 전송기"></div>
+  <div class="form-group"><label>모델명</label><input type="text" id="model"></div>
+  <div class="form-group"><label>측정범위 / 신호</label><input type="text" id="range"></div>
 
   <div class="history-section" style="background:#f8fafc; padding:10px; border-radius:8px; margin-top:14px; border:1px solid #e2e8f0;">
     <div class="history-title" style="margin-bottom:6px;">📋 최초 점검/설치 이력 작성 (선택)</div>
@@ -570,11 +571,11 @@
   <img id="infoMainImg" class="preview-img" style="margin-bottom:6px;">
   <div class="photo-btn-group" style="margin-bottom: 12px;">
     <div class="file-input-wrapper">
-      <div class="btn-file-upload" style="padding: 7px; font-size: 11px;">📷 대표사진 촬영 변경</div>
+      <div class="btn-file-upload" style="padding: 7px; font-size: 11px;">📷 대표사진 촬영 (명판인식)</div>
       <input type="file" id="updateMainPhotoCam" accept="image/*" capture="environment">
     </div>
     <div class="file-input-wrapper">
-      <div class="btn-file-upload btn-secondary" style="padding: 7px; font-size: 11px;">🖼️ 앨범에서 선택 변경</div>
+      <div class="btn-file-upload btn-secondary" style="padding: 7px; font-size: 11px;">🖼️ 앨범 선택</div>
       <input type="file" id="updateMainPhotoGallery" accept="image/*">
     </div>
   </div>
@@ -922,7 +923,6 @@
     appendAiMsg('user', userPrompt);
     appendAiMsg('bot', '⏳ Supabase 보안 서버를 통해 현장 데이터 및 이미지 분석 중...');
 
-    // 질문 내에 Tag No나 기기명이 포함된 경우 관련 사진 자동 추출
     let photosToSend = [...targetPhotos];
     if (photosToSend.length === 0) {
       currentInstruments.forEach(inst => {
@@ -937,12 +937,12 @@
     }
 
     try {
-      // Supabase Edge Function(gemini-chat) 호출
       const { data, error } = await supabaseClient.functions.invoke('gemini-chat', {
         body: {
           prompt: userPrompt,
           extraContext: extraContext,
-          photosToSend: photosToSend
+          photosToSend: photosToSend,
+          mode: 'chat'
         }
       });
 
@@ -964,6 +964,63 @@
         lastMsg.innerText = `❌ 네트워크 통신 실패: ${err.message}`;
       }
     }
+  }
+
+  /* --- 사진 촬영 시 명판(Tag No, 모델, 범위) 자동 OCR 판독 함수 --- */
+  async function autoFillTagFromPhoto(file, targetMode = 'insert') {
+    if (!file) return;
+    const hud = document.getElementById('measure-info-hud');
+    hud.style.display = 'block';
+    hud.innerText = '🔍 사진 속 명판(Tag No) 정보를 AI가 판독 중입니다...';
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const base64DataUrl = e.target.result;
+      try {
+        const { data, error } = await supabaseClient.functions.invoke('gemini-chat', {
+          body: {
+            prompt: "사진 속 명판에서 tag_no, name, model, range 정보를 찾아 JSON으로 추출해줘.",
+            photosToSend: [base64DataUrl],
+            mode: "ocr_tag"
+          }
+        });
+
+        if (!error && data && data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
+          const rawReply = data.candidates[0].content.parts[0].text;
+          const cleanJson = rawReply.replace(/```json|```/g, '').trim();
+          const parsed = JSON.parse(cleanJson);
+
+          if (targetMode === 'insert') {
+            if (parsed.tag_no) document.getElementById('tagNo').value = parsed.tag_no;
+            if (parsed.name) document.getElementById('name').value = parsed.name;
+            if (parsed.model) document.getElementById('model').value = parsed.model;
+            if (parsed.range) document.getElementById('range').value = parsed.range;
+            hud.innerText = `✅ [${parsed.tag_no || '정보'}] 명판이 자동 인식되어 입력되었습니다!`;
+          } else if (targetMode === 'update') {
+            const target = currentInstruments.find(i => i.id === activeTargetId);
+            if (target && (parsed.tag_no || parsed.name || parsed.model || parsed.range)) {
+              if (confirm(`AI가 명판을 판독했습니다:\n- Tag No: ${parsed.tag_no || target.tag_no}\n- 기기명: ${parsed.name || target.name}\n- 모델명: ${parsed.model || target.model}\n- 범위: ${parsed.range || target.signal_range}\n\n이 정보로 계측기 정보를 업데이트하시겠습니까?`)) {
+                const updateFields = {};
+                if (parsed.tag_no) { updateFields.tag_no = parsed.tag_no; target.tag_no = parsed.tag_no; }
+                if (parsed.name) { updateFields.name = parsed.name; target.name = parsed.name; }
+                if (parsed.model) { updateFields.model = parsed.model; target.model = parsed.model; }
+                if (parsed.range) { updateFields.signal_range = parsed.range; target.signal_range = parsed.range; }
+                await supabaseClient.from('instruments').update(updateFields).eq('id', target.id);
+                showDetail(target);
+                renderFloorPins(); render3DHotspots();
+              }
+            }
+            hud.innerText = '✅ 대표 사진 및 명판 분석이 완료되었습니다.';
+          }
+        } else {
+          hud.innerText = '⚠️ 명판 정보를 명확히 인식하지 못했습니다. 수동으로 입력해 주세요.';
+        }
+      } catch (ocrErr) {
+        hud.innerText = '⚠️ 명판 자동 판독 중 오류가 발생했습니다.';
+      }
+      setTimeout(() => { if (!isMeasureMode) hud.style.display = 'none'; }, 3000);
+    };
+    reader.readAsDataURL(file);
   }
 
   function appendAiMsg(role, text) {
@@ -991,7 +1048,6 @@
     callGemini(promptText);
   };
 
-  // 상세창에서 [이 기기 사진·이력·매뉴얼 AI 종합 분석 받기] 버튼 클릭 시
   document.getElementById('btnAiAnalyzeThis').addEventListener('click', async () => {
     const target = currentInstruments.find(i => i.id === activeTargetId);
     if (!target) return;
@@ -1033,10 +1089,12 @@ Tag No: ${target.tag_no}
   document.getElementById('instPhotoCam').addEventListener('change', (e) => {
     pendingInstPhotoFile = e.target.files[0];
     previewImageFile(pendingInstPhotoFile, 'photoPreview');
+    autoFillTagFromPhoto(pendingInstPhotoFile, 'insert');
   });
   document.getElementById('instPhotoGallery').addEventListener('change', (e) => {
     pendingInstPhotoFile = e.target.files[0];
     previewImageFile(pendingInstPhotoFile, 'photoPreview');
+    autoFillTagFromPhoto(pendingInstPhotoFile, 'insert');
   });
 
   document.getElementById('initHistPhotoCam').addEventListener('change', (e) => {
@@ -1069,7 +1127,7 @@ Tag No: ${target.tag_no}
     document.getElementById('infoMainImg').style.display = 'block';
     await supabaseClient.from('instruments').update({ photo_url: uploadedUrl, image_data: uploadedUrl }).eq('id', activeTargetId);
     renderFloorPins(); render3DHotspots();
-    alert('✅ 기기 대표 사진이 스토리지에 업로드되고 업데이트되었습니다.');
+    autoFillTagFromPhoto(file, 'update');
   }
   document.getElementById('updateMainPhotoCam').addEventListener('change', (e) => handleUpdateMainPhoto(e.target.files[0]));
   document.getElementById('updateMainPhotoGallery').addEventListener('change', (e) => handleUpdateMainPhoto(e.target.files[0]));
