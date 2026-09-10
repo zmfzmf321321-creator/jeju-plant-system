@@ -569,7 +569,7 @@
 <div id="info-modal">
   <h3 id="infoTitle">계측기 상세</h3>
   <img id="infoMainImg" class="preview-img" style="margin-bottom:6px;">
-  <div class="photo-btn-group" style="margin-bottom: 12px;">
+  <div class="photo-btn-group" style="margin-bottom: 8px;">
     <div class="file-input-wrapper">
       <div class="btn-file-upload" style="padding: 7px; font-size: 11px;">📷 대표사진 촬영 (명판인식)</div>
       <input type="file" id="updateMainPhotoCam" accept="image/*" capture="environment">
@@ -579,8 +579,14 @@
       <input type="file" id="updateMainPhotoGallery" accept="image/*">
     </div>
   </div>
+  
   <div id="infoBody" style="font-size: 13px; line-height: 1.5;"></div>
   
+  <!-- 등록된 사진에서 즉시 명판을 읽어 Tag를 수정하는 버튼 -->
+  <button class="btn-file-upload" style="background:#059669; width:100%; margin-top:8px; padding:9px; font-size:12px;" onclick="extractCurrentPhotoInfo()">
+    🔍 등록된 사진에서 Tag·기기정보 자동 추출 및 수정
+  </button>
+
   <button class="btn-ai-detail-ask" id="btnAiAnalyzeThis">🤖 이 기기 사진·이력·매뉴얼 AI 종합 분석 받기</button>
 
   <div class="history-section">
@@ -966,61 +972,111 @@
     }
   }
 
-  /* --- 사진 촬영 시 명판(Tag No, 모델, 범위) 자동 OCR 판독 함수 --- */
-  async function autoFillTagFromPhoto(file, targetMode = 'insert') {
-    if (!file) return;
+  /* --- 등록된 대표 사진에서 즉시 명판을 판독하여 업데이트하는 함수 --- */
+  window.extractCurrentPhotoInfo = async function() {
+    const target = currentInstruments.find(i => i.id === activeTargetId);
+    if (!target) return;
+    const imgUrl = target.photo_url || target.image_data;
+    if (!imgUrl) {
+      alert('⚠️ 현재 등록된 대표 사진이 없습니다. 상단에서 사진을 먼저 등록해 주세요.');
+      return;
+    }
+    await autoFillTagFromPhoto(imgUrl, 'update');
+  };
+
+  /* --- 사진 속 명판(Tag No, 모델, 범위) 자동 OCR 판독 함수 --- */
+  async function autoFillTagFromPhoto(fileOrUrl, targetMode = 'insert') {
+    if (!fileOrUrl) return;
     const hud = document.getElementById('measure-info-hud');
-    hud.style.display = 'block';
-    hud.innerText = '🔍 사진 속 명판(Tag No) 정보를 AI가 판독 중입니다...';
+    if (hud) {
+      hud.style.display = 'block';
+      hud.innerText = '🔍 사진 속 명판(Tag Plate)을 정밀 판독 중입니다...';
+    }
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const base64DataUrl = e.target.result;
-      try {
-        const { data, error } = await supabaseClient.functions.invoke('gemini-chat', {
-          body: {
-            prompt: "사진 속 명판에서 tag_no, name, model, range 정보를 찾아 JSON으로 추출해줘.",
-            photosToSend: [base64DataUrl],
-            mode: "ocr_tag"
-          }
-        });
+    let photoPayload = null;
+    if (typeof fileOrUrl === 'string') {
+      photoPayload = fileOrUrl;
+    } else {
+      photoPayload = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.readAsDataURL(fileOrUrl);
+      });
+    }
 
-        if (!error && data && data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
-          const rawReply = data.candidates[0].content.parts[0].text;
-          const cleanJson = rawReply.replace(/```json|```/g, '').trim();
-          const parsed = JSON.parse(cleanJson);
-
-          if (targetMode === 'insert') {
-            if (parsed.tag_no) document.getElementById('tagNo').value = parsed.tag_no;
-            if (parsed.name) document.getElementById('name').value = parsed.name;
-            if (parsed.model) document.getElementById('model').value = parsed.model;
-            if (parsed.range) document.getElementById('range').value = parsed.range;
-            hud.innerText = `✅ [${parsed.tag_no || '정보'}] 명판이 자동 인식되어 입력되었습니다!`;
-          } else if (targetMode === 'update') {
-            const target = currentInstruments.find(i => i.id === activeTargetId);
-            if (target && (parsed.tag_no || parsed.name || parsed.model || parsed.range)) {
-              if (confirm(`AI가 명판을 판독했습니다:\n- Tag No: ${parsed.tag_no || target.tag_no}\n- 기기명: ${parsed.name || target.name}\n- 모델명: ${parsed.model || target.model}\n- 범위: ${parsed.range || target.signal_range}\n\n이 정보로 계측기 정보를 업데이트하시겠습니까?`)) {
-                const updateFields = {};
-                if (parsed.tag_no) { updateFields.tag_no = parsed.tag_no; target.tag_no = parsed.tag_no; }
-                if (parsed.name) { updateFields.name = parsed.name; target.name = parsed.name; }
-                if (parsed.model) { updateFields.model = parsed.model; target.model = parsed.model; }
-                if (parsed.range) { updateFields.signal_range = parsed.range; target.signal_range = parsed.range; }
-                await supabaseClient.from('instruments').update(updateFields).eq('id', target.id);
-                showDetail(target);
-                renderFloorPins(); render3DHotspots();
-              }
-            }
-            hud.innerText = '✅ 대표 사진 및 명판 분석이 완료되었습니다.';
-          }
-        } else {
-          hud.innerText = '⚠️ 명판 정보를 명확히 인식하지 못했습니다. 수동으로 입력해 주세요.';
+    try {
+      const { data, error } = await supabaseClient.functions.invoke('gemini-chat', {
+        body: {
+          prompt: "사진 속 명판에서 tag_no, name, model, range 정보를 찾아 JSON으로만 응답해줘.",
+          photosToSend: [photoPayload],
+          mode: "ocr_tag"
         }
-      } catch (ocrErr) {
-        hud.innerText = '⚠️ 명판 자동 판독 중 오류가 발생했습니다.';
+      });
+
+      if (!error && data && data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
+        const rawReply = data.candidates[0].content.parts[0].text;
+        const jsonMatch = rawReply.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error('JSON 형식을 찾을 수 없음');
+        const parsed = JSON.parse(jsonMatch[0]);
+
+        if (targetMode === 'insert') {
+          if (parsed.tag_no) document.getElementById('tagNo').value = parsed.tag_no;
+          if (parsed.name) document.getElementById('name').value = parsed.name;
+          if (parsed.model) document.getElementById('model').value = parsed.model;
+          if (parsed.range) document.getElementById('range').value = parsed.range;
+          if (hud) hud.innerText = `✅ [${parsed.tag_no || '정보'}] 입력창에 자동 반영되었습니다.`;
+        } else if (targetMode === 'update') {
+          const target = currentInstruments.find(i => i.id === activeTargetId);
+          if (target) {
+            const newTag = parsed.tag_no || target.tag_no;
+            const newName = parsed.name || target.name;
+            const newModel = parsed.model || target.model;
+            const newRange = parsed.range || target.signal_range;
+
+            const confirmMsg = `AI가 사진 속 명판을 판독했습니다:\n\n` +
+              `• Tag No: ${target.tag_no} ➔ ${newTag}\n` +
+              `• 기기명: ${target.name} ➔ ${newName}\n` +
+              `• 모델명: ${target.model || '-'} ➔ ${newModel}\n` +
+              `• 측정범위: ${target.signal_range || '-'} ➔ ${newRange}\n\n` +
+              `이 내용으로 계측기 정보를 업데이트하시겠습니까?`;
+
+            if (confirm(confirmMsg)) {
+              const updateFields = {
+                tag_no: newTag,
+                name: newName,
+                model: newModel,
+                signal_range: newRange
+              };
+              
+              const { error: upErr } = await supabaseClient.from('instruments').update(updateFields).eq('id', target.id);
+              if (!upErr) {
+                target.tag_no = newTag;
+                target.name = newName;
+                target.model = newModel;
+                target.signal_range = newRange;
+                showDetail(target);
+                renderFloorPins();
+                render3DHotspots();
+                if (hud) hud.innerText = '✅ 계측기 정보가 성공적으로 업데이트되었습니다.';
+              } else {
+                alert('업데이트 실패: ' + upErr.message);
+              }
+            } else {
+              if (hud) hud.innerText = '업데이트가 취소되었습니다.';
+            }
+          }
+        }
+      } else {
+        if (hud) hud.innerText = '⚠️ 명판 정보를 명확히 인식하지 못했습니다.';
       }
-      setTimeout(() => { if (!isMeasureMode) hud.style.display = 'none'; }, 3000);
-    };
-    reader.readAsDataURL(file);
+    } catch (ocrErr) {
+      console.error(ocrErr);
+      if (hud) hud.innerText = '⚠️ 명판 자동 판독에 실패했습니다.';
+    }
+
+    setTimeout(() => {
+      if (!isMeasureMode && hud) hud.style.display = 'none';
+    }, 3500);
   }
 
   function appendAiMsg(role, text) {
