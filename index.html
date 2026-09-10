@@ -128,12 +128,13 @@
       box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
     }
 
+    /* 측정 안내 HUD 스타일 (여러 줄 표시 가능하도록 개선) */
     #measure-info-hud {
       display: none; position: absolute; top: 134px; left: 50%; transform: translateX(-50%);
-      background: rgba(15, 23, 42, 0.95); border: 2px solid #f59e0b; padding: 8px 16px;
-      border-radius: 20px; font-size: 12px; font-weight: bold; color: #fde68a; z-index: 6000;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.6); pointer-events: none; text-align: center;
-      max-width: 90vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      background: rgba(15, 23, 42, 0.96); border: 2px solid #f59e0b; padding: 9px 18px;
+      border-radius: 12px; font-size: 13px; font-weight: bold; color: #fde68a; z-index: 6000;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.7); pointer-events: none; text-align: center;
+      max-width: 92vw; white-space: normal; line-height: 1.4;
     }
 
     #main-viewport {
@@ -189,6 +190,7 @@
       border-radius: 4px; font-size: 10px; white-space: nowrap; border: 1px solid #38bdf8; pointer-events: none;
     }
     
+    /* 2D 계측 마커 및 좌표 말풍선 */
     .measure-marker-2d {
       position: absolute; border: 2px solid #ffffff; border-radius: 50%;
       width: 24px; height: 24px; transform: translate(-50%, -50%); pointer-events: none; z-index: 100;
@@ -199,11 +201,25 @@
     .measure-marker-2d.p-mid { background: #f59e0b; box-shadow: 0 0 12px #f59e0b; }
     .measure-marker-2d.p-end { background: #ef4444; box-shadow: 0 0 12px #ef4444; }
 
+    .measure-marker-2d span {
+      position: absolute; bottom: -24px; left: 50%; transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.95); color: #38bdf8; padding: 2px 6px;
+      border-radius: 4px; font-size: 11px; font-weight: bold; white-space: nowrap;
+      border: 1px solid #38bdf8; pointer-events: none; box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+    }
+
+    /* 3D 계측 마커 및 좌표 말풍선 */
     .measure-marker-3d {
       position: absolute; border: 2px solid #ffffff; border-radius: 50%;
-      width: 22px; height: 22px; transform: translate(-50%, -50%); pointer-events: none;
+      width: 24px; height: 24px; transform: translate(-50%, -50%); pointer-events: none;
       display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: #ffffff;
       background: #f59e0b; box-shadow: 0 0 10px #f59e0b;
+    }
+    .measure-marker-3d span {
+      position: absolute; bottom: -24px; left: 50%; transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.95); color: #38bdf8; padding: 2px 6px;
+      border-radius: 4px; font-size: 10px; font-weight: bold; white-space: nowrap;
+      border: 1px solid #38bdf8; pointer-events: none;
     }
 
     .measure-line {
@@ -695,7 +711,7 @@
   
   // 계측(측정) 모드 관련 변수 (최대 10개 지점 지원)
   let isMeasureMode = false;
-  let measurePoints = []; // [{ idx, floor, x, y, x3d, y3d, z3d }]
+  let measurePoints = []; // [{ idx, floor, x, y, x3d, y3d, z3d, coordText, posStr }]
 
   let pendingInstPhotoFile = null;
   let pendingInitHistPhotoFile = null;
@@ -1103,26 +1119,32 @@
     const count = measurePoints.length;
     if (count === 0) {
       measureHud.innerHTML = selectedFloor === 'ALL'
-        ? `📐 <b>[계측 모드]</b> 모델 표면 터치 시 <b>좌표가 복사</b>되며, 2개 이상 터치 시 <b>거리가 측정</b>됩니다.`
-        : `📐 <b>[계측 모드]</b> 도면 터치 시 <b>좌표가 복사</b>되며, 2개 이상 터치 시 <b>거리가 측정</b>됩니다.`;
+        ? `📐 <b>[계측 모드]</b> 모델 표면 터치 시 <b>좌표가 복사</b>되며, 2개 이상 터치 시 <b>거리</b>를 측정합니다.`
+        : `📐 <b>[계측 모드]</b> 도면 터치 시 <b>좌표가 복사</b>되며, 2개 이상 터치 시 <b>거리</b>를 측정합니다.`;
     } else {
       updateMeasureHudResult();
     }
   }
 
   function updateMeasureHudResult() {
+    if (!isMeasureMode) return;
+    measureHud.style.display = 'block';
     const count = measurePoints.length;
     if (count === 0) return;
 
-    // [핵심] 1개 지점만 찍었을 때는 좌표 확인 및 복사 기능 유지
+    // [1개 지점 터치 시]: 기존 좌표 확인 및 복사 안내
     if (count === 1) {
       const p1 = measurePoints[0];
-      const coordStr = p1.posStr || p1.coordText;
-      measureHud.innerHTML = `📍 <b>P1(${p1.floor}) 좌표: <span style="color:#38bdf8;">${coordStr}</span> (복사됨)</b><br><span style="font-size:10px; color:#94a3b8;">다른 지점을 터치하면 거리가 측정됩니다. (층 이동 가능)</span>`;
+      if (p1.floor === '3D') {
+        measureHud.innerHTML = `📍 <b>3D 모델 좌표: <span style="color:#38bdf8;">${p1.posStr}</span> (복사됨)</b><div style="font-size:11px; color:#94a3b8; margin-top:2px;">두 번째 지점을 터치하면 거리가 자동 계산됩니다.</div>`;
+      } else {
+        const p3dStr = `${p1.x3d.toFixed(2)} ${p1.y3d.toFixed(2)} ${p1.z3d.toFixed(2)}`;
+        measureHud.innerHTML = `📍 <b>2D 도면 좌표: <span style="color:#38bdf8;">${p1.coordText}</span> (복사됨)</b><br><span style="font-size:11px; color:#94a3b8;">[3D 변환: ${p3dStr}] | 두 번째 지점 터치 시 거리가 계산됩니다.</span>`;
+      }
       return;
     }
 
-    // [핵심] 2개 지점 이상 찍었을 때는 구간 및 누적 거리 측정
+    // [2개 지점 이상 터치 시]: 거리 측정 및 누적 계산
     let total3D = 0;
     let totalH = 0;
     for (let i = 0; i < count - 1; i++) {
@@ -1140,12 +1162,12 @@
       const p2 = measurePoints[1];
       const vDiff = Math.abs(p2.y3d - p1.y3d).toFixed(2);
       if (p1.floor === p2.floor) {
-        measureHud.innerHTML = `📏 <b>[${p1.floor}] 수평 직선거리: <span style="color:#10b981;">${totalH.toFixed(2)} m</span></b><br><span style="font-size:10px; color:#94a3b8;">추가 지점 터치 시 누적 측정 가능 (최대 10개)</span>`;
+        measureHud.innerHTML = `📏 <b>[${p1.floor}] 수평 직선거리: <span style="color:#10b981;">${totalH.toFixed(2)} m</span></b><div style="font-size:11px; color:#94a3b8; margin-top:2px;">추가 지점 터치 시 연속 누적 측정 가능 (최대 10개)</div>`;
       } else {
-        measureHud.innerHTML = `📏 <b>[${p1.floor} ↔ ${p2.floor}] 3D 입체거리: <span style="color:#f59e0b;">${total3D.toFixed(2)} m</span></b><br><span style="font-size:10px; color:#94a3b8;">(수평: ${totalH.toFixed(2)}m, 높이차: ${vDiff}m)</span>`;
+        measureHud.innerHTML = `📏 <b>[${p1.floor} ↔ ${p2.floor}] 3D 입체거리: <span style="color:#f59e0b;">${total3D.toFixed(2)} m</span></b><div style="font-size:11px; color:#94a3b8; margin-top:2px;">(수평: ${totalH.toFixed(2)}m, 층고(높이차): ${vDiff}m)</div>`;
       }
     } else {
-      measureHud.innerHTML = `📏 <b>[총 ${count}개 지점] 누적 3D 거리: <span style="color:#10b981;">${total3D.toFixed(2)} m</span></b> (수평: ${totalH.toFixed(2)}m)<br><span style="font-size:10px; color:#94a3b8;">${count < 10 ? `다음 지점(P${count + 1}) 터치 가능 (${count}/10)` : `최대 10개 지점 완료 | 터치 시 새로 시작`}</span>`;
+      measureHud.innerHTML = `📏 <b>[총 ${count}개 지점] 누적 3D 거리: <span style="color:#10b981;">${total3D.toFixed(2)} m</span></b> (수평: ${totalH.toFixed(2)}m)<div style="font-size:11px; color:#94a3b8; margin-top:2px;">${count < 10 ? `다음 지점(P${count + 1}) 터치 가능 (${count}/10)` : `최대 10개 지점 완료 | 터치 시 새로 시작`}</div>`;
     }
   }
 
@@ -1168,7 +1190,7 @@
       marker.className = 'measure-marker-3d';
       marker.slot = `hotspot-measure-${p.idx}`;
       marker.dataset.position = `${p.x3d} ${p.y3d} ${p.z3d}`;
-      marker.innerText = `${p.idx}`;
+      marker.innerHTML = `${p.idx}<span>${p.posStr || ''}</span>`;
       viewer.appendChild(marker);
     });
   }
@@ -1194,7 +1216,7 @@
       });
       renderMeasureVisuals3D();
 
-      // 첫 1회 터치 시 클립보드 복사
+      // 1회 터치 시 클립보드 복사
       if (measurePoints.length === 1) {
         navigator.clipboard.writeText(posStr).catch(() => {});
       }
@@ -1216,7 +1238,7 @@
         const m = document.createElement('div');
         const colorClass = p.idx === 1 ? 'p-start' : (p.idx === measurePoints.length ? 'p-end' : 'p-mid');
         m.className = `measure-marker-2d ${colorClass}`;
-        m.innerText = `${p.idx}`;
+        m.innerHTML = `${p.idx}<span>${p.coordText}</span>`;
         m.style.left = `${p.x}px`;
         m.style.top = `${p.y}px`;
         board.appendChild(m);
@@ -1339,9 +1361,9 @@
 
       renderMeasureMarkers2D();
 
-      // 첫 1회 터치 시 클립보드 복사
+      // 첫 1회 터치 시 기존과 같이 클립보드에 복사
       if (measurePoints.length === 1) {
-        navigator.clipboard.writeText(coordText).catch(() => {});
+        navigator.clipboard.writeText(`X:${curX} Y:${curY}`).catch(() => {});
       }
       updateMeasureHudResult();
       return;
