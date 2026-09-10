@@ -482,15 +482,6 @@
 <div id="gemini-modal">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
     <h3>🤖 제미나이 정비 AI 도우미</h3>
-    <button id="btnGeminiKeySetting" style="display: none; background: none; border: none; color: #64748b; font-size: 11px; text-decoration: underline;" onclick="toggleApiKeyInput()">⚙️ 키 설정</button>
-  </div>
-  
-  <div id="apiKeySetupBox" style="display: none; background: #f1f5f9; padding: 10px; border-radius: 8px; margin-bottom: 10px;">
-    <div style="font-size: 11px; color: #475569; margin-bottom: 4px;">Supabase 공용 Gemini API Key 설정:</div>
-    <div style="display: flex; gap: 4px;">
-      <input type="password" id="geminiApiKeyInput" style="flex:1; padding:6px; border:1px solid #cbd5e1; border-radius:4px; font-size:11px;" placeholder="AIzaSy...">
-      <button class="btn-save" style="padding:6px 10px; font-size:11px;" onclick="saveGeminiApiKey()">저장</button>
-    </div>
   </div>
 
   <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px;">
@@ -499,11 +490,11 @@
   </div>
 
   <div class="ai-chat-box" id="aiChatBox">
-    <div class="ai-msg ai-msg-bot">안녕하세요! 발전제어설비 AI 어시스턴트입니다. Supabase 데이터 및 스토리지 매뉴얼을 기반으로 분석합니다.</div>
+    <div class="ai-msg ai-msg-bot">안녕하세요! 발전제어설비 AI 어시스턴트입니다. Supabase 보안 서버를 통해 현장 데이터, 정비 매뉴얼 및 현장 사진을 분석합니다.</div>
   </div>
 
   <div class="ai-input-wrap">
-    <input type="text" id="aiUserInput" placeholder="질문을 입력하세요 (예: 20-PT-101 정비 매뉴얼 지침)">
+    <input type="text" id="aiUserInput" placeholder="질문을 입력하세요 (예: 테스트3에 등록된 사진 분석해줘)">
     <button class="btn-ai-send" id="btnSendAi">전송</button>
   </div>
 
@@ -589,7 +580,7 @@
   </div>
   <div id="infoBody" style="font-size: 13px; line-height: 1.5;"></div>
   
-  <button class="btn-ai-detail-ask" id="btnAiAnalyzeThis">🤖 이 기기 점검이력 및 매뉴얼 AI 분석 받기</button>
+  <button class="btn-ai-detail-ask" id="btnAiAnalyzeThis">🤖 이 기기 사진·이력·매뉴얼 AI 종합 분석 받기</button>
 
   <div class="history-section">
     <div class="history-title">📋 정비/점검 이력 관리</div>
@@ -638,7 +629,6 @@
   let currentInstruments = [];
   let currentManuals = [];
   let currentUserInfo = { name: '', email: '' };
-  let cachedGeminiApiKey = '';
 
   let selectedMajor = '기력';
   let selectedSubTab = '2호기';
@@ -685,63 +675,6 @@
     '7층':     { c1: { x: 132, y: 242 }, c4: { x: 569,  y: 855 } }
   };
 
-  /* --- Supabase 기반 공용 Gemini API Key 관리 --- */
-  async function getGeminiApiKey() {
-    if (cachedGeminiApiKey) return cachedGeminiApiKey;
-    try {
-      const { data, error } = await supabaseClient
-        .from('settings')
-        .select('value')
-        .eq('key', 'gemini_api_key')
-        .single();
-      if (data && data.value) {
-        cachedGeminiApiKey = data.value.trim();
-        return cachedGeminiApiKey;
-      }
-    } catch (err) {
-      console.error('Supabase API Key 로드 오류:', err);
-    }
-    // Fallback to localStorage
-    return (localStorage.getItem('jeju_gemini_api_key') || '').trim();
-  }
-
-  window.toggleApiKeyInput = function() {
-    if (sessionStorage.getItem('jeju_admin_auth') !== 'true') {
-      alert('⚠️ 최고관리자만 API 키를 설정할 수 있습니다.');
-      return;
-    }
-    const box = document.getElementById('apiKeySetupBox');
-    box.style.display = box.style.display === 'none' ? 'block' : 'none';
-    if (box.style.display === 'block') {
-      getGeminiApiKey().then(key => {
-        document.getElementById('geminiApiKeyInput').value = key;
-      });
-    }
-  };
-
-  window.saveGeminiApiKey = async function() {
-    if (sessionStorage.getItem('jeju_admin_auth') !== 'true') {
-      alert('⚠️ 최고관리자만 API 키를 저장할 수 있습니다.');
-      return;
-    }
-    const key = document.getElementById('geminiApiKeyInput').value.trim();
-    if (!key) { alert('API Key를 입력하세요.'); return; }
-
-    const { error } = await supabaseClient
-      .from('settings')
-      .upsert({ key: 'gemini_api_key', value: key });
-
-    if (error) {
-      alert('❌ Supabase 저장 실패: ' + error.message);
-      return;
-    }
-
-    cachedGeminiApiKey = key;
-    localStorage.setItem('jeju_gemini_api_key', key);
-    alert('✅ Supabase 공용 설정에 Gemini API Key가 안전하게 저장되었습니다.');
-    document.getElementById('apiKeySetupBox').style.display = 'none';
-  };
-
   async function uploadImageToStorage(file) {
     if (!file) return null;
     try {
@@ -750,7 +683,7 @@
       const filePath = `${fileName}`;
 
       const { data, error } = await supabaseClient.storage
-        .from('inst-photos')
+        .from('instrument-photos')
         .upload(filePath, file);
 
       if (error) {
@@ -760,7 +693,7 @@
       }
 
       const { data: publicURLData } = supabaseClient.storage
-        .from('inst-photos')
+        .from('instrument-photos')
         .getPublicUrl(filePath);
 
       return publicURLData.publicUrl;
@@ -982,95 +915,47 @@
   document.getElementById('btnOpenGemini').addEventListener('click', async () => {
     document.getElementById('gemini-modal').style.display = 'block';
     await fetchManuals();
-    const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
-    if (isAdmin) {
-      const key = await getGeminiApiKey();
-      if (!key) document.getElementById('apiKeySetupBox').style.display = 'block';
-    }
   });
 
-  async function callGemini(userPrompt, extraContext = '') {
-    const apiKey = await getGeminiApiKey();
-    if (!apiKey) {
-      const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
-      if (isAdmin) {
-        appendAiMsg('bot', '⚠️ Supabase에 Gemini API 키가 설정되지 않았습니다. 우측 상단의 [⚙️ 키 설정] 버튼을 눌러 API 키를 입력해 주세요.');
-        document.getElementById('apiKeySetupBox').style.display = 'block';
-      } else {
-        appendAiMsg('bot', '⚠️ 관리자에 의해 Supabase에 Gemini API 키가 등록되지 않았습니다. 관리자에게 문의하세요.');
-      }
-      return;
+  /* --- Supabase Edge Function을 통한 보안 Gemini 호출 --- */
+  async function callGemini(userPrompt, extraContext = '', targetPhotos = []) {
+    appendAiMsg('user', userPrompt);
+    appendAiMsg('bot', '⏳ Supabase 보안 서버를 통해 현장 데이터 및 이미지 분석 중...');
+
+    // 질문 내에 Tag No나 기기명이 포함된 경우 관련 사진 자동 추출
+    let photosToSend = [...targetPhotos];
+    if (photosToSend.length === 0) {
+      currentInstruments.forEach(inst => {
+        if ((inst.tag_no && userPrompt.includes(inst.tag_no)) || (inst.name && userPrompt.includes(inst.name))) {
+          const mainImg = inst.photo_url || inst.image_data;
+          if (mainImg && !photosToSend.includes(mainImg)) photosToSend.push(mainImg);
+          (inst.history_logs || []).forEach(h => {
+            if (h.photo && !photosToSend.includes(h.photo)) photosToSend.push(h.photo);
+          });
+        }
+      });
     }
 
-    const plantSummary = currentInstruments.map(i => ({
-      tag: i.tag_no,
-      name: i.name,
-      location: `${i.major_category || '기력'} ${i.unit || '2호기'} ${i.floor}`,
-      model: i.model,
-      range: i.signal_range,
-      histories: (i.history_logs || []).map(h => ({
-        date: h.date,
-        author: h.author,
-        content: h.content
-      }))
-    }));
-
-    const manualSummary = currentManuals.map(m => ({
-      title: m.title,
-      category: m.category,
-      content: m.content
-    }));
-
-    const systemInstruction = `당신은 제주 발전본부 보일러 및 계측제어 설비 데이터 및 정비 매뉴얼 분석 전문가입니다.
-[매우 중요한 절대 규칙]:
-1. 반드시 아래 제공된 [등록 설비 데이터베이스]와 [정비 매뉴얼]에 포함된 내용만을 바탕으로 질문에 답변하고 분석하세요.
-2. 데이터베이스나 매뉴얼에 존재하지 않는 사실은 절대로 지어내거나 일반적인 외부 지식으로 추측하지 마세요.
-3. 등록된 데이터나 매뉴얼에 없는 내용을 질문받으면 "현재 Supabase에 등록된 데이터베이스 및 매뉴얼에서는 확인할 수 없습니다."라고만 답변하세요.
-4. 매뉴얼의 정비 지침과 계측기 이력을 교차 검증하여 구체적인 조치 방안을 제시하세요.
-
-[등록 설비 데이터베이스]:
-${JSON.stringify(plantSummary)}
-
-[Supabase 등록 정비 매뉴얼]:
-${JSON.stringify(manualSummary)}
-
-${extraContext ? '[특정 계측기 상세 정보]:\n' + extraContext : ''}`;
-
-    appendAiMsg('user', userPrompt);
-    appendAiMsg('bot', '⏳ Supabase 설비 및 매뉴얼 데이터 분석 중...');
-
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${encodeURIComponent(apiKey)}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': apiKey
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              role: 'user',
-              parts: [{ text: systemInstruction + '\n\n[작업자 질문]: ' + userPrompt }]
-            }
-          ],
-          generationConfig: {
-            temperature: 0.0,
-            maxOutputTokens: 1200
-          }
-        })
+      // Supabase Edge Function(gemini-chat) 호출
+      const { data, error } = await supabaseClient.functions.invoke('gemini-chat', {
+        body: {
+          prompt: userPrompt,
+          extraContext: extraContext,
+          photosToSend: photosToSend
+        }
       });
 
-      const data = await response.json();
       const lastMsg = document.querySelector('#aiChatBox .ai-msg-bot:last-child');
 
-      if (response.ok && data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
+      if (!error && data && data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
         const reply = data.candidates[0].content.parts[0].text;
         if (lastMsg && lastMsg.innerText.includes('⏳')) lastMsg.innerText = reply;
         else appendAiMsg('bot', reply);
       } else {
-        const errMsg = data.error ? `${data.error.message} (코드: ${data.error.code})` : 'API 응답 오류';
+        const errMsg = error ? error.message : (data?.error ? (typeof data.error === 'object' ? JSON.stringify(data.error) : data.error) : '응답 분석 오류');
         if (lastMsg && lastMsg.innerText.includes('⏳')) {
-          lastMsg.innerText = `❌ 오류: ${errMsg}\n\n(API 키 상태 및 설정을 확인해 주세요.)`;
+          lastMsg.innerText = `❌ 서버 처리 오류: ${errMsg}`;
         }
       }
     } catch (err) {
@@ -1106,6 +991,7 @@ ${extraContext ? '[특정 계측기 상세 정보]:\n' + extraContext : ''}`;
     callGemini(promptText);
   };
 
+  // 상세창에서 [이 기기 사진·이력·매뉴얼 AI 종합 분석 받기] 버튼 클릭 시
   document.getElementById('btnAiAnalyzeThis').addEventListener('click', async () => {
     const target = currentInstruments.find(i => i.id === activeTargetId);
     if (!target) return;
@@ -1119,9 +1005,18 @@ Tag No: ${target.tag_no}
 설치위치: ${target.major_category || '기력'} ${target.unit} ${target.floor}
 모델명: ${target.model}
 측정범위: ${target.signal_range}
-등록된 과거 점검이력: ${JSON.stringify(target.history_logs || [])}
+대표 사진 등록여부: ${target.photo_url || target.image_data ? '등록됨' : '없음'}
+과거 점검/정비 이력: ${JSON.stringify(target.history_logs || [])}
 `;
-    callGemini(`이 계측기(${target.tag_no} ${target.name})의 점검 이력과 Supabase에 등록된 [정비 매뉴얼] 내용을 대조하여, 올바른 정비 지침과 조치 방안을 안내해줘.`, targetContext);
+
+    const photos = [];
+    const mainImg = target.photo_url || target.image_data;
+    if (mainImg) photos.push(mainImg);
+    (target.history_logs || []).forEach(h => {
+      if (h.photo && !photos.includes(h.photo)) photos.push(h.photo);
+    });
+
+    callGemini(`이 계측기(${target.tag_no} ${target.name})의 첨부된 현장 사진을 정밀 시각 판독하고, 등록된 과거 점검 이력과 Supabase [정비 매뉴얼] 지침을 종합적으로 대조하여 이상 유무 및 조치 권장사항을 작성해줘.`, targetContext, photos);
   });
 
   function previewImageFile(file, previewElementId) {
@@ -1185,10 +1080,6 @@ Tag No: ${target.tag_no}
     currentUserInfo = { name: finalName, email };
     document.getElementById('auth-overlay').style.display = 'none';
     document.getElementById('loginUserBadge').innerText = `👤 ${finalName}`;
-
-    const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
-    const keyBtn = document.getElementById('btnGeminiKeySetting');
-    if (keyBtn) keyBtn.style.display = isAdmin ? 'inline-block' : 'none';
 
     await fetchManuals();
     fetchInstruments();
@@ -1547,7 +1438,7 @@ Tag No: ${target.tag_no}
           try { pin.releasePointerCapture(e.pointerId); } catch(err) {}
           pin.classList.remove('pin-dragging'); isPinMoving = false;
           const fx = parseInt(pin.style.left); const fy = parseInt(pin.style.top);
-          item.coord_x = fx; item.coord_y = fx; item.x_coord = fx; item.y_coord = fy;
+          item.coord_x = fx; item.coord_y = fy; item.x_coord = fx; item.y_coord = fy;
           measureHud.innerText = `✅ [${item.tag_no}] 위치가 변경되었습니다.`;
           setTimeout(() => { if (!isMeasureMode) measureHud.style.display = 'none'; }, 2000);
           await supabaseClient.from('instruments').update({ coord_x: fx, coord_y: fy, x_coord: fx, y_coord: fy }).eq('id', item.id);
