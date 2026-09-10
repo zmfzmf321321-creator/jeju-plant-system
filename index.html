@@ -85,7 +85,7 @@
       flex-direction: column; justify-content: center; gap: 6px; z-index: 4900;
       padding: 6px 10px;
     }
-    .selector-row { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; }
+    .selector-row { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; }
     .major-tab-btn {
       flex: 1; max-width: 160px; height: 28px; border: 1px solid #475569;
       background: #1e293b; color: #cbd5e1; font-size: 12px; font-weight: bold;
@@ -96,9 +96,10 @@
       box-shadow: 0 0 10px rgba(2, 132, 199, 0.7);
     }
     .sub-tab-btn {
-      flex: 1; max-width: 115px; height: 26px; border: 1px solid #334155;
+      flex: 1; height: 26px; border: 1px solid #334155;
       background: #111a33; color: #94a3b8; font-size: 11px; font-weight: bold;
       border-radius: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      white-space: nowrap; padding: 0 4px;
     }
     .sub-tab-btn.active {
       background: #38bdf8; color: #0b132b; border-color: #7dd3fc;
@@ -365,23 +366,21 @@
   </div>
 </div>
 
-<!-- 대분류 선택 시 하위 소분류/관리이력 탭이 동적으로 제어되는 영역 -->
+<!-- 상단 네비게이션: 대분류 클릭 시 해당 소분류 및 이력 탭이 동적으로 노출됨 -->
 <div id="unit-selector-bar">
   <div class="selector-row">
     <button class="major-tab-btn active" id="btn-major-steam" onclick="switchMajor('기력')">⚡ 기력 발전</button>
     <button class="major-tab-btn" id="btn-major-engine" onclick="switchMajor('내연')">🔥 내연 발전</button>
   </div>
   <div class="selector-row" id="sub-tabs-steam">
-    <button class="sub-tab-btn active" id="sub-steam-2" onclick="switchSubTab('2호기')">2호기 설비</button>
-    <button class="sub-tab-btn" id="sub-steam-3" onclick="switchSubTab('3호기')">3호기 설비</button>
-    <button class="sub-tab-btn" id="sub-steam-hist2" onclick="switchSubTab('2호기 관리이력')">📋 2호기 이력</button>
-    <button class="sub-tab-btn" id="sub-steam-hist3" onclick="switchSubTab('3호기 관리이력')">📋 3호기 이력</button>
+    <button class="sub-tab-btn active" id="sub-steam-2" onclick="switchSubTab('2호기')">2호기</button>
+    <button class="sub-tab-btn" id="sub-steam-3" onclick="switchSubTab('3호기')">3호기</button>
+    <button class="sub-tab-btn" id="sub-steam-hist" onclick="switchSubTab('관리이력')">📋 관리이력</button>
   </div>
   <div class="selector-row" id="sub-tabs-engine" style="display: none;">
-    <button class="sub-tab-btn active" id="sub-engine-1" onclick="switchSubTab('1호기')">1호기 설비</button>
-    <button class="sub-tab-btn" id="sub-engine-2" onclick="switchSubTab('2호기')">2호기 설비</button>
-    <button class="sub-tab-btn" id="sub-engine-hist1" onclick="switchSubTab('1호기 관리이력')">📋 1호기 이력</button>
-    <button class="sub-tab-btn" id="sub-engine-hist2" onclick="switchSubTab('2호기 관리이력')">📋 2호기 이력</button>
+    <button class="sub-tab-btn active" id="sub-engine-1" onclick="switchSubTab('1호기')">1호기</button>
+    <button class="sub-tab-btn" id="sub-engine-2" onclick="switchSubTab('2호기')">2호기</button>
+    <button class="sub-tab-btn" id="sub-engine-hist" onclick="switchSubTab('관리이력')">📋 관리이력</button>
   </div>
 </div>
 
@@ -434,7 +433,7 @@
 
   <div id="history-table-view">
     <div class="history-table-header">
-      <div class="history-table-title" id="historyTableTitle">📋 [발전설비] 점검 및 관리이력</div>
+      <div class="history-table-title" id="historyTableTitle">📋 [기력발전] 통합 점검 및 관리이력</div>
       <input type="text" id="tableFilterInput" class="history-search-bar" placeholder="이력 검색..." oninput="renderHistoryTable()">
     </div>
     <div style="overflow-x: auto;">
@@ -768,7 +767,7 @@
     } catch (err) {
       if (err.name !== 'NotAllowedError') {
         localStorage.removeItem('jeju_bio_raw_id');
-        msgEl.innerText = '⚠️ 인증 정보가 만료되었거나 초기화되었습니다. 사번 로그인 후 [지문]을 다시 등록해 주세요.';
+        msgEl.innerText = '⚠️ 인증 정보가 만료되었습니다. 사번 로그인 후 [지문]을 다시 등록해 주세요.';
       } else {
         msgEl.innerText = '⚠️ 생체 인증이 취소되었습니다.';
       }
@@ -779,7 +778,7 @@
   document.getElementById('btnBioLogin').addEventListener('click', (e) => { e.preventDefault(); loginBiometrics(); });
   document.getElementById('btnRegisterBio').addEventListener('click', (e) => { e.preventDefault(); registerBiometrics(); });
 
-  /* --- 대분류 및 탭 라우팅 (대분류 누르면 소분류 표시 제어) --- */
+  /* --- 대분류 클릭 시 소분류 탭 토글 및 연동 --- */
   window.switchMajor = function(major) {
     selectedMajor = major;
     document.getElementById('btn-major-steam').classList.toggle('active', major === '기력');
@@ -801,13 +800,11 @@
     if (selectedMajor === '기력') {
       document.getElementById('sub-steam-2').classList.toggle('active', sub === '2호기');
       document.getElementById('sub-steam-3').classList.toggle('active', sub === '3호기');
-      document.getElementById('sub-steam-hist2').classList.toggle('active', sub === '2호기 관리이력');
-      document.getElementById('sub-steam-hist3').classList.toggle('active', sub === '3호기 관리이력');
+      document.getElementById('sub-steam-hist').classList.toggle('active', sub === '관리이력');
     } else {
       document.getElementById('sub-engine-1').classList.toggle('active', sub === '1호기');
       document.getElementById('sub-engine-2').classList.toggle('active', sub === '2호기');
-      document.getElementById('sub-engine-hist1').classList.toggle('active', sub === '1호기 관리이력');
-      document.getElementById('sub-engine-hist2').classList.toggle('active', sub === '2호기 관리이력');
+      document.getElementById('sub-engine-hist').classList.toggle('active', sub === '관리이력');
     }
 
     const view3D = document.getElementById('overall-3d-view');
@@ -821,11 +818,10 @@
     viewEmpty.style.display = 'none';
     viewHist.style.display = 'none';
 
-    if (sub.includes('관리이력')) {
+    if (sub === '관리이력') {
       floorBar.style.display = 'none';
       viewHist.style.display = 'block';
-      const targetUnit = sub.includes('3호기') ? '3호기' : (sub.includes('2호기') ? '2호기' : '1호기');
-      document.getElementById('historyTableTitle').innerText = `📋 [${selectedMajor} ${targetUnit}] 점검 및 관리이력`;
+      document.getElementById('historyTableTitle').innerText = `📋 [${selectedMajor}발전] 전체 점검 및 관리이력`;
       renderHistoryTable();
     } else if (selectedMajor === '기력') {
       floorBar.style.display = 'flex';
@@ -840,8 +836,8 @@
 
   function updateFloorTitle() {
     const floorTag = document.getElementById('currentFloorTag');
-    if (selectedSubTab.includes('관리이력')) {
-      floorTag.innerText = `${selectedMajor} ${selectedSubTab}`;
+    if (selectedSubTab === '관리이력') {
+      floorTag.innerText = `${selectedMajor} 관리이력`;
     } else if (selectedMajor === '기력') {
       floorTag.innerText = selectedFloor === 'ALL' ? `기력 ${selectedSubTab} 전체` : `기력 ${selectedSubTab} ${selectedFloor}`;
       document.getElementById('roomTitleText').innerText = `📍 [기력 ${selectedSubTab} - ${selectedFloor}] 도면 공간`;
@@ -850,13 +846,11 @@
     }
   }
 
-  /* --- 호기별 독립 관리이력 렌더링 함수 --- */
+  /* --- 관리이력 렌더링 함수 (통합 및 호기 필터링) --- */
   window.renderHistoryTable = function() {
     const tbody = document.getElementById('historyTableBody');
     const filterText = (document.getElementById('tableFilterInput').value || '').trim().toLowerCase();
     tbody.innerHTML = '';
-
-    const targetUnit = selectedSubTab.includes('3호기') ? '3호기' : (selectedSubTab.includes('2호기') ? '2호기' : '1호기');
 
     let allLogs = [];
     currentInstruments.forEach(inst => {
@@ -865,13 +859,12 @@
         dbMajor = (typeof inst.unit === 'string' && inst.unit.includes('내연')) ? '내연' : '기력';
       }
 
-      // 대분류 및 소분류(unit) 일치 확인 (예: 3호기 데이터 매칭 검증)
-      if (dbMajor !== selectedMajor || inst.unit !== targetUnit) return;
+      if (dbMajor !== selectedMajor) return;
 
       const logs = Array.isArray(inst.history_logs) ? inst.history_logs : [];
       logs.forEach(log => {
         allLogs.push({
-          category: `${dbMajor} ${inst.unit}`,
+          category: `${dbMajor} ${inst.unit || ''}`.trim(),
           date: log.date || '-',
           tag_no: inst.tag_no || '-',
           name: inst.name || '-',
@@ -893,7 +886,7 @@
     }
 
     if (allLogs.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px; color: #64748b;">[${selectedMajor} ${targetUnit}]에 등록된 점검 이력이 없습니다.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px; color: #64748b;">등록된 점검 이력이 없습니다.</td></tr>`;
       return;
     }
 
@@ -1443,7 +1436,7 @@ Tag No: ${target.tag_no}
         return { ...item, floor: f, unit: u, major_category: major, coord_x: cx, coord_y: cy, photo_url: img, image_data: img, history_logs: Array.isArray(item.history_logs) ? item.history_logs : [] };
       });
       renderFloorPins(); render3DHotspots();
-      if (selectedSubTab.includes('관리이력')) renderHistoryTable();
+      if (selectedSubTab === '관리이력') renderHistoryTable();
     }
   }
 
@@ -1637,7 +1630,7 @@ Tag No: ${target.tag_no}
     if (!error) { 
       renderHistoryListModal(target); 
       alert('✅ 삭제 완료'); 
-      if (selectedSubTab.includes('관리이력')) renderHistoryTable();
+      if (selectedSubTab === '관리이력') renderHistoryTable();
     }
   };
 
@@ -1675,7 +1668,7 @@ Tag No: ${target.tag_no}
       document.getElementById('info-modal').style.display = 'block';
       alert(editingHistoryIndex !== null ? '✅ 수정 완료' : '✅ 등록 완료');
       editingHistoryIndex = null;
-      if (selectedSubTab.includes('관리이력')) renderHistoryTable();
+      if (selectedSubTab === '관리이력') renderHistoryTable();
     }
   });
 
