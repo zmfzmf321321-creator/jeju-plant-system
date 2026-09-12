@@ -16,62 +16,54 @@
       background-color: #080d1a; color: #fff; overflow: hidden; position: fixed;
     }
     input, textarea, select, button, a {
-      user-select: auto !important; -webkit-user-select: auto !important;
-      pointer-events: auto !important; cursor: pointer;
+      user-select: auto !important; -webkit-user-select: auto !important; pointer-events: auto !important; cursor: pointer;
     }
-
     #auth-overlay {
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       background: #0b132b; display: flex; align-items: center; justify-content: center;
       z-index: 999999; pointer-events: auto;
     }
     .auth-box {
-      background: #1c2541; padding: 28px 24px; border-radius: 16px;
-      border: 1px solid #3a506b; width: 90%; max-width: 340px; text-align: center;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.8); position: relative; z-index: 1000000;
+      background: #1c2541; padding: 28px 24px; border-radius: 16px; border: 1px solid #3a506b;
+      width: 90%; max-width: 340px; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+      position: relative; z-index: 1000000;
     }
     .auth-title { font-size: 20px; font-weight: bold; margin-bottom: 6px; color: #48cae4; }
     .auth-desc { font-size: 13px; color: #94a3b8; margin-bottom: 20px; line-height: 1.4; }
     .auth-input {
       width: 100%; padding: 12px; background: #0b132b; border: 1px solid #3a506b;
-      border-radius: 8px; color: #fff; font-size: 15px; margin-bottom: 12px; outline: none; -webkit-appearance: none;
+      border-radius: 8px; color: #fff; font-size: 15px; margin-bottom: 12px; outline: none;
+      -webkit-appearance: none;
     }
     .auth-btn {
-      width: 100%; padding: 14px; background: #00b4d8; color: #0b132b;
-      border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 6px; display: block;
+      width: 100%; padding: 14px; background: #00b4d8; color: #0b132b; border: none;
+      border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 6px; display: block;
     }
     .auth-btn:active { background: #0096c7; }
-    
     .btn-biometric {
-      width: 100%; padding: 14px; background: #10b981; color: #fff;
-      border: none; border-radius: 8px; font-size: 15px; font-weight: bold;
-      cursor: pointer; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 14px; background: #10b981; color: #fff; border: none;
+      border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; margin-bottom: 12px;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
     }
     .btn-biometric:active { background: #059669; }
-
     .btn-biometric-admin {
-      width: 100%; padding: 13px; background: #0284c7; color: #fff;
-      border: 1px solid #38bdf8; border-radius: 8px; font-size: 14px; font-weight: bold;
-      cursor: pointer; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 6px;
+      width: 100%; padding: 13px; background: #0284c7; color: #fff; border: 1px solid #38bdf8;
+      border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; margin-bottom: 12px;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
     }
     .btn-biometric-admin:active { background: #0369a1; }
-
     .btn-reg-admin-bio {
-      width: 100%; padding: 10px; background: #1e293b; color: #38bdf8;
-      border: 1px dashed #0284c7; border-radius: 6px; font-size: 12px; font-weight: bold;
-      cursor: pointer; margin-top: 10px;
+      width: 100%; padding: 10px; background: #1e293b; color: #38bdf8; border: 1px dashed #0284c7;
+      border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; margin-top: 10px;
     }
-
     .auth-divider { display: flex; align-items: center; margin: 16px 0; color: #64748b; font-size: 12px; }
     .auth-divider::before, .auth-divider::after { content: ''; flex: 1; border-bottom: 1px solid #334155; }
     .auth-divider span { padding: 0 10px; }
-    
     .btn-admin-pass {
-      width: 100%; padding: 12px; background: #111a33; border: 1px solid #3b82f6;
-      color: #93c5fd; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer;
+      width: 100%; padding: 12px; background: #111a33; border: 1px solid #3b82f6; color: #93c5fd;
+      border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer;
     }
     .btn-admin-pass:active { background: #1e3a8a; }
-
     .auth-toggle-link {
       margin-top: 16px; font-size: 13px; color: #94a3b8; cursor: pointer; text-decoration: underline;
       padding: 6px; display: inline-block;
@@ -80,20 +72,17 @@
     #admin-login-box, #register-box { display: none; }
 
     #header {
-      position: fixed; top: 0; left: 0; width: 100vw; height: 52px;
-      background: #1c2541; display: flex; align-items: center; justify-content: space-between;
-      padding: 0 10px; border-bottom: 1px solid #3a506b; z-index: 5000;
+      position: fixed; top: 0; left: 0; width: 100vw; height: 52px; background: #1c2541;
+      display: flex; align-items: center; justify-content: space-between; padding: 0 10px;
+      border-bottom: 1px solid #3a506b; z-index: 5000;
     }
     .brand { font-size: 13px; font-weight: 700; display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
     .location-tag { background: #48cae4; color: #0b132b; padding: 2px 6px; border-radius: 8px; font-size: 11px; font-weight: bold; }
-    
     .header-btns {
-      display: flex; gap: 8px; align-items: center; overflow-x: auto;
-      white-space: nowrap; scrollbar-width: none; -webkit-overflow-scrolling: touch;
-      padding: 4px 2px; max-width: 62vw;
+      display: flex; gap: 8px; align-items: center; overflow-x: auto; white-space: nowrap;
+      scrollbar-width: none; -webkit-overflow-scrolling: touch; padding: 4px 2px; max-width: 62vw;
     }
     .header-btns::-webkit-scrollbar { display: none; }
-
     .header-btns button {
       flex-shrink: 0; font-size: 12px; font-weight: bold; padding: 6px 10px; border-radius: 6px; cursor: pointer;
     }
@@ -105,29 +94,26 @@
     .btn-logout { background: transparent; border: 1px solid #64748b; color: #cbd5e1; font-size: 14px; padding: 5px 8px; }
 
     #unit-selector-bar {
-      position: fixed; top: 52px; left: 0; width: 100vw; height: 76px;
-      background: #0f172a; border-bottom: 2px solid #3a506b; display: flex;
-      flex-direction: column; justify-content: center; gap: 6px; z-index: 4900;
-      padding: 6px 10px;
+      position: fixed; top: 52px; left: 0; width: 100vw; height: 76px; background: #0f172a;
+      border-bottom: 2px solid #3a506b; display: flex; flex-direction: column; justify-content: center;
+      gap: 6px; z-index: 4900; padding: 6px 10px;
     }
     .selector-row { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; }
     .major-tab-btn {
-      flex: 1; max-width: 160px; height: 28px; border: 1px solid #475569;
-      background: #1e293b; color: #cbd5e1; font-size: 12px; font-weight: bold;
-      border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      flex: 1; max-width: 160px; height: 28px; border: 1px solid #475569; background: #1e293b;
+      color: #cbd5e1; font-size: 12px; font-weight: bold; border-radius: 6px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
     }
     .major-tab-btn.active {
-      background: #0284c7; color: #fff; border-color: #38bdf8;
-      box-shadow: 0 0 10px rgba(2, 132, 199, 0.7);
+      background: #0284c7; color: #fff; border-color: #38bdf8; box-shadow: 0 0 10px rgba(2, 132, 199, 0.7);
     }
     .sub-tab-btn {
-      flex: 1; max-width: 115px; height: 26px; border: 1px solid #334155;
-      background: #111a33; color: #94a3b8; font-size: 11px; font-weight: bold;
-      border-radius: 5px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      flex: 1; max-width: 115px; height: 26px; border: 1px solid #334155; background: #111a33;
+      color: #94a3b8; font-size: 11px; font-weight: bold; border-radius: 5px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
     }
     .sub-tab-btn.active {
-      background: #38bdf8; color: #0b132b; border-color: #7dd3fc;
-      box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+      background: #38bdf8; color: #0b132b; border-color: #7dd3fc; box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
     }
 
     #measure-info-hud {
@@ -178,92 +164,80 @@
     .badge-engine { background: #d97706; color: #fff; }
 
     .hotspot-pin {
-      background: #00b4d8; border: 2px solid #ffffff; border-radius: 50%;
-      width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
-      font-size: 12px; font-weight: bold; color: #0b132b; cursor: pointer;
-      box-shadow: 0 0 10px rgba(0, 180, 216, 0.9);
+      background: #00b4d8; border: 2px solid #ffffff; border-radius: 50%; width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;
+      color: #0b132b; cursor: pointer; box-shadow: 0 0 10px rgba(0, 180, 216, 0.9);
       transform: translate(-50%, -50%) scale(var(--pin-scale, 1));
       transition: transform 0.1s ease-out; background-size: cover; background-position: center;
     }
     .hotspot-pin span {
       position: absolute; top: -24px; left: 50%; transform: translateX(-50%);
-      background: rgba(11, 19, 43, 0.92); color: #38bdf8; padding: 2px 6px;
-      border-radius: 4px; font-size: 10px; white-space: nowrap; border: 1px solid #38bdf8; pointer-events: none;
+      background: rgba(11, 19, 43, 0.92); color: #38bdf8; padding: 2px 6px; border-radius: 4px;
+      font-size: 10px; white-space: nowrap; border: 1px solid #38bdf8; pointer-events: none;
     }
-    
+
     #temp-measure-marker {
-      background: #ef4444; border: 2px solid #ffffff; border-radius: 50%;
-      width: 18px; height: 18px; transform: translate(-50%, -50%);
-      box-shadow: 0 0 12px #ef4444; pointer-events: none;
+      background: #ef4444; border: 2px solid #ffffff; border-radius: 50%; width: 18px; height: 18px;
+      transform: translate(-50%, -50%); box-shadow: 0 0 12px #ef4444; pointer-events: none;
     }
     #temp-measure-marker-2d {
       position: absolute; background: #ef4444; border: 2px solid #ffffff; border-radius: 50%;
-      width: 18px; height: 18px; transform: translate(-50%, -50%);
-      box-shadow: 0 0 12px #ef4444; pointer-events: none; z-index: 101;
+      width: 18px; height: 18px; transform: translate(-50%, -50%); box-shadow: 0 0 12px #ef4444;
+      pointer-events: none; z-index: 101;
     }
-
     .measure-marker-2d {
-      position: absolute; border: 2px solid #ffffff; border-radius: 50%;
-      width: 24px; height: 24px; transform: translate(-50%, -50%); pointer-events: none; z-index: 100;
-      display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: #ffffff;
-      background: #0284c7; box-shadow: 0 0 12px rgba(2, 132, 199, 1);
+      position: absolute; border: 2px solid #ffffff; border-radius: 50%; width: 24px; height: 24px;
+      transform: translate(-50%, -50%); pointer-events: none; z-index: 100;
+      display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold;
+      color: #ffffff; background: #0284c7; box-shadow: 0 0 12px rgba(2, 132, 199, 1);
     }
     .measure-marker-2d.p-start { background: #10b981; box-shadow: 0 0 12px #10b981; }
     .measure-marker-2d.p-mid { background: #f59e0b; box-shadow: 0 0 12px #f59e0b; }
     .measure-marker-2d.p-end { background: #ef4444; box-shadow: 0 0 12px #ef4444; }
-
     .measure-marker-3d {
-      position: absolute; border: 2px solid #ffffff; border-radius: 50%;
-      width: 24px; height: 24px; transform: translate(-50%, -50%); pointer-events: none;
-      display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: #ffffff;
-      background: #f59e0b; box-shadow: 0 0 10px #f59e0b;
+      position: absolute; border: 2px solid #ffffff; border-radius: 50%; width: 24px; height: 24px;
+      transform: translate(-50%, -50%); pointer-events: none;
+      display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold;
+      color: #ffffff; background: #f59e0b; box-shadow: 0 0 10px #f59e0b;
     }
-
     .measure-line {
-      position: absolute; height: 3px; background: rgba(245, 158, 11, 0.9);
-      transform-origin: 0 50%; pointer-events: none; z-index: 98;
-      box-shadow: 0 0 8px rgba(245, 158, 11, 0.7);
+      position: absolute; height: 3px; background: rgba(245, 158, 11, 0.9); transform-origin: 0 50%;
+      pointer-events: none; z-index: 98; box-shadow: 0 0 8px rgba(245, 158, 11, 0.7);
     }
 
     #floor-room-view {
       display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0;
       background: #080d1a; touch-action: none;
     }
+
+    /* 💡 [수정]: 도면 공간 상단 배너 및 조감도 나가기 버튼 숨김 */
     #floor-room-header {
-      position: absolute; top: 12px; left: 12px; right: 12px;
-      background: rgba(15, 23, 42, 0.95); border: 1px solid #00b4d8;
-      border-radius: 10px; padding: 10px 14px; display: flex;
-      justify-content: space-between; align-items: center; z-index: 30;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.7);
-    }
-    .room-title { font-size: 15px; font-weight: bold; color: #38bdf8; }
-    .room-desc { font-size: 11px; color: #94a3b8; margin-top: 2px; }
-    .btn-exit-room {
-      background: #0284c7; color: #fff; border: none; padding: 6px 12px;
-      border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer;
+      display: none !important;
     }
 
-    #floor-canvas-wrap { width: 100%; height: 100%; position: absolute; top: 0; left: 0; cursor: grab; overflow: hidden; touch-action: none; }
+    #floor-canvas-wrap {
+      width: 100%; height: 100%; position: absolute; top: 0; left: 0;
+      cursor: grab; overflow: hidden; touch-action: none;
+    }
     #floor-board {
-      width: 1400px; height: 1000px; position: absolute;
-      top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0.65);
-      transform-origin: center center; background-color: #ffffff;
-      background-repeat: no-repeat; background-position: center center; background-size: contain;
-      border: 2px solid #0284c7; border-radius: 12px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; touch-action: none;
+      width: 1400px; height: 1000px; position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0.65); transform-origin: center center;
+      background-color: #ffffff; background-repeat: no-repeat; background-position: center center;
+      background-size: contain; border: 2px solid #0284c7; border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center;
+      touch-action: none;
     }
     .no-img-notice {
       color: #ef4444; font-size: 15px; font-weight: bold; pointer-events: none;
       background: rgba(15, 23, 42, 0.9); padding: 12px 20px; border-radius: 8px; border: 1px dashed #334155;
     }
-
     .floor-inst-pin {
-      position: absolute; width: 36px; height: 36px; border-radius: 50%;
-      background: #00b4d8; border: 2px solid #ffffff; box-shadow: 0 0 14px rgba(0, 180, 216, 1);
-      display: flex; align-items: center; justify-content: center;
-      color: #0b132b; font-size: 14px; font-weight: bold; cursor: grab;
-      transform: translate(-50%, -50%); z-index: 50; background-size: cover; background-position: center;
-      touch-action: none; transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+      position: absolute; width: 36px; height: 36px; border-radius: 50%; background: #00b4d8;
+      border: 2px solid #ffffff; box-shadow: 0 0 14px rgba(0, 180, 216, 1);
+      display: flex; align-items: center; justify-content: center; color: #0b132b; font-size: 14px;
+      font-weight: bold; cursor: grab; transform: translate(-50%, -50%); z-index: 50;
+      background-size: cover; background-position: center; touch-action: none;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
     }
     .floor-inst-pin.pin-pressing {
       transform: translate(-50%, -50%) scale(1.15); border-color: #facc15; box-shadow: 0 0 20px rgba(250, 204, 21, 0.9);
@@ -279,28 +253,29 @@
     }
     .floor-inst-pin span {
       position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%);
-      background: rgba(11, 19, 43, 0.9); color: #fff; padding: 2px 6px;
-      border-radius: 4px; font-size: 11px; white-space: nowrap; border: 1px solid #38bdf8; pointer-events: none;
+      background: rgba(11, 19, 43, 0.9); color: #fff; padding: 2px 6px; border-radius: 4px;
+      font-size: 11px; white-space: nowrap; border: 1px solid #38bdf8; pointer-events: none;
     }
-
-    .canvas-zoom-ctrl { position: absolute; right: 14px; bottom: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 40; }
+    .canvas-zoom-ctrl {
+      position: absolute; right: 14px; bottom: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 40;
+    }
     .zoom-btn {
       width: 44px; height: 44px; border-radius: 10px; background: rgba(15, 23, 42, 0.92);
       border: 1px solid #38bdf8; color: #fff; font-size: 20px; font-weight: bold;
-      display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
 
     #floor-bar {
-      position: fixed; bottom: 0; left: 0; width: 100vw; height: 65px;
-      background: #111a33; border-top: 2px solid #3a506b; display: flex;
-      align-items: center; padding: 0 10px; gap: 6px; z-index: 5000;
-      overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+      position: fixed; bottom: 0; left: 0; width: 100vw; height: 65px; background: #111a33;
+      border-top: 2px solid #3a506b; display: flex; align-items: center; padding: 0 10px; gap: 6px;
+      z-index: 5000; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch;
     }
     #floor-bar::-webkit-scrollbar { display: none; }
     .floor-btn {
-      flex-shrink: 0; height: 42px; min-width: 58px; padding: 0 10px;
-      background: #1c2541; color: #94a3b8; border: 1px solid #3a506b;
-      border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; white-space: nowrap;
+      flex-shrink: 0; height: 42px; min-width: 58px; padding: 0 10px; background: #1c2541;
+      color: #94a3b8; border: 1px solid #3a506b; border-radius: 8px; font-size: 12px;
+      font-weight: bold; cursor: pointer; white-space: nowrap;
     }
     .floor-btn.active { background: #00b4d8; color: #0b132b; border-color: #90e0ef; }
 
@@ -310,18 +285,30 @@
       width: 92%; max-width: 420px; color: #333; max-height: 88vh; overflow-y: auto;
       box-shadow: 0 10px 40px rgba(0,0,0,0.8); pointer-events: auto;
     }
-    #modal h3, #info-modal h3, #history-modal h3, #search-modal h3, #gemini-modal h3, #ocr-edit-modal h3, #edit-inst-modal h3 { margin: 0 0 12px 0; font-size: 16px; color: #0b132b; }
+    #modal h3, #info-modal h3, #history-modal h3, #search-modal h3, #gemini-modal h3, #ocr-edit-modal h3, #edit-inst-modal h3 {
+      margin: 0 0 12px 0; font-size: 16px; color: #0b132b;
+    }
     .form-group { margin-bottom: 10px; }
     .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #334155; }
-    .form-group input, .form-group textarea { width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; font-family: inherit; color: #111; }
-    
+    .form-group input, .form-group textarea {
+      width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;
+      font-size: 13px; font-family: inherit; color: #111;
+    }
     .photo-btn-group { display: flex; gap: 6px; }
     .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; flex: 1; }
-    .btn-file-upload { background: #0284c7; color: #fff; padding: 9px; width: 100%; border-radius: 6px; font-weight: bold; text-align: center; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; gap: 4px; }
+    .btn-file-upload {
+      background: #0284c7; color: #fff; padding: 9px; width: 100%; border-radius: 6px;
+      font-weight: bold; text-align: center; cursor: pointer; font-size: 12px;
+      display: flex; align-items: center; justify-content: center; gap: 4px;
+    }
     .btn-file-upload.btn-secondary { background: #e2e8f0; border: 1px solid #cbd5e1; color: #334155; }
-    .file-input-wrapper input[type=file] { font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; height: 100%; width: 100%; }
-    .preview-img { display: none; width: 100%; max-height: 140px; object-fit: contain; margin-top: 8px; border-radius: 8px; border: 1px solid #cbd5e1; }
-
+    .file-input-wrapper input[type=file] {
+      font-size: 100px; position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; height: 100%; width: 100%;
+    }
+    .preview-img {
+      display: none; width: 100%; max-height: 140px; object-fit: contain; margin-top: 8px;
+      border-radius: 8px; border: 1px solid #cbd5e1;
+    }
     .btn-wrap { display: flex; gap: 8px; margin-top: 14px; }
     .btn-wrap button { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
     .btn-save { background: #0077b6; color: #fff; }
@@ -330,19 +317,35 @@
     .history-section { margin-top: 12px; padding-top: 10px; border-top: 1px dashed #cbd5e1; }
     .history-title { font-size: 13px; font-weight: bold; color: #0284c7; margin-bottom: 8px; }
     .history-list { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
-    .history-item { background: #f8fafc; border-left: 3px solid #0284c7; padding: 8px; border-radius: 4px; font-size: 12px; position: relative; }
+    .history-item {
+      background: #f8fafc; border-left: 3px solid #0284c7; padding: 8px; border-radius: 4px;
+      font-size: 12px; position: relative;
+    }
     .history-item-header { display: flex; justify-content: space-between; align-items: center; color: #64748b; font-size: 11px; margin-bottom: 4px; }
     .history-actions { display: flex; gap: 6px; }
     .btn-hist-action { background: transparent; border: none; cursor: pointer; font-size: 11px; font-weight: bold; padding: 2px 4px; border-radius: 3px; }
     .btn-hist-edit { color: #0284c7; }
     .btn-hist-del { color: #ef4444; }
     .hist-img { width: 100%; max-height: 100px; object-fit: cover; border-radius: 4px; margin-top: 6px; }
-    .btn-add-history-quick { width: 100%; padding: 9px; background: #0284c7; color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; margin-bottom: 6px; }
-    .btn-delete-pin { width: 100%; padding: 8px; background: #ef4444; border: none; border-radius: 6px; color: #fff; font-size: 12px; font-weight: bold; cursor: pointer; }
 
-    .search-input-box { width: 100%; padding: 10px 12px; border: 2px solid #00b4d8; border-radius: 8px; font-size: 14px; outline: none; margin-bottom: 12px; }
+    .btn-add-history-quick {
+      width: 100%; padding: 9px; background: #0284c7; color: #fff; border: none;
+      border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; margin-bottom: 6px;
+    }
+    .btn-delete-pin {
+      width: 100%; padding: 8px; background: #ef4444; border: none; border-radius: 6px;
+      color: #fff; font-size: 12px; font-weight: bold; cursor: pointer;
+    }
+
+    .search-input-box {
+      width: 100%; padding: 10px 12px; border: 2px solid #00b4d8; border-radius: 8px;
+      font-size: 14px; outline: none; margin-bottom: 12px;
+    }
     .search-results-list { max-height: 320px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
-    .search-result-item { background: #f1f5f9; padding: 10px; border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border: 1px solid #cbd5e1; }
+    .search-result-item {
+      background: #f1f5f9; padding: 10px; border-radius: 8px; cursor: pointer;
+      display: flex; justify-content: space-between; align-items: center; border: 1px solid #cbd5e1;
+    }
     .search-result-item:hover { background: #e2e8f0; border-color: #0284c7; }
     .search-item-main { font-size: 13px; font-weight: bold; color: #0b132b; }
     .search-item-sub { font-size: 11px; color: #64748b; margin-top: 2px; }
@@ -358,7 +361,10 @@
     .ai-input-wrap { display: flex; gap: 6px; }
     .ai-input-wrap input { flex: 1; padding: 9px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; }
     .btn-ai-send { background: #6366f1; color: #fff; border: none; padding: 0 14px; border-radius: 6px; font-weight: bold; }
-    .btn-ai-detail-ask { width: 100%; padding: 8px; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; margin-top: 8px; cursor: pointer; }
+    .btn-ai-detail-ask {
+      width: 100%; padding: 8px; background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; margin-top: 8px; cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -383,14 +389,11 @@
     <div class="auth-title" style="color: #38bdf8;">👑 최고관리자 모드</div>
     <button class="btn-biometric-admin" id="btnAdminBioLogin" type="button">👆 최고관리자 지문 즉시 로그인</button>
     <div id="adminBioLoginMsg" class="auth-status-error"></div>
-    
     <div class="auth-divider"><span>또는 마스터 비밀번호</span></div>
     <input type="password" id="adminPassInput" class="auth-input" placeholder="마스터 비밀번호">
     <button class="auth-btn" style="background: #38bdf8;" id="btnAdminSubmit" type="button">관리자 접속</button>
     <div id="adminErrorMsg" class="auth-status-error">⚠️ 비밀번호가 틀렸습니다.</div>
-    
     <button class="btn-reg-admin-bio" id="btnDirectRegAdminBio" type="button">🔑 비밀번호 확인 후 이 기기 지문 등록</button>
-    
     <div class="auth-toggle-link" id="linkBackLogin">돌아가기</div>
   </div>
 
@@ -529,12 +532,11 @@
     <h3>🤖 제미나이 정비 AI 도우미</h3>
     <button class="major-tab-btn" style="background:#10b981; border-color:#34d399; color:#fff; max-width:110px; height:26px; font-size:11px;" onclick="startNewChat()">➕ 새 대화하기</button>
   </div>
-
   <div style="display: flex; gap: 6px; margin-bottom: 10px;">
     <button class="major-tab-btn active" id="btnAiTabChat" onclick="switchAiTab('chat')">💬 실시간 대화</button>
     <button class="major-tab-btn" id="btnAiTabHistory" onclick="switchAiTab('history')">💾 저장된 내 질의 기록</button>
   </div>
-
+  
   <div id="aiChatView">
     <div class="ai-chat-box" id="aiChatBox">
       <div class="ai-msg ai-msg-bot">안녕하세요! 발전제어설비 AI 어시스턴트입니다. 현장 데이터 및 정비 매뉴얼을 기반으로 답변합니다.</div>
@@ -572,7 +574,6 @@
 <!-- 계측기 신규 등록 모달 -->
 <div id="modal">
   <h3>계측기 등록 (<span id="modalUnitText" style="color:#0284c7; font-weight:bold;">기력 2호기</span> <span id="modalFloorText" style="color:#00b4d8; font-weight:bold;">1층</span>)</h3>
-  
   <div class="form-group">
     <label>기기 사진 첨부 (명판 촬영 시 Tag 자동 완성)</label>
     <div class="photo-btn-group">
@@ -587,12 +588,10 @@
     </div>
     <img id="photoPreview" class="preview-img">
   </div>
-
   <div class="form-group"><label>Tag No.</label><input type="text" id="tagNo" placeholder="예: 20-PT-101"></div>
   <div class="form-group"><label>기기명</label><input type="text" id="name" placeholder="예: 급수 압력 전송기"></div>
   <div class="form-group"><label>모델명</label><input type="text" id="model"></div>
   <div class="form-group"><label>측정범위 / 신호</label><input type="text" id="range"></div>
-
   <div class="history-section" style="background:#f8fafc; padding:10px; border-radius:8px; margin-top:14px; border:1px solid #e2e8f0;">
     <div class="history-title" style="margin-bottom:6px;">📋 최초 점검/설치 이력 작성 (선택)</div>
     <div class="form-group"><label>작업자 성명</label><input type="text" id="initHistAuthor" placeholder="작업자 이름"></div>
@@ -612,7 +611,6 @@
       <img id="initHistPreview" class="preview-img">
     </div>
   </div>
-
   <div class="btn-wrap">
     <button class="btn-save" id="btnSaveInst">저장하기</button>
     <button class="btn-cancel" onclick="document.getElementById('modal').style.display='none'">취소</button>
@@ -623,7 +621,6 @@
 <div id="info-modal">
   <h3 id="infoTitle">계측기 상세</h3>
   <img id="infoMainImg" class="preview-img" style="margin-bottom:6px;">
-  
   <div class="photo-btn-group" style="margin-bottom: 8px;">
     <div class="file-input-wrapper">
       <div class="btn-file-upload" style="padding: 7px; font-size: 11px;">📷 대표사진 촬영 (즉시교체)</div>
@@ -634,19 +631,14 @@
       <input type="file" id="updateMainPhotoGallery" accept="image/*">
     </div>
   </div>
-  
   <div id="infoBody" style="font-size: 13px; line-height: 1.5;"></div>
-  
   <button id="btnOpenEditInst" class="btn-file-upload" style="background:#0284c7; width:100%; margin-top:8px; padding:9px; font-size:12px;" onclick="openEditInstModal()">
     ✏️ 계측기 정보/사진 직접 수정
   </button>
-
   <button id="btnExtractCurrentPhoto" class="btn-file-upload" style="background:#059669; width:100%; margin-top:6px; padding:9px; font-size:12px;" onclick="extractCurrentPhotoInfo()">
     🔍 등록된 사진에서 Tag·기기정보 자동 추출 및 수정
   </button>
-
   <button class="btn-ai-detail-ask" id="btnAiAnalyzeThis">🤖 이 기기 사진·이력·매뉴얼 AI 종합 분석 받기</button>
-
   <div class="history-section">
     <div class="history-title">📋 정비/점검 이력 관리</div>
     <div class="history-list" id="infoHistoryList"></div>
@@ -741,14 +733,11 @@
   let selectedMajor = '기력';
   let selectedSubTab = '2호기';
   let selectedFloor = 'ALL';
-
   let activeTargetId = null;
   let editingHistoryIndex = null;
   let clickedFloorCoord = { x: 0, y: 0 };
-  
   let isMeasureMode = false;
   let measurePoints = [];
-
   let currentChatSessionId = 'session_' + Date.now();
 
   let pendingInstPhotoFile = null;
@@ -762,15 +751,14 @@
   let dragStartX = 0, dragStartY = 0;
   let initialPinchDist = 0;
   let initialScale = 0.65;
-
   let activeDraggingPin = null;
   let activeDraggingItem = null;
   let isPinMoving = false;
 
   const floor3DHeights = {
-    '1층': 8.14, '2층': 11.50, '2.5층': 14.50, '3층': 17.50, '3.1/3층': 20.50,
-    '3.2/3층': 23.50, '4층': 26.50, '4.5층': 29.50, '5층': 32.50, '5.5층': 35.50,
-    '6층': 38.50, '7층': 44.80
+    '1층': 8.14, '2층': 11.50, '2.5층': 14.50, '3층': 17.50,
+    '3.1/3층': 20.50, '3.2/3층': 23.50, '4층': 26.50, '4.5층': 29.50,
+    '5층': 32.50, '5.5층': 35.50, '6층': 38.50, '7층': 44.80
   };
 
   const floorCorners2D = {
@@ -805,10 +793,15 @@
       const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
       const filePath = `${fileName}`;
       const { data, error } = await supabaseClient.storage.from('instrument-photos').upload(filePath, file);
-      if (error) { alert('⚠️ 이미지 업로드 실패: ' + error.message); return null; }
+      if (error) {
+        alert('⚠️ 이미지 업로드 실패: ' + error.message);
+        return null;
+      }
       const { data: publicURLData } = supabaseClient.storage.from('instrument-photos').getPublicUrl(filePath);
       return publicURLData.publicUrl;
-    } catch (err) { return null; }
+    } catch (err) {
+      return null;
+    }
   }
 
   function uint8ArrayToBase64(uint8Array) {
@@ -827,22 +820,26 @@
   }
 
   async function registerBiometrics(isAdmin = false) {
-    if (!window.PublicKeyCredential) { alert('⚠️ 현재 브라우저 환경에서 생체인증을 지원하지 않습니다.'); return; }
+    if (!window.PublicKeyCredential) {
+      alert('⚠️ 현재 브라우저 환경에서 생체인증을 지원하지 않습니다.');
+      return;
+    }
     try {
-      const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
-      const userId = new Uint8Array(16); window.crypto.getRandomValues(userId);
+      const challenge = new Uint8Array(32);
+      window.crypto.getRandomValues(challenge);
+      const userId = new Uint8Array(16);
+      window.crypto.getRandomValues(userId);
       const workerName = isAdmin ? '최고관리자' : (currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자');
-
       const credential = await navigator.credentials.create({
         publicKey: {
-          challenge, rp: { name: '제주 보일러 제어 시스템', id: window.location.hostname },
+          challenge,
+          rp: { name: '제주 보일러 제어 시스템', id: window.location.hostname },
           user: { id: userId, name: isAdmin ? 'jeju_admin' : (workerName || 'user'), displayName: workerName },
           pubKeyCredParams: [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
           authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'preferred', residentKey: 'preferred' },
           timeout: 60000
         }
       });
-
       if (credential) {
         const rawIdBase64 = uint8ArrayToBase64(new Uint8Array(credential.rawId));
         localStorage.setItem('jeju_bio_raw_id', rawIdBase64);
@@ -864,24 +861,25 @@
     const rawIdBase64 = localStorage.getItem('jeju_bio_raw_id');
     const msgEl = isAdminLogin ? document.getElementById('adminBioLoginMsg') : document.getElementById('bioLoginMsg');
     msgEl.style.display = 'none';
-
     if (!rawIdBase64) {
       msgEl.innerText = isAdminLogin ? '⚠️ 등록된 지문이 없습니다. 마스터 비밀번호 접속 후 먼저 지문을 등록해 주세요.' : '⚠️ 저장된 지문이 없습니다.';
-      msgEl.style.display = 'block'; return;
+      msgEl.style.display = 'block';
+      return;
     }
-
     try {
-      const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
+      const challenge = new Uint8Array(32);
+      window.crypto.getRandomValues(challenge);
       const rawIdBuffer = base64ToUint8Array(rawIdBase64);
       const assertion = await navigator.credentials.get({
         publicKey: { challenge, rpId: window.location.hostname, allowCredentials: [{ id: rawIdBuffer, type: 'public-key' }], userVerification: 'preferred', timeout: 60000 }
       });
-
       if (assertion) {
         if (isAdminLogin || localStorage.getItem('jeju_admin_bio_auth') === 'true') {
-          sessionStorage.setItem('jeju_admin_auth', 'true'); unlock('최고관리자', 'admin@jeju.com');
+          sessionStorage.setItem('jeju_admin_auth', 'true');
+          unlock('최고관리자', 'admin@jeju.com');
         } else {
-          const savedName = localStorage.getItem('jeju_bio_user_name') || '작업자'; unlock(savedName, `${savedName}@jeju.com`);
+          const savedName = localStorage.getItem('jeju_bio_user_name') || '작업자';
+          unlock(savedName, `${savedName}@jeju.com`);
         }
       }
     } catch (err) {
@@ -895,7 +893,10 @@
   document.getElementById('btnAdminBioLogin').addEventListener('click', (e) => { e.preventDefault(); loginBiometrics(true); });
   document.getElementById('btnDirectRegAdminBio').addEventListener('click', (e) => {
     e.preventDefault();
-    if (document.getElementById('adminPassInput').value.trim() !== ADMIN_MASTER_PASS) { alert('⚠️ 마스터 비밀번호를 정확히 입력해 주세요.'); return; }
+    if (document.getElementById('adminPassInput').value.trim() !== ADMIN_MASTER_PASS) {
+      alert('⚠️ 마스터 비밀번호를 정확히 입력해 주세요.');
+      return;
+    }
     registerBiometrics(true);
   });
   document.getElementById('btnRegisterBio').addEventListener('click', (e) => {
@@ -909,7 +910,6 @@
     clearAllMeasureVisuals();
     document.getElementById('btn-major-steam').classList.toggle('active', major === '기력');
     document.getElementById('btn-major-engine').classList.toggle('active', major === '내연');
-
     if (major === '기력') {
       document.getElementById('sub-tabs-steam').style.display = 'flex';
       document.getElementById('sub-tabs-engine').style.display = 'none';
@@ -934,23 +934,26 @@
       document.getElementById('sub-engine-2').classList.toggle('active', sub === '2호기');
       document.getElementById('sub-engine-hist').classList.toggle('active', sub === '관리이력');
     }
-
     const view3D = document.getElementById('overall-3d-view');
     const viewFloor = document.getElementById('floor-room-view');
     const viewEmpty = document.getElementById('empty-engine-view');
     const viewHist = document.getElementById('history-table-view');
     const floorBar = document.getElementById('floor-bar');
-
-    view3D.style.display = 'none'; viewFloor.style.display = 'none';
-    viewEmpty.style.display = 'none'; viewHist.style.display = 'none';
-
+    view3D.style.display = 'none';
+    viewFloor.style.display = 'none';
+    viewEmpty.style.display = 'none';
+    viewHist.style.display = 'none';
     if (sub === '관리이력') {
-      floorBar.style.display = 'none'; viewHist.style.display = 'block';
-      document.getElementById('historyTableTitle').innerText = `📋 [${selectedMajor}발전] 전체 점검 및 관리이력`; renderHistoryTable();
+      floorBar.style.display = 'none';
+      viewHist.style.display = 'block';
+      document.getElementById('historyTableTitle').innerText = `📋 [${selectedMajor}발전] 전체 점검 및 관리이력`;
+      renderHistoryTable();
     } else if (selectedMajor === '기력') {
-      floorBar.style.display = 'flex'; exitToOverall();
+      floorBar.style.display = 'flex';
+      exitToOverall();
     } else {
-      floorBar.style.display = 'none'; viewEmpty.style.display = 'flex';
+      floorBar.style.display = 'none';
+      viewEmpty.style.display = 'flex';
       document.getElementById('emptyEngineTitle').innerText = `내연 ${sub} 설비 공간`;
     }
     updateFloorTitle();
@@ -975,12 +978,23 @@
       if (!dbMajor) dbMajor = (typeof inst.unit === 'string' && inst.unit.includes('내연')) ? '내연' : '기력';
       if (dbMajor !== selectedMajor) return;
       (inst.history_logs || []).forEach(log => {
-        allLogs.push({ category: `${dbMajor} ${inst.unit || ''}`.trim(), date: log.date || '-', tag_no: inst.tag_no || '-', name: inst.name || '-', author: log.author || '-', content: log.content || '-', photo: log.photo || null });
+        allLogs.push({
+          category: `${dbMajor} ${inst.unit || ''}`.trim(),
+          date: log.date || '-',
+          tag_no: inst.tag_no || '-',
+          name: inst.name || '-',
+          author: log.author || '-',
+          content: log.content || '-',
+          photo: log.photo || null
+        });
       });
     });
     allLogs.sort((a, b) => (b.date > a.date ? 1 : -1));
     if (filterText) allLogs = allLogs.filter(i => i.category.toLowerCase().includes(filterText) || i.date.toLowerCase().includes(filterText) || i.tag_no.toLowerCase().includes(filterText) || i.name.toLowerCase().includes(filterText) || i.author.toLowerCase().includes(filterText) || i.content.toLowerCase().includes(filterText));
-    if (allLogs.length === 0) { tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px; color: #64748b;">등록된 점검 이력이 없습니다.</td></tr>`; return; }
+    if (allLogs.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px; color: #64748b;">등록된 점검 이력이 없습니다.</td></tr>`;
+      return;
+    }
     allLogs.forEach(log => {
       const tr = document.createElement('tr');
       const isEngine = log.category.includes('내연');
@@ -989,7 +1003,10 @@
     });
   };
 
-  async function fetchManuals() { const { data } = await supabaseClient.from('manuals').select('*'); currentManuals = data || []; }
+  async function fetchManuals() {
+    const { data } = await supabaseClient.from('manuals').select('*');
+    currentManuals = data || [];
+  }
 
   window.startNewChat = function() {
     currentChatSessionId = 'session_' + Date.now();
@@ -1002,7 +1019,6 @@
     const historyView = document.getElementById('aiHistoryView');
     const btnChat = document.getElementById('btnAiTabChat');
     const btnHistory = document.getElementById('btnAiTabHistory');
-
     if (tab === 'chat') {
       chatView.style.display = 'block';
       historyView.style.display = 'none';
@@ -1020,16 +1036,13 @@
   async function loadSavedAiHistory() {
     const box = document.getElementById('aiSavedHistoryBox');
     box.innerHTML = '<div style="color: #94a3b8; font-size: 12px; text-align: center; padding: 20px;">불러오는 중...</div>';
-    
     const workerName = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자';
-
     const { data, error } = await supabaseClient
       .from('ai_chat_history')
       .select('*')
       .eq('user_name', workerName)
       .order('created_at', { ascending: false })
       .limit(50);
-
     if (error || !data || data.length === 0) {
       box.innerHTML = `<div style="color: #64748b; font-size: 12px; text-align: center; padding: 20px;">
         저장된 본인의 질의 기록이 없습니다.<br>
@@ -1037,7 +1050,6 @@
       </div>`;
       return;
     }
-
     box.innerHTML = data.map(item => `
       <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; margin-bottom: 6px; font-size: 12px;">
         <div style="display: flex; justify-content: space-between; color: #64748b; font-size: 10px; margin-bottom: 4px;">
@@ -1056,24 +1068,18 @@
     await fetchManuals();
   });
 
-  // [수정됨] 스마트 키워드/동의어 매칭 및 매칭된 기기의 사진을 photosToSend에 자동 주입하여 제미나이가 사진을 인식하도록 함
   async function callGemini(userPrompt, extraContext = '', targetPhotos = []) {
-    appendAiMsg('user', userPrompt); 
+    appendAiMsg('user', userPrompt);
     appendAiMsg('bot', '⏳ Supabase 보안 서버를 통해 데이터를 분석 중...');
-    
     let photosToSend = [...targetPhotos];
     let dynamicContext = extraContext;
-
     if (!dynamicContext) {
       const promptLower = userPrompt.toLowerCase();
-      
       const matchedInsts = currentInstruments.filter(inst => {
         const tag = (inst.tag_no || '').toLowerCase();
         const name = (inst.name || '').toLowerCase();
         const logsStr = (inst.history_logs || []).map(h => h.content + ' ' + h.author).join(' ').toLowerCase();
-        
         let hit = tag.includes(promptLower) || name.includes(promptLower) || logsStr.includes(promptLower);
-        
         if (promptLower.includes('밸브') || promptLower.includes('컨트롤') || promptLower.includes('조절') || promptLower.includes('fcv') || promptLower.includes('cv')) {
           if (name.includes('밸브') || name.includes('조절') || name.includes('fcv') || tag.includes('fcv') || tag.includes('cv') || logsStr.includes('밸브')) hit = true;
         }
@@ -1088,13 +1094,10 @@
         }
         return hit;
       });
-
       if (matchedInsts.length > 0) {
-        dynamicContext = "🔍 [자동 검색된 관련 계측기 및 점검 이력 데이터]:\n" + matchedInsts.map(i => 
+        dynamicContext = "🔍 [자동 검색된 관련 계측기 및 점검 이력 데이터]:\n" + matchedInsts.map(i =>
           `- Tag No: ${i.tag_no}, 기기명: ${i.name}, 위치: ${i.major_category} ${i.unit} ${i.floor}, 모델: ${i.model}, 측정범위: ${i.signal_range}, 이력내역: ${JSON.stringify(i.history_logs)}`
         ).join('\n');
-
-        // [핵심 수정] 스마트 매칭된 기기의 사진(대표 사진 및 이력 사진)을 photosToSend에 자동 추가하여 제미나이가 사진을 직접 볼 수 있게 함
         if (photosToSend.length === 0) {
           matchedInsts.forEach(i => {
             const mainImg = i.photo_url || i.image_data;
@@ -1108,15 +1111,15 @@
         dynamicContext = "💡 [참고용 전체 등록 계측기 목록]:\n" + currentInstruments.map(i => `[${i.tag_no}] ${i.name} (${i.major_category} ${i.unit} ${i.floor})`).join(', ');
       }
     }
-
     try {
-      const { data, error } = await supabaseClient.functions.invoke('gemini-chat', { body: { prompt: userPrompt, extraContext: dynamicContext, photosToSend, mode: 'chat' } });
+      const { data, error } = await supabaseClient.functions.invoke('gemini-chat', {
+        body: { prompt: userPrompt, extraContext: dynamicContext, photosToSend, mode: 'chat' }
+      });
       const lastMsg = document.querySelector('#aiChatBox .ai-msg-bot:last-child');
-      
       if (!error && data?.candidates?.[0]?.content?.parts?.[0]?.text) {
         const reply = data.candidates[0].content.parts[0].text;
-        if (lastMsg && lastMsg.innerText.includes('⏳')) lastMsg.innerText = reply; else appendAiMsg('bot', reply);
-        
+        if (lastMsg && lastMsg.innerText.includes('⏳')) lastMsg.innerText = reply;
+        else appendAiMsg('bot', reply);
         const workerName = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자';
         const { error: dbError } = await supabaseClient.from('ai_chat_history').insert([{
           user_name: workerName,
@@ -1125,43 +1128,51 @@
           response: reply,
           created_at: new Date().toISOString()
         }]);
-        
-        if (dbError) {
-          console.error('⚠️ DB 저장 실패:', dbError.message);
-        }
-
+        if (dbError) { console.error('⚠️ DB 저장 실패:', dbError.message); }
       } else {
         const errMsg = error ? error.message : (data?.error ? JSON.stringify(data.error) : '응답 오류');
         if (lastMsg && lastMsg.innerText.includes('⏳')) lastMsg.innerText = `❌ 오류: ${errMsg}`;
       }
-    } catch (err) { 
-      const lastMsg = document.querySelector('#aiChatBox .ai-msg-bot:last-child'); 
-      if (lastMsg && lastMsg.innerText.includes('⏳')) lastMsg.innerText = `❌ 통신 실패: ${err.message}`; 
+    } catch (err) {
+      const lastMsg = document.querySelector('#aiChatBox .ai-msg-bot:last-child');
+      if (lastMsg && lastMsg.innerText.includes('⏳')) lastMsg.innerText = `❌ 통신 실패: ${err.message}`;
     }
   }
 
   window.extractCurrentPhotoInfo = async function() {
     const target = currentInstruments.find(i => i.id === activeTargetId);
-    if (!target || !(target.photo_url || target.image_data)) { alert('⚠️ 현재 등록된 대표 사진이 없습니다.'); return; }
+    if (!target || !(target.photo_url || target.image_data)) {
+      alert('⚠️ 현재 등록된 대표 사진이 없습니다.');
+      return;
+    }
     const extractBtn = document.getElementById('btnExtractCurrentPhoto');
     const origText = extractBtn ? extractBtn.innerText : '';
-    if (extractBtn) { extractBtn.innerText = '⏳ 사진에서 명판 정보 정밀 추출 중...'; extractBtn.style.opacity = '0.7'; extractBtn.disabled = true; }
-    try { await autoFillTagFromPhoto(target.photo_url || target.image_data, 'update'); } finally { if (extractBtn) { extractBtn.innerText = origText; extractBtn.style.opacity = '1'; extractBtn.disabled = false; } }
+    if (extractBtn) {
+      extractBtn.innerText = '⏳ 사진에서 명판 정보 정밀 추출 중...';
+      extractBtn.style.opacity = '0.7';
+      extractBtn.disabled = true;
+    }
+    try {
+      await autoFillTagFromPhoto(target.photo_url || target.image_data, 'update');
+    } finally {
+      if (extractBtn) {
+        extractBtn.innerText = origText;
+        extractBtn.style.opacity = '1';
+        extractBtn.disabled = false;
+      }
+    }
   };
 
   window.openEditInstModal = function() {
     const target = currentInstruments.find(i => i.id === activeTargetId);
     if (!target) return;
-    
     document.getElementById('editTagNo').value = target.tag_no || '';
     document.getElementById('editName').value = target.name || '';
     document.getElementById('editModel').value = target.model || '';
     document.getElementById('editRange').value = target.signal_range || '';
-    
     pendingEditInstPhotoFile = null;
     document.getElementById('editInstPhotoCam').value = '';
     document.getElementById('editInstPhotoGallery').value = '';
-    
     const preview = document.getElementById('editInstPhotoPreview');
     const currentImg = target.photo_url || target.image_data;
     if (currentImg) {
@@ -1170,7 +1181,6 @@
     } else {
       preview.style.display = 'none';
     }
-
     document.getElementById('edit-inst-modal').style.display = 'block';
   };
 
@@ -1186,25 +1196,20 @@
   document.getElementById('btnSaveEditInst').addEventListener('click', async () => {
     const target = currentInstruments.find(i => i.id === activeTargetId);
     if (!target) return;
-
     const newTag = document.getElementById('editTagNo').value.trim();
     const newName = document.getElementById('editName').value.trim();
     const newModel = document.getElementById('editModel').value.trim();
     const newRange = document.getElementById('editRange').value.trim();
-
     if (!newTag || !newName) {
       alert('⚠️ Tag No와 기기명은 필수 입력 항목입니다.');
       return;
     }
-
     alert('⏳ 계측기 정보 및 사진을 수정 저장 중...');
-
     let photoUrl = target.photo_url || target.image_data;
     if (pendingEditInstPhotoFile) {
       const uploaded = await uploadImageToStorage(pendingEditInstPhotoFile);
       if (uploaded) photoUrl = uploaded;
     }
-
     const updateFields = {
       tag_no: newTag,
       name: newName,
@@ -1213,7 +1218,6 @@
       photo_url: photoUrl,
       image_data: photoUrl
     };
-
     const { error } = await supabaseClient.from('instruments').update(updateFields).eq('id', target.id);
     if (!error) {
       Object.assign(target, updateFields);
@@ -1229,139 +1233,282 @@
   });
 
   function openOcrEditModal(target, parsed) {
-    document.getElementById('ocrTagNo').value = parsed.tag_no || target.tag_no || ''; 
+    document.getElementById('ocrTagNo').value = parsed.tag_no || target.tag_no || '';
     document.getElementById('ocrName').value = parsed.name || target.name || '';
-    document.getElementById('ocrModel').value = parsed.model || target.model || ''; 
+    document.getElementById('ocrModel').value = parsed.model || target.model || '';
     document.getElementById('ocrRange').value = parsed.range || target.signal_range || '';
-    
     document.getElementById('btnApplyOcrEdit').onclick = async () => {
-      const updateFields = { 
-        tag_no: document.getElementById('ocrTagNo').value.trim(), 
-        name: document.getElementById('ocrName').value.trim(), 
-        model: document.getElementById('ocrModel').value.trim(), 
-        signal_range: document.getElementById('ocrRange').value.trim() 
+      const updateFields = {
+        tag_no: document.getElementById('ocrTagNo').value.trim(),
+        name: document.getElementById('ocrName').value.trim(),
+        model: document.getElementById('ocrModel').value.trim(),
+        signal_range: document.getElementById('ocrRange').value.trim()
       };
       const { error } = await supabaseClient.from('instruments').update(updateFields).eq('id', target.id);
       if (!error) {
-        Object.assign(target, updateFields); 
-        closeOcrEditModal(); 
-        showDetail(target); 
-        renderFloorPins(); 
+        Object.assign(target, updateFields);
+        closeOcrEditModal();
+        showDetail(target);
+        renderFloorPins();
         render3DHotspots();
-        const hud = document.getElementById('measure-info-hud'); 
-        if (hud) { 
-          hud.style.display = 'block'; 
-          hud.innerText = '✅ 수정하신 정보가 반영되었습니다!'; 
-          setTimeout(() => { if (!isMeasureMode) hud.style.display = 'none'; }, 2500); 
+        const hud = document.getElementById('measure-info-hud');
+        if (hud) {
+          hud.style.display = 'block';
+          hud.innerText = '✅ 수정하신 정보가 반영되었습니다!';
+          setTimeout(() => { if (!isMeasureMode) hud.style.display = 'none'; }, 2500);
         }
       } else alert('❌ 저장 실패: ' + error.message);
     };
     document.getElementById('ocr-edit-modal').style.display = 'block';
   }
 
-  window.closeOcrEditModal = function() { document.getElementById('ocr-edit-modal').style.display = 'none'; };
+  window.closeOcrEditModal = function() {
+    document.getElementById('ocr-edit-modal').style.display = 'none';
+  };
 
   async function autoFillTagFromPhoto(fileOrUrl, targetMode = 'insert') {
     if (!fileOrUrl) return;
     const hud = document.getElementById('measure-info-hud');
-    if (hud) { hud.style.display = 'block'; hud.innerText = '🔍 사진 속 명판(Tag Plate)을 정밀 판독 중입니다...'; }
-    let photoPayload = typeof fileOrUrl === 'string' ? fileOrUrl : await new Promise(res => { const r = new FileReader(); r.onload = e => res(e.target.result); r.readAsDataURL(fileOrUrl); });
+    if (hud) {
+      hud.style.display = 'block';
+      hud.innerText = '🔍 사진 속 명판(Tag Plate)을 정밀 판독 중입니다...';
+    }
+    let photoPayload = typeof fileOrUrl === 'string' ? fileOrUrl : await new Promise(res => {
+      const r = new FileReader();
+      r.onload = e => res(e.target.result);
+      r.readAsDataURL(fileOrUrl);
+    });
     try {
-      const { data, error } = await supabaseClient.functions.invoke('gemini-chat', { body: { prompt: "사진 속 명판에서 tag_no, name, model, range 정보를 찾아 JSON으로만 응답해줘.", photosToSend: [photoPayload], mode: "ocr_tag" } });
+      const { data, error } = await supabaseClient.functions.invoke('gemini-chat', {
+        body: { prompt: "사진 속 명판에서 tag_no, name, model, range 정보를 찾아 JSON으로만 응답해줘.", photosToSend: [photoPayload], mode: "ocr_tag" }
+      });
       if (!error && data?.candidates?.[0]?.content?.parts?.[0]?.text) {
         const jsonMatch = data.candidates[0].content.parts[0].text.match(/\{[\s\S]*\}/);
         if (!jsonMatch) throw new Error('JSON 형식을 찾을 수 없음');
         const parsed = JSON.parse(jsonMatch[0]);
         if (targetMode === 'insert') {
-          if (parsed.tag_no) document.getElementById('tagNo').value = parsed.tag_no; if (parsed.name) document.getElementById('name').value = parsed.name;
-          if (parsed.model) document.getElementById('model').value = parsed.model; if (parsed.range) document.getElementById('range').value = parsed.range;
+          if (parsed.tag_no) document.getElementById('tagNo').value = parsed.tag_no;
+          if (parsed.name) document.getElementById('name').value = parsed.name;
+          if (parsed.model) document.getElementById('model').value = parsed.model;
+          if (parsed.range) document.getElementById('range').value = parsed.range;
           if (hud) hud.innerText = `✅ [${parsed.tag_no || '정보'}] 입력창에 자동 반영되었습니다. 내용을 확인 및 수정하세요.`;
         } else if (targetMode === 'update') {
           const target = currentInstruments.find(i => i.id === activeTargetId);
-          if (target) { openOcrEditModal(target, parsed); if (hud) hud.innerText = '✅ 명판 추출 완료! 입력창에서 최종 검토 후 적용하세요.'; }
+          if (target) {
+            openOcrEditModal(target, parsed);
+            if (hud) hud.innerText = '✅ 명판 추출 완료! 입력창에서 최종 검토 후 적용하세요.';
+          }
         }
-      } else { if (hud) hud.innerText = '⚠️ 명판 정보를 명확히 인식하지 못했습니다.'; }
-    } catch (err) { if (hud) hud.innerText = '⚠️ 명판 자동 판독에 실패했습니다.'; }
+      } else {
+        if (hud) hud.innerText = '⚠️ 명판 정보를 명확히 인식하지 못했습니다.';
+      }
+    } catch (err) {
+      if (hud) hud.innerText = '⚠️ 명판 자동 판독에 실패했습니다.';
+    }
     setTimeout(() => { if (!isMeasureMode && hud) hud.style.display = 'none'; }, 3500);
   }
 
-  function appendAiMsg(role, text) { const box = document.getElementById('aiChatBox'); const div = document.createElement('div'); div.className = `ai-msg ${role === 'user' ? 'ai-msg-user' : 'ai-msg-bot'}`; div.innerText = text; box.appendChild(div); box.scrollTop = box.scrollHeight; }
-  document.getElementById('btnSendAi').addEventListener('click', () => { const input = document.getElementById('aiUserInput'); const p = input.value.trim(); if (!p) return; input.value = ''; callGemini(p); });
-  document.getElementById('aiUserInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('btnSendAi').click(); });
-  
+  function appendAiMsg(role, text) {
+    const box = document.getElementById('aiChatBox');
+    const div = document.createElement('div');
+    div.className = `ai-msg ${role === 'user' ? 'ai-msg-user' : 'ai-msg-bot'}`;
+    div.innerText = text;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  document.getElementById('btnSendAi').addEventListener('click', () => {
+    const input = document.getElementById('aiUserInput');
+    const p = input.value.trim();
+    if (!p) return;
+    input.value = '';
+    callGemini(p);
+  });
+
+  document.getElementById('aiUserInput').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') document.getElementById('btnSendAi').click();
+  });
+
   document.getElementById('btnAiAnalyzeThis').addEventListener('click', async () => {
-    const target = currentInstruments.find(i => i.id === activeTargetId); if (!target) return;
-    document.getElementById('info-modal').style.display = 'none'; document.getElementById('gemini-modal').style.display = 'block'; switchAiTab('chat'); await fetchManuals();
+    const target = currentInstruments.find(i => i.id === activeTargetId);
+    if (!target) return;
+    document.getElementById('info-modal').style.display = 'none';
+    document.getElementById('gemini-modal').style.display = 'block';
+    switchAiTab('chat');
+    await fetchManuals();
     const ctx = `Tag No: ${target.tag_no}\n기기명: ${target.name}\n설치위치: ${target.major_category || '기력'} ${target.unit} ${target.floor}\n모델명: ${target.model}\n측정범위: ${target.signal_range}\n대표사진: ${target.photo_url||target.image_data?'있음':'없음'}\n과거이력: ${JSON.stringify(target.history_logs || [])}`;
-    const photos = []; if (target.photo_url || target.image_data) photos.push(target.photo_url || target.image_data);
-    (target.history_logs || []).forEach(h => { if (h.photo && !photos.includes(h.photo)) photos.push(h.photo); });
+    const photos = [];
+    if (target.photo_url || target.image_data) photos.push(target.photo_url || target.image_data);
+    (target.history_logs || []).forEach(h => {
+      if (h.photo && !photos.includes(h.photo)) photos.push(h.photo);
+    });
     callGemini(`이 계측기(${target.tag_no})의 사진, 과거 이력, [정비 매뉴얼]을 종합하여 이상 유무 및 권장사항을 작성해줘.`, ctx, photos);
   });
 
-  function previewImageFile(file, previewElementId) { if (!file) return; const r = new FileReader(); r.onload = function(e) { const p = document.getElementById(previewElementId); p.src = e.target.result; p.style.display = 'block'; }; r.readAsDataURL(file); }
-  document.getElementById('instPhotoCam').addEventListener('change', (e) => { pendingInstPhotoFile = e.target.files[0]; previewImageFile(pendingInstPhotoFile, 'photoPreview'); autoFillTagFromPhoto(pendingInstPhotoFile, 'insert'); });
-  document.getElementById('instPhotoGallery').addEventListener('change', (e) => { pendingInstPhotoFile = e.target.files[0]; previewImageFile(pendingInstPhotoFile, 'photoPreview'); autoFillTagFromPhoto(pendingInstPhotoFile, 'insert'); });
-  document.getElementById('initHistPhotoCam').addEventListener('change', (e) => { pendingInitHistPhotoFile = e.target.files[0]; previewImageFile(pendingInitHistPhotoFile, 'initHistPreview'); });
-  document.getElementById('initHistPhotoGallery').addEventListener('change', (e) => { pendingInitHistPhotoFile = e.target.files[0]; previewImageFile(pendingInitHistPhotoFile, 'initHistPreview'); });
-  document.getElementById('histPhotoCam').addEventListener('change', (e) => { pendingHistPhotoFile = e.target.files[0]; previewImageFile(pendingHistPhotoFile, 'histPhotoPreview'); });
-  document.getElementById('histPhotoGallery').addEventListener('change', (e) => { pendingHistPhotoFile = e.target.files[0]; previewImageFile(pendingHistPhotoFile, 'histPhotoPreview'); });
-  
-  async function handleUpdateMainPhoto(file) {
-    if (!file) return; const uploadedUrl = await uploadImageToStorage(file); if (!uploadedUrl) return;
-    const target = currentInstruments.find(i => i.id === activeTargetId); if (!target) return;
-    target.photo_url = uploadedUrl; target.image_data = uploadedUrl; document.getElementById('infoMainImg').src = uploadedUrl; document.getElementById('infoMainImg').style.display = 'block';
-    await supabaseClient.from('instruments').update({ photo_url: uploadedUrl, image_data: uploadedUrl }).eq('id', activeTargetId);
-    renderFloorPins(); render3DHotspots(); autoFillTagFromPhoto(file, 'update');
+  function previewImageFile(file, previewElementId) {
+    if (!file) return;
+    const r = new FileReader();
+    r.onload = function(e) {
+      const p = document.getElementById(previewElementId);
+      p.src = e.target.result;
+      p.style.display = 'block';
+    };
+    r.readAsDataURL(file);
   }
+
+  document.getElementById('instPhotoCam').addEventListener('change', (e) => {
+    pendingInstPhotoFile = e.target.files[0];
+    previewImageFile(pendingInstPhotoFile, 'photoPreview');
+    autoFillTagFromPhoto(pendingInstPhotoFile, 'insert');
+  });
+  document.getElementById('instPhotoGallery').addEventListener('change', (e) => {
+    pendingInstPhotoFile = e.target.files[0];
+    previewImageFile(pendingInstPhotoFile, 'photoPreview');
+    autoFillTagFromPhoto(pendingInstPhotoFile, 'insert');
+  });
+  document.getElementById('initHistPhotoCam').addEventListener('change', (e) => {
+    pendingInitHistPhotoFile = e.target.files[0];
+    previewImageFile(pendingInitHistPhotoFile, 'initHistPreview');
+  });
+  document.getElementById('initHistPhotoGallery').addEventListener('change', (e) => {
+    pendingInitHistPhotoFile = e.target.files[0];
+    previewImageFile(pendingInitHistPhotoFile, 'initHistPreview');
+  });
+  document.getElementById('histPhotoCam').addEventListener('change', (e) => {
+    pendingHistPhotoFile = e.target.files[0];
+    previewImageFile(pendingHistPhotoFile, 'histPhotoPreview');
+  });
+  document.getElementById('histPhotoGallery').addEventListener('change', (e) => {
+    pendingHistPhotoFile = e.target.files[0];
+    previewImageFile(pendingHistPhotoFile, 'histPhotoPreview');
+  });
+
+  async function handleUpdateMainPhoto(file) {
+    if (!file) return;
+    const uploadedUrl = await uploadImageToStorage(file);
+    if (!uploadedUrl) return;
+    const target = currentInstruments.find(i => i.id === activeTargetId);
+    if (!target) return;
+    target.photo_url = uploadedUrl;
+    target.image_data = uploadedUrl;
+    document.getElementById('infoMainImg').src = uploadedUrl;
+    document.getElementById('infoMainImg').style.display = 'block';
+    await supabaseClient.from('instruments').update({ photo_url: uploadedUrl, image_data: uploadedUrl }).eq('id', activeTargetId);
+    renderFloorPins();
+    render3DHotspots();
+    autoFillTagFromPhoto(file, 'update');
+  }
+
   document.getElementById('updateMainPhotoCam').addEventListener('change', (e) => handleUpdateMainPhoto(e.target.files[0]));
   document.getElementById('updateMainPhotoGallery').addEventListener('change', (e) => handleUpdateMainPhoto(e.target.files[0]));
 
   async function unlock(name, email = 'user@jeju.com') {
-    const savedName = localStorage.getItem('jeju_worker_name'); const finalName = savedName || name;
-    currentUserInfo = { name: finalName, email }; 
-    
+    const savedName = localStorage.getItem('jeju_worker_name');
+    const finalName = savedName || name;
+    currentUserInfo = { name: finalName, email };
     const authOverlay = document.getElementById('auth-overlay');
     if (authOverlay) authOverlay.remove();
-
     const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
     document.getElementById('loginUserBadge').innerText = isAdmin ? `👑 최고관리자` : `👤 ${finalName}`;
-
-    selectedMajor = '기력'; selectedSubTab = '2호기'; selectedFloor = 'ALL';
-    document.getElementById('btn-major-steam').classList.add('active'); document.getElementById('btn-major-engine').classList.remove('active');
-    document.getElementById('sub-tabs-steam').style.display = 'flex'; document.getElementById('sub-tabs-engine').style.display = 'none';
-    document.getElementById('sub-steam-2').classList.add('active'); document.getElementById('sub-steam-3').classList.remove('active'); document.getElementById('sub-steam-hist').classList.remove('active');
-    document.getElementById('overall-3d-view').style.display = 'block'; document.getElementById('floor-room-view').style.display = 'none';
-    document.getElementById('empty-engine-view').style.display = 'none'; document.getElementById('history-table-view').style.display = 'none';
+    selectedMajor = '기력';
+    selectedSubTab = '2호기';
+    selectedFloor = 'ALL';
+    document.getElementById('btn-major-steam').classList.add('active');
+    document.getElementById('btn-major-engine').classList.remove('active');
+    document.getElementById('sub-tabs-steam').style.display = 'flex';
+    document.getElementById('sub-tabs-engine').style.display = 'none';
+    document.getElementById('sub-steam-2').classList.add('active');
+    document.getElementById('sub-steam-3').classList.remove('active');
+    document.getElementById('sub-steam-hist').classList.remove('active');
+    document.getElementById('overall-3d-view').style.display = 'block';
+    document.getElementById('floor-room-view').style.display = 'none';
+    document.getElementById('empty-engine-view').style.display = 'none';
+    document.getElementById('history-table-view').style.display = 'none';
     document.getElementById('floor-bar').style.display = 'flex';
-
-    updateFloorTitle(); await fetchManuals(); fetchInstruments();
+    updateFloorTitle();
+    await fetchManuals();
+    fetchInstruments();
   }
 
-  document.getElementById('btnGoAdmin').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('login-box').style.display = 'none'; document.getElementById('admin-login-box').style.display = 'block'; });
-  document.getElementById('linkBackLogin').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('admin-login-box').style.display = 'none'; document.getElementById('login-box').style.display = 'block'; });
-  document.getElementById('linkToRegister').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('login-box').style.display = 'none'; document.getElementById('register-box').style.display = 'block'; setTimeout(() => document.getElementById('regName').focus(), 150); });
-  document.getElementById('linkBackLogin2').addEventListener('click', (e) => { e.preventDefault(); document.getElementById('register-box').style.display = 'none'; document.getElementById('login-box').style.display = 'block'; });
+  document.getElementById('btnGoAdmin').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('login-box').style.display = 'none';
+    document.getElementById('admin-login-box').style.display = 'block';
+  });
+  document.getElementById('linkBackLogin').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('admin-login-box').style.display = 'none';
+    document.getElementById('login-box').style.display = 'block';
+  });
+  document.getElementById('linkToRegister').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('login-box').style.display = 'none';
+    document.getElementById('register-box').style.display = 'block';
+    setTimeout(() => document.getElementById('regName').focus(), 150);
+  });
+  document.getElementById('linkBackLogin2').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('register-box').style.display = 'none';
+    document.getElementById('login-box').style.display = 'block';
+  });
+
   document.getElementById('btnAdminSubmit').addEventListener('click', (e) => {
-    e.preventDefault(); if (document.getElementById('adminPassInput').value.trim() === ADMIN_MASTER_PASS) { sessionStorage.setItem('jeju_admin_auth', 'true'); unlock('최고관리자', 'admin@jeju.com'); } else document.getElementById('adminErrorMsg').style.display = 'block';
+    e.preventDefault();
+    if (document.getElementById('adminPassInput').value.trim() === ADMIN_MASTER_PASS) {
+      sessionStorage.setItem('jeju_admin_auth', 'true');
+      unlock('최고관리자', 'admin@jeju.com');
+    } else document.getElementById('adminErrorMsg').style.display = 'block';
   });
+
   document.getElementById('btnMemberLogin').addEventListener('click', async (e) => {
-    e.preventDefault(); const email = document.getElementById('loginEmail').value.trim(); const pass = document.getElementById('loginPassword').value.trim();
-    const msgEl = document.getElementById('loginMsg'); msgEl.style.display = 'none';
-    if (!email || !pass) { msgEl.innerText = '⚠️ 사번(이메일)과 비밀번호를 모두 입력해 주세요.'; msgEl.style.display = 'block'; return; }
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass = document.getElementById('loginPassword').value.trim();
+    const msgEl = document.getElementById('loginMsg');
+    msgEl.style.display = 'none';
+    if (!email || !pass) {
+      msgEl.innerText = '⚠️ 사번(이메일)과 비밀번호를 모두 입력해 주세요.';
+      msgEl.style.display = 'block';
+      return;
+    }
     const { error } = await supabaseClient.auth.signInWithPassword({ email: email, password: pass });
-    if (error) { msgEl.innerText = '❌ 로그인 실패: 승인되지 않은 사번이거나 비밀번호가 틀렸습니다.'; msgEl.style.display = 'block'; return; }
-    const namePart = email.split('@')[0]; localStorage.setItem('jeju_worker_name', namePart); unlock(namePart, email);
+    if (error) {
+      msgEl.innerText = '❌ 로그인 실패: 승인되지 않은 사번이거나 비밀번호가 틀렸습니다.';
+      msgEl.style.display = 'block';
+      return;
+    }
+    const namePart = email.split('@')[0];
+    localStorage.setItem('jeju_worker_name', namePart);
+    unlock(namePart, email);
   });
+
   document.getElementById('btnRegisterSubmit').addEventListener('click', async (e) => {
-    e.preventDefault(); const name = document.getElementById('regName').value.trim(); const email = document.getElementById('regEmail').value.trim(); const pass = document.getElementById('regPassword').value.trim();
+    e.preventDefault();
+    const name = document.getElementById('regName').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const pass = document.getElementById('regPassword').value.trim();
     const regMsg = document.getElementById('regMsg');
-    if (!name || !email || !pass) { regMsg.innerText = '⚠️ 빈칸을 모두 채워주세요.'; regMsg.style.display = 'block'; return; }
-    if (pass.length < 6) { regMsg.innerText = '⚠️ 비밀번호는 최소 6자리 이상이어야 합니다.'; regMsg.style.display = 'block'; return; }
-    regMsg.style.display = 'none'; localStorage.setItem('jeju_worker_name', name);
+    if (!name || !email || !pass) {
+      regMsg.innerText = '⚠️ 빈칸을 모두 채워주세요.';
+      regMsg.style.display = 'block';
+      return;
+    }
+    if (pass.length < 6) {
+      regMsg.innerText = '⚠️ 비밀번호는 최소 6자리 이상이어야 합니다.';
+      regMsg.style.display = 'block';
+      return;
+    }
+    regMsg.style.display = 'none';
+    localStorage.setItem('jeju_worker_name', name);
     try { await supabaseClient.auth.signUp({ email, password: pass }); } catch (err) {}
-    alert(`🎉 [${name}] 팀원님 가입 완료!`); unlock(name, email);
+    alert(`🎉 [${name}] 팀원님 가입 완료!`);
+    unlock(name, email);
   });
-  document.getElementById('btnLogout').addEventListener('click', () => { sessionStorage.removeItem('jeju_admin_auth'); location.reload(); });
+
+  document.getElementById('btnLogout').addEventListener('click', () => {
+    sessionStorage.removeItem('jeju_admin_auth');
+    location.reload();
+  });
 
   const canvasWrap = document.getElementById('floor-canvas-wrap');
   const board = document.getElementById('floor-board');
@@ -1379,7 +1526,6 @@
     if (!isMeasureMode) { measureHud.style.display = 'none'; return; }
     measureHud.style.display = 'block';
     const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
-
     if (isAdmin) {
       measureHud.innerHTML = selectedFloor === 'ALL'
         ? `📍 <b>[최고관리자 모드]</b> 3D 모델 표면 터치 시 <b>좌표가 자동 복사</b>됩니다.`
@@ -1401,12 +1547,10 @@
     measureHud.style.display = 'block';
     const count = measurePoints.length;
     if (count === 0) return;
-
     if (count === 1) {
       measureHud.innerHTML = `📍 <b>P1(${measurePoints[0].floor})</b> 선택됨.<br><span style="font-size:11px; color:#94a3b8;">두 번째 지점을 터치하면 거리가 자동 계산됩니다. (층 이동 가능)</span>`;
       return;
     }
-
     let total3D = 0;
     let totalH = 0;
     for (let i = 0; i < count - 1; i++) {
@@ -1418,7 +1562,6 @@
       totalH += Math.hypot(dx, dz);
       total3D += Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
-
     if (count === 2) {
       const p1 = measurePoints[0];
       const p2 = measurePoints[1];
@@ -1437,7 +1580,6 @@
     isMeasureMode = !isMeasureMode;
     measurePoints = [];
     clearAllMeasureVisuals();
-    
     if (isMeasureMode) {
       btnMeasure.classList.add('active');
       const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
@@ -1468,7 +1610,6 @@
     const hit = viewer.positionAndNormalFromPoint(event.clientX - rect.left, event.clientY - rect.top);
     if (hit) {
       const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
-
       if (isAdmin) {
         const posStr = `${hit.position.x.toFixed(2)} ${hit.position.y.toFixed(2)} ${hit.position.z.toFixed(2)}`;
         let marker = viewer.querySelector('#temp-measure-marker');
@@ -1484,7 +1625,6 @@
         navigator.clipboard.writeText(posStr).catch(() => {});
         return;
       }
-
       if (measurePoints.length >= 10) {
         measurePoints = [];
         clearAllMeasureVisuals();
@@ -1493,8 +1633,11 @@
       measurePoints.push({
         idx: nextIdx,
         floor: '3D',
-        x: 0, y: 0,
-        x3d: hit.position.x, y3d: hit.position.y, z3d: hit.position.z
+        x: 0,
+        y: 0,
+        x3d: hit.position.x,
+        y3d: hit.position.y,
+        z3d: hit.position.z
       });
       renderMeasureVisuals3D();
       updateMeasureHudResult();
@@ -1502,14 +1645,14 @@
   });
 
   viewer.addEventListener('camera-change', () => {
-    const orbit = viewer.getCameraOrbit(); if (!orbit) return;
+    const orbit = viewer.getCameraOrbit();
+    if (!orbit) return;
     const pinScale = Math.max(0.5, Math.min(1.5, (380 / orbit.radius) * 1.0));
     document.querySelectorAll('.hotspot-pin').forEach(pin => pin.style.setProperty('--pin-scale', pinScale));
   });
 
   function renderMeasureMarkers2D() {
     document.querySelectorAll('.measure-marker-2d, .measure-line').forEach(el => el.remove());
-    
     measurePoints.forEach((p) => {
       if (p.floor === selectedFloor) {
         const m = document.createElement('div');
@@ -1521,7 +1664,6 @@
         board.appendChild(m);
       }
     });
-
     for (let i = 0; i < measurePoints.length - 1; i++) {
       const pA = measurePoints[i];
       const pB = measurePoints[i + 1];
@@ -1546,12 +1688,19 @@
     document.getElementById('overall-3d-view').style.display = 'none';
     document.getElementById('floor-room-view').style.display = 'block';
     updateFloorTitle();
-
-    const testImg = new Image(); testImg.src = `./${imgFile}`;
-    testImg.onload = () => { board.style.backgroundImage = `url('./${imgFile}')`; notice.style.display = 'none'; };
-    testImg.onerror = () => { board.style.backgroundImage = 'none'; notice.innerText = `⚠️ [${imgFile}] 파일 부재`; notice.style.display = 'block'; };
-    resetCanvasView(); renderFloorPins(); 
-    
+    const testImg = new Image();
+    testImg.src = `./${imgFile}`;
+    testImg.onload = () => {
+      board.style.backgroundImage = `url('./${imgFile}')`;
+      notice.style.display = 'none';
+    };
+    testImg.onerror = () => {
+      board.style.backgroundImage = 'none';
+      notice.innerText = `⚠️ [${imgFile}] 파일 부재`;
+      notice.style.display = 'block';
+    };
+    resetCanvasView();
+    renderFloorPins();
     if (isMeasureMode) {
       updateMeasureHudPrompt();
       renderMeasureMarkers2D();
@@ -1564,24 +1713,37 @@
     document.getElementById('btn-ALL').classList.add('active');
     document.getElementById('floor-room-view').style.display = 'none';
     document.getElementById('overall-3d-view').style.display = 'block';
-    updateFloorTitle(); render3DHotspots(); 
-    
+    updateFloorTitle();
+    render3DHotspots();
     if (isMeasureMode) {
       updateMeasureHudPrompt();
       renderMeasureVisuals3D();
     }
   };
 
-  function updateTransform() { board.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${scale})`; }
-  window.zoomCanvas = function(delta) { scale = Math.max(0.3, Math.min(3.5, scale + delta)); updateTransform(); };
-  window.resetCanvasView = function() { scale = 0.65; panX = 0; panY = 0; updateTransform(); };
+  function updateTransform() {
+    board.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${scale})`;
+  }
+
+  window.zoomCanvas = function(delta) {
+    scale = Math.max(0.3, Math.min(3.5, scale + delta));
+    updateTransform();
+  };
+
+  window.resetCanvasView = function() {
+    scale = 0.65; panX = 0; panY = 0;
+    updateTransform();
+  };
 
   canvasWrap.addEventListener('touchstart', (e) => {
     if (isPinMoving || e.target.closest('.floor-inst-pin')) return;
     if (e.touches.length === 1) {
-      isDragging = true; dragStartX = e.touches[0].clientX - panX; dragStartY = e.touches[0].clientY - panY;
+      isDragging = true;
+      dragStartX = e.touches[0].clientX - panX;
+      dragStartY = e.touches[0].clientY - panY;
     } else if (e.touches.length === 2) {
-      isDragging = false; initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      isDragging = false;
+      initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
       initialScale = scale;
     }
   }, { passive: false });
@@ -1590,24 +1752,44 @@
     if (isPinMoving || e.target.closest('.floor-inst-pin')) return;
     e.preventDefault();
     if (e.touches.length === 1 && isDragging) {
-      panX = e.touches[0].clientX - dragStartX; panY = e.touches[0].clientY - dragStartY; updateTransform();
+      panX = e.touches[0].clientX - dragStartX;
+      panY = e.touches[0].clientY - dragStartY;
+      updateTransform();
     } else if (e.touches.length === 2) {
       const dist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
-      if (initialPinchDist > 0) { scale = Math.max(0.3, Math.min(3.5, initialScale * (dist / initialPinchDist))); updateTransform(); }
+      if (initialPinchDist > 0) {
+        scale = Math.max(0.3, Math.min(3.5, initialScale * (dist / initialPinchDist)));
+        updateTransform();
+      }
     }
   }, { passive: false });
 
   canvasWrap.addEventListener('touchend', () => { isDragging = false; });
+
   canvasWrap.addEventListener('mousedown', (e) => {
     if (isPinMoving || e.target.closest('.floor-inst-pin')) return;
-    isDragging = true; dragStartX = e.clientX - panX; dragStartY = e.clientY - panY; canvasWrap.style.cursor = 'grabbing';
+    isDragging = true;
+    dragStartX = e.clientX - panX;
+    dragStartY = e.clientY - panY;
+    canvasWrap.style.cursor = 'grabbing';
   });
+
   window.addEventListener('mousemove', (e) => {
     if (isPinMoving || !isDragging) return;
-    panX = e.clientX - dragStartX; panY = e.clientY - dragStartY; updateTransform();
+    panX = e.clientX - dragStartX;
+    panY = e.clientY - dragStartY;
+    updateTransform();
   });
-  window.addEventListener('mouseup', () => { isDragging = false; canvasWrap.style.cursor = 'grab'; });
-  canvasWrap.addEventListener('wheel', (e) => { e.preventDefault(); zoomCanvas(e.deltaY < 0 ? 0.15 : -0.15); }, { passive: false });
+
+  window.addEventListener('mouseup', () => {
+    isDragging = false;
+    canvasWrap.style.cursor = 'grab';
+  });
+
+  canvasWrap.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    zoomCanvas(e.deltaY < 0 ? 0.15 : -0.15);
+  }, { passive: false });
 
   board.addEventListener('click', (e) => {
     if (isPinMoving || e.target.closest('.floor-inst-pin')) return;
@@ -1616,10 +1798,8 @@
     const clickY = (e.clientY - rect.top) / scale;
     const curX = Math.round(Math.max(0, Math.min(1400, clickX)));
     const curY = Math.round(Math.max(0, Math.min(1000, clickY)));
-
     if (isMeasureMode) {
       const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
-
       if (isAdmin) {
         let m = board.querySelector('#temp-measure-marker-2d');
         if (!m) {
@@ -1629,41 +1809,40 @@
         }
         m.style.left = `${curX}px`;
         m.style.top = `${curY}px`;
-
         measureHud.style.display = 'block';
         measureHud.innerHTML = `📍 2D 도면 좌표: <b style="color:#38bdf8;">X:${curX}, Y:${curY}</b> (복사됨)`;
         navigator.clipboard.writeText(`X:${curX} Y:${curY}`).catch(() => {});
         return;
       }
-
       if (measurePoints.length >= 10) {
         measurePoints = [];
         clearAllMeasureVisuals();
       }
-
       const p3d = get3DCoordFrom2D(selectedFloor, curX, curY);
       const nextIdx = measurePoints.length + 1;
-
       measurePoints.push({
         idx: nextIdx,
         floor: selectedFloor,
-        x: curX, y: curY,
+        x: curX,
+        y: curY,
         ...p3d
       });
-
       renderMeasureMarkers2D();
       updateMeasureHudResult();
       return;
     }
-
     clickedFloorCoord = { x: curX, y: curY };
-    document.getElementById('tagNo').value = ''; document.getElementById('name').value = '';
-    document.getElementById('model').value = ''; document.getElementById('range').value = '';
+    document.getElementById('tagNo').value = '';
+    document.getElementById('name').value = '';
+    document.getElementById('model').value = '';
+    document.getElementById('range').value = '';
     pendingInstPhotoFile = null;
-    document.getElementById('instPhotoCam').value = ''; document.getElementById('instPhotoGallery').value = '';
+    document.getElementById('instPhotoCam').value = '';
+    document.getElementById('instPhotoGallery').value = '';
     document.getElementById('photoPreview').style.display = 'none';
     pendingInitHistPhotoFile = null;
-    document.getElementById('initHistPhotoCam').value = ''; document.getElementById('initHistPhotoGallery').value = '';
+    document.getElementById('initHistPhotoCam').value = '';
+    document.getElementById('initHistPhotoGallery').value = '';
     document.getElementById('initHistPreview').style.display = 'none';
     document.getElementById('initHistAuthor').value = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '';
     document.getElementById('initHistContent').value = '';
@@ -1675,33 +1854,44 @@
   document.getElementById('btnSaveInst').addEventListener('click', async () => {
     const tag = document.getElementById('tagNo').value.trim();
     const name = document.getElementById('name').value.trim();
-    if (!tag || !name) { alert('Tag No와 기기명을 입력하세요.'); return; }
-
+    if (!tag || !name) {
+      alert('Tag No와 기기명을 입력하세요.');
+      return;
+    }
     alert('⏳ 스토리지에 사진 업로드 및 데이터 저장 중...');
-
     const instPhotoUrl = await uploadImageToStorage(pendingInstPhotoFile);
     const initHistPhotoUrl = await uploadImageToStorage(pendingInitHistPhotoFile);
-
     const initialLogs = [];
     const initContent = document.getElementById('initHistContent').value.trim();
     const initAuthor = document.getElementById('initHistAuthor').value.trim() || currentUserInfo.name || '관리자';
     if (initContent) {
-      initialLogs.push({ date: new Date().toISOString().slice(0, 10), author: initAuthor, content: initContent, photo: initHistPhotoUrl });
+      initialLogs.push({
+        date: new Date().toISOString().slice(0, 10),
+        author: initAuthor,
+        content: initContent,
+        photo: initHistPhotoUrl
+      });
       localStorage.setItem('jeju_worker_name', initAuthor);
       currentUserInfo.name = initAuthor;
       document.getElementById('loginUserBadge').innerText = `👤 ${initAuthor}`;
     }
-
     const insertData = {
-      tag_no: tag, name: name, model: document.getElementById('model').value.trim() || 'EMPTY',
+      tag_no: tag,
+      name: name,
+      model: document.getElementById('model').value.trim() || 'EMPTY',
       signal_range: document.getElementById('range').value.trim() || 'EMPTY',
-      floor: selectedFloor, unit: selectedSubTab, major_category: selectedMajor,
-      coord_x: clickedFloorCoord.x, coord_y: clickedFloorCoord.y,
-      x_coord: clickedFloorCoord.x, y_coord: clickedFloorCoord.y,
-      model_position: '0 0 0', history_logs: initialLogs,
-      photo_url: instPhotoUrl, image_data: instPhotoUrl
+      floor: selectedFloor,
+      unit: selectedSubTab,
+      major_category: selectedMajor,
+      coord_x: clickedFloorCoord.x,
+      coord_y: clickedFloorCoord.y,
+      x_coord: clickedFloorCoord.x,
+      y_coord: clickedFloorCoord.y,
+      model_position: '0 0 0',
+      history_logs: initialLogs,
+      photo_url: instPhotoUrl,
+      image_data: instPhotoUrl
     };
-
     let { error } = await supabaseClient.from('instruments').insert([insertData]);
     if (error && error.message && error.message.toLowerCase().includes('major_category')) {
       delete insertData.major_category;
@@ -1709,7 +1899,6 @@
       const fallback = await supabaseClient.from('instruments').insert([insertData]);
       error = fallback.error;
     }
-
     if (!error) {
       document.getElementById('modal').style.display = 'none';
       alert(`✅ [${selectedMajor} ${selectedSubTab}] ${selectedFloor}에 등록되었습니다!`);
@@ -1723,20 +1912,37 @@
     const { data, error } = await supabaseClient.from('instruments').select('*');
     if (!error) {
       currentInstruments = (data || []).map(item => {
-        let f = item.floor; let u = item.unit || '2호기';
+        let f = item.floor;
+        let u = item.unit || '2호기';
         let major = item.major_category || '기력';
         if (typeof u === 'string' && u.includes('_')) {
-          const parts = u.split('_'); major = parts[0]; u = parts[1];
+          const parts = u.split('_');
+          major = parts[0];
+          u = parts[1];
         }
         if (f !== null && f !== undefined) {
-          f = String(f); if (!f.includes('층')) f += '층';
-        } else { f = '6층'; }
+          f = String(f);
+          if (!f.includes('층')) f += '층';
+        } else {
+          f = '6층';
+        }
         let cx = parseFloat(item.coord_x ?? item.x_coord ?? 400) || 400;
         let cy = parseFloat(item.coord_y ?? item.y_coord ?? 400) || 400;
         const img = item.photo_url || item.image_data || null;
-        return { ...item, floor: f, unit: u, major_category: major, coord_x: cx, coord_y: cy, photo_url: img, image_data: img, history_logs: Array.isArray(item.history_logs) ? item.history_logs : [] };
+        return {
+          ...item,
+          floor: f,
+          unit: u,
+          major_category: major,
+          coord_x: cx,
+          coord_y: cy,
+          photo_url: img,
+          image_data: img,
+          history_logs: Array.isArray(item.history_logs) ? item.history_logs : []
+        };
       });
-      renderFloorPins(); render3DHotspots();
+      renderFloorPins();
+      render3DHotspots();
       if (selectedSubTab === '관리이력') renderHistoryTable();
     }
   }
@@ -1746,26 +1952,38 @@
     currentInstruments.forEach(item => {
       if (item.unit !== selectedSubTab || item.floor !== selectedFloor) return;
       const pin = document.createElement('div');
-      pin.id = `floor-pin-${item.id}`; pin.className = 'floor-inst-pin';
-      pin.style.left = `${item.coord_x}px`; pin.style.top = `${item.coord_y}px`;
+      pin.id = `floor-pin-${item.id}`;
+      pin.className = 'floor-inst-pin';
+      pin.style.left = `${item.coord_x}px`;
+      pin.style.top = `${item.coord_y}px`;
       const img = item.photo_url || item.image_data;
       pin.style.backgroundImage = img ? `url(${img})` : 'none';
       pin.innerHTML = img ? `<span>${item.tag_no}</span>` : `📍<span>${item.tag_no}</span>`;
+      
+      let pressTimer = null;
+      let startClientX = 0;
+      let startClientY = 0;
+      let isLongPressed = false;
 
-      let pressTimer = null; let startClientX = 0; let startClientY = 0; let isLongPressed = false;
       pin.oncontextmenu = (e) => { e.preventDefault(); return false; };
 
       pin.addEventListener('pointerdown', (e) => {
         if (e.button !== 0 && e.pointerType === 'mouse') return;
         e.stopPropagation();
-        startClientX = e.clientX; startClientY = e.clientY; isLongPressed = false;
+        startClientX = e.clientX;
+        startClientY = e.clientY;
+        isLongPressed = false;
         pin.classList.add('pin-pressing');
         measureHud.style.display = 'block';
         measureHud.innerText = `⏳ [${item.tag_no}] 2초간 누르고 있으면 이동할 수 있습니다...`;
-
+        
         pressTimer = setTimeout(() => {
-          isLongPressed = true; isPinMoving = true; activeDraggingPin = pin; activeDraggingItem = item;
-          pin.classList.remove('pin-pressing'); pin.classList.add('pin-dragging');
+          isLongPressed = true;
+          isPinMoving = true;
+          activeDraggingPin = pin;
+          activeDraggingItem = item;
+          pin.classList.remove('pin-pressing');
+          pin.classList.add('pin-dragging');
           pin.setPointerCapture(e.pointerId);
           if (navigator.vibrate) navigator.vibrate([80, 50, 80]);
           measureHud.innerText = `📍 [${item.tag_no}] 이동 모드 활성화! 원하는 위치로 드래그하세요.`;
@@ -1774,14 +1992,17 @@
 
       pin.addEventListener('pointermove', (e) => {
         if (isLongPressed && isPinMoving) {
-          e.preventDefault(); e.stopPropagation();
+          e.preventDefault();
+          e.stopPropagation();
           const rect = board.getBoundingClientRect();
           const curX = Math.round(Math.max(0, Math.min(1400, (e.clientX - rect.left) / scale)));
           const curY = Math.round(Math.max(0, Math.min(1000, (e.clientY - rect.top) / scale)));
-          pin.style.left = `${curX}px`; pin.style.top = `${curY}px`;
+          pin.style.left = `${curX}px`;
+          pin.style.top = `${curY}px`;
         } else if (pressTimer) {
           if (Math.hypot(e.clientX - startClientX, e.clientY - startClientY) > 10) {
-            clearTimeout(pressTimer); pressTimer = null;
+            clearTimeout(pressTimer);
+            pressTimer = null;
             pin.classList.remove('pin-pressing');
             if (!isMeasureMode) measureHud.style.display = 'none';
           }
@@ -1789,22 +2010,48 @@
       });
 
       const handlePointerUp = async (e) => {
-        if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; }
+        if (pressTimer) {
+          clearTimeout(pressTimer);
+          pressTimer = null;
+        }
         pin.classList.remove('pin-pressing');
-        if (isLongPressed && isPinMoving) {
+
+        // 💡 [수정]: 길게 눌러 이동 모드가 발동된 경우에는 상세 이력 창(showDetail)을 절대 열지 않음
+        if (isLongPressed || isPinMoving) {
+          e.preventDefault();
           e.stopPropagation();
           try { pin.releasePointerCapture(e.pointerId); } catch(err) {}
-          pin.classList.remove('pin-dragging'); isPinMoving = false;
-          const fx = parseInt(pin.style.left); const fy = parseInt(pin.style.top);
-          item.coord_x = fx; item.coord_y = fy; item.x_coord = fx; item.y_coord = fy;
+          pin.classList.remove('pin-dragging');
+          
+          const fx = parseInt(pin.style.left);
+          const fy = parseInt(pin.style.top);
+          item.coord_x = fx;
+          item.coord_y = fy;
+          item.x_coord = fx;
+          item.y_coord = fy;
+
           measureHud.innerText = `✅ [${item.tag_no}] 위치가 변경되었습니다.`;
           setTimeout(() => { if (!isMeasureMode) measureHud.style.display = 'none'; }, 2000);
-          await supabaseClient.from('instruments').update({ coord_x: fx, coord_y: fy, x_coord: fx, y_coord: fy }).eq('id', item.id);
-          render3DHotspots(); activeDraggingPin = null; activeDraggingItem = null;
-        } else {
-          if (!isMeasureMode) measureHud.style.display = 'none';
-          showDetail(item);
+
+          await supabaseClient.from('instruments').update({
+            coord_x: fx, coord_y: fy, x_coord: fx, y_coord: fy
+          }).eq('id', item.id);
+
+          render3DHotspots();
+          activeDraggingPin = null;
+          activeDraggingItem = null;
+
+          // 터치를 뗀 후 즉시 클릭이 터져 이력창이 열리는 현상을 방지하기 위해 0.3초간 이동 플래그 유지 후 리셋
+          setTimeout(() => {
+            isPinMoving = false;
+            isLongPressed = false;
+          }, 300);
+          return;
         }
+
+        // 짧은 정상 터치일 때만 이력/상세 모달 열기 실행
+        if (!isMeasureMode) measureHud.style.display = 'none';
+        showDetail(item);
       };
 
       pin.addEventListener('pointerup', handlePointerUp);
@@ -1827,13 +2074,17 @@
         const z3d = -11.43 + (u * (6.89 - (-11.43))) + (v * (-0.47 - (-11.43)));
         pos = `${x3d.toFixed(2)} ${h} ${z3d.toFixed(2)}`;
       }
-
       const btn = document.createElement('button');
-      btn.className = 'hotspot-pin'; btn.slot = `hotspot-${item.id}`; btn.dataset.position = pos;
+      btn.className = 'hotspot-pin';
+      btn.slot = `hotspot-${item.id}`;
+      btn.dataset.position = pos;
       const img = item.photo_url || item.image_data;
       btn.style.backgroundImage = img ? `url(${img})` : 'none';
       btn.innerHTML = img ? `<span>${item.floor} (${item.tag_no})</span>` : `📍<span>${item.floor} (${item.tag_no})</span>`;
-      btn.onclick = (e) => { e.stopPropagation(); showDetail(item); };
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        showDetail(item);
+      };
       viewer.appendChild(btn);
     });
   }
@@ -1845,7 +2096,6 @@
     const img = item.photo_url || item.image_data;
     mainImg.style.display = img ? 'block' : 'none';
     if (img) mainImg.src = img;
-
     document.getElementById('infoBody').innerHTML = `
       <div><b>Tag-name:</b> <span style="color:#38bdf8; font-weight:bold;">${item.tag_no || '-'}</span></div>
       <div><b>설비 구분:</b> <span style="color:#38bdf8; font-weight:bold;">${selectedMajor} ${item.unit || '2호기'}</span></div>
@@ -1853,9 +2103,7 @@
       <div><b>모델명:</b> ${item.model || '-'}</div>
       <div><b>측정범위:</b> ${item.signal_range || '-'}</div>
     `;
-
     renderHistoryListModal(item);
-
     document.getElementById('btnAddHistBtn').onclick = () => {
       editingHistoryIndex = null;
       document.getElementById('info-modal').style.display = 'none';
@@ -1865,18 +2113,17 @@
       document.getElementById('histAuthor').value = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '';
       document.getElementById('histContent').value = '';
       pendingHistPhotoFile = null;
-      document.getElementById('histPhotoCam').value = ''; document.getElementById('histPhotoGallery').value = '';
+      document.getElementById('histPhotoCam').value = '';
+      document.getElementById('histPhotoGallery').value = '';
       document.getElementById('histPhotoPreview').style.display = 'none';
       document.getElementById('history-modal').style.display = 'block';
     };
-
     document.getElementById('btnDeletePin').onclick = async () => {
       if (!confirm('해당 계측기와 모든 이력을 삭제하시겠습니까?')) return;
       await supabaseClient.from('instruments').delete().eq('id', item.id);
       document.getElementById('info-modal').style.display = 'none';
       fetchInstruments();
     };
-
     document.getElementById('info-modal').style.display = 'block';
   }
 
@@ -1887,7 +2134,6 @@
       listEl.innerHTML = '<div style="color:#94a3b8; font-size:11px;">등록된 점검 이력이 없습니다.</div>';
       return;
     }
-
     listEl.innerHTML = logs.map((h, idx) => `
       <div class="history-item">
         <div class="history-item-header">
@@ -1908,7 +2154,6 @@
     if (!target || !target.history_logs[idx]) return;
     const h = target.history_logs[idx];
     editingHistoryIndex = idx;
-
     document.getElementById('info-modal').style.display = 'none';
     document.getElementById('histModalTitle').innerText = '✏️ 점검/정비 이력 수정';
     document.getElementById('histTargetTag').innerText = `[${target.tag_no}] ${target.name}`;
@@ -1919,7 +2164,8 @@
     const preview = document.getElementById('histPhotoPreview');
     preview.style.display = h.photo ? 'block' : 'none';
     if (h.photo) preview.src = h.photo;
-    document.getElementById('histPhotoCam').value = ''; document.getElementById('histPhotoGallery').value = '';
+    document.getElementById('histPhotoCam').value = '';
+    document.getElementById('histPhotoGallery').value = '';
     document.getElementById('history-modal').style.display = 'block';
   };
 
@@ -1929,9 +2175,9 @@
     if (!target) return;
     target.history_logs.splice(idx, 1);
     const { error } = await supabaseClient.from('instruments').update({ history_logs: target.history_logs }).eq('id', activeTargetId);
-    if (!error) { 
-      renderHistoryListModal(target); 
-      alert('✅ 삭제 완료'); 
+    if (!error) {
+      renderHistoryListModal(target);
+      alert('✅ 삭제 완료');
       if (selectedSubTab === '관리이력') renderHistoryTable();
     }
   };
@@ -1939,29 +2185,30 @@
   document.getElementById('btnSaveHist').addEventListener('click', async () => {
     const text = document.getElementById('histContent').value.trim();
     const workerName = document.getElementById('histAuthor').value.trim();
-    if (!workerName || !text) { alert('작업자와 내용을 입력하세요.'); return; }
-
+    if (!workerName || !text) {
+      alert('작업자와 내용을 입력하세요.');
+      return;
+    }
     alert('⏳ 스토리지에 사진 업로드 및 이력 저장 중...');
     const histPhotoUrl = await uploadImageToStorage(pendingHistPhotoFile);
-
     localStorage.setItem('jeju_worker_name', workerName);
     currentUserInfo.name = workerName;
     document.getElementById('loginUserBadge').innerText = `👤 ${workerName}`;
-
     const target = currentInstruments.find(i => i.id === activeTargetId);
     if (!target) return;
     const logs = Array.isArray(target.history_logs) ? [...target.history_logs] : [];
-    
     let finalPhotoUrl = histPhotoUrl;
     if (!finalPhotoUrl && editingHistoryIndex !== null && logs[editingHistoryIndex]) {
       finalPhotoUrl = logs[editingHistoryIndex].photo;
     }
-
-    const entryData = { date: document.getElementById('histDate').value, author: workerName, content: text, photo: finalPhotoUrl };
-
+    const entryData = {
+      date: document.getElementById('histDate').value,
+      author: workerName,
+      content: text,
+      photo: finalPhotoUrl
+    };
     if (editingHistoryIndex !== null) logs[editingHistoryIndex] = entryData;
     else logs.unshift(entryData);
-
     const { error } = await supabaseClient.from('instruments').update({ history_logs: logs }).eq('id', activeTargetId);
     if (!error) {
       target.history_logs = logs;
@@ -1979,7 +2226,8 @@
   const searchResultsList = document.getElementById('searchResultsList');
 
   document.getElementById('btnOpenSearch').addEventListener('click', () => {
-    searchInput.value = ''; renderSearchResults('');
+    searchInput.value = '';
+    renderSearchResults('');
     searchModal.style.display = 'block';
     setTimeout(() => searchInput.focus(), 100);
   });
@@ -1987,15 +2235,26 @@
   searchInput.addEventListener('input', (e) => renderSearchResults(e.target.value.trim()));
 
   function renderSearchResults(query) {
-    if (!query) { searchResultsList.innerHTML = '<div style="color:#94a3b8; font-size:12px; text-align:center; padding:20px;">검색어를 입력하세요.</div>'; return; }
+    if (!query) {
+      searchResultsList.innerHTML = '<div style="color:#94a3b8; font-size:12px; text-align:center; padding:20px;">검색어를 입력하세요.</div>';
+      return;
+    }
     const filtered = currentInstruments.filter(item => {
       const q = query.toLowerCase();
-      return (item.tag_no || '').toLowerCase().includes(q) || (item.name || '').toLowerCase().includes(q) || (item.model || '').toLowerCase().includes(q);
+      return (item.tag_no || '').toLowerCase().includes(q) ||
+             (item.name || '').toLowerCase().includes(q) ||
+             (item.model || '').toLowerCase().includes(q);
     });
-    if (filtered.length === 0) { searchResultsList.innerHTML = '<div style="color:#ef4444; font-size:12px; text-align:center; padding:20px;">검색 결과가 없습니다.</div>'; return; }
+    if (filtered.length === 0) {
+      searchResultsList.innerHTML = '<div style="color:#ef4444; font-size:12px; text-align:center; padding:20px;">검색 결과가 없습니다.</div>';
+      return;
+    }
     searchResultsList.innerHTML = filtered.map(item => `
       <div class="search-result-item" onclick="jumpToInstrument(${item.id})">
-        <div><div class="search-item-main">[${item.tag_no}] ${item.name}</div><div class="search-item-sub">모델: ${item.model || '-'} | 범위: ${item.signal_range || '-'}</div></div>
+        <div>
+          <div class="search-item-main">[${item.tag_no}] ${item.name}</div>
+          <div class="search-item-sub">모델: ${item.model || '-'} | 범위: ${item.signal_range || '-'}</div>
+        </div>
         <div class="search-item-badge">${item.major_category || '기력'} ${item.unit || '2호기'} ${item.floor}</div>
       </div>
     `).join('');
@@ -2005,24 +2264,27 @@
     const item = currentInstruments.find(i => i.id === instId);
     if (!item) return;
     searchModal.style.display = 'none';
-
     const major = item.major_category || '기력';
     switchMajor(major);
     switchSubTab(item.unit || '2호기');
-
     if (major === '기력') {
       const floorFileNameMap = {
-        '1층': 'floor_1f.jpg', '2층': 'floor_2f.jpg', '2.5층': 'floor_2_5f.jpg', '3층': 'floor_3f.jpg',
-        '3.1/3층': 'floor_3_1_3f.jpg', '3.2/3층': 'floor_3_2_3f.jpg', '4층': 'floor_4f.jpg', '4.5층': 'floor_4_5f.jpg',
-        '5층': 'floor_5f.jpg', '5.5층': 'floor_5_5f.jpg', '6층': 'floor_6f.jpg', '7층': 'floor_7f.jpg'
+        '1층': 'floor_1f.jpg', '2층': 'floor_2f.jpg', '2.5층': 'floor_2_5f.jpg',
+        '3층': 'floor_3f.jpg', '3.1/3층': 'floor_3_1_3f.jpg', '3.2/3층': 'floor_3_2_3f.jpg',
+        '4층': 'floor_4f.jpg', '4.5층': 'floor_4_5f.jpg', '5층': 'floor_5f.jpg',
+        '5.5층': 'floor_5_5f.jpg', '6층': 'floor_6f.jpg', '7층': 'floor_7f.jpg'
       };
       openFloorRoom(item.floor, floorFileNameMap[item.floor] || 'floor_1f.jpg', null);
-
-      scale = 1.0; panX = (700 - item.coord_x) * scale; panY = (500 - item.coord_y) * scale;
+      scale = 1.0;
+      panX = (700 - item.coord_x) * scale;
+      panY = (500 - item.coord_y) * scale;
       updateTransform();
       setTimeout(() => {
         const pinEl = document.getElementById(`floor-pin-${item.id}`);
-        if (pinEl) { pinEl.classList.add('pin-highlight'); setTimeout(() => pinEl.classList.remove('pin-highlight'), 3500); }
+        if (pinEl) {
+          pinEl.classList.add('pin-highlight');
+          setTimeout(() => pinEl.classList.remove('pin-highlight'), 3500);
+        }
         showDetail(item);
       }, 200);
     }
