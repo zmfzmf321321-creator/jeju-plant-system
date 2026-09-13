@@ -818,14 +818,16 @@
     return bytes.buffer;
   }
 
-  // 💡 [핵심 수정]: File 객체 및 웹 URL 주소를 모두 지원하는 안전 캔버스 압축 변환기
+  // 💡 File 객체 및 웹 URL 주소를 모두 지원하는 안전 캔버스 압축 변환기
   async function prepareImagePayloadForOcr(fileOrUrl) {
+    if (typeof fileOrUrl === 'string') {
+      return fileOrUrl;
+    }
     return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous'; // CORS 에러 방어
-
-      img.onload = () => {
-        try {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
           const canvas = document.createElement('canvas');
           let w = img.width;
           let h = img.height;
@@ -844,26 +846,12 @@
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, w, h);
           resolve(canvas.toDataURL('image/jpeg', 0.85));
-        } catch (canvasErr) {
-          // 크로스도메인 문제로 canvas toDataURL이 막히면 URL 자체를 반환
-          if (typeof fileOrUrl === 'string') resolve(fileOrUrl);
-          else reject(canvasErr);
-        }
+        };
+        img.onerror = () => resolve(e.target.result);
+        img.src = e.target.result;
       };
-
-      img.onerror = () => {
-        if (typeof fileOrUrl === 'string') resolve(fileOrUrl);
-        else reject(new Error('이미지 로드에 실패했습니다.'));
-      };
-
-      if (typeof fileOrUrl === 'string') {
-        img.src = fileOrUrl;
-      } else {
-        const reader = new FileReader();
-        reader.onload = (e) => { img.src = e.target.result; };
-        reader.onerror = (e) => reject(e);
-        reader.readAsDataURL(fileOrUrl);
-      }
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(fileOrUrl);
     });
   }
 
@@ -1303,7 +1291,6 @@
     document.getElementById('ocrModel').value = parsed.model || (target ? target.model : '') || '';
     document.getElementById('ocrRange').value = parsed.range || (target ? target.signal_range : '') || '';
     
-    // 상태 및 가이드가 있으면 함께 표시
     const statusBox = document.getElementById('ocrStatusGroup');
     const statusContent = document.getElementById('ocrStatusContent');
     if (parsed.status_content) {
@@ -1322,7 +1309,6 @@
           signal_range: document.getElementById('ocrRange').value.trim()
         };
 
-        // LCD 상태나 가이드가 추출된 경우 점검 이력 로그에 자동으로 새 이력으로 추가
         if (parsed.status_content) {
           const logs = Array.isArray(target.history_logs) ? [...target.history_logs] : [];
           logs.unshift({
@@ -1367,7 +1353,6 @@
     document.getElementById('ocr-edit-modal').style.display = 'none';
   };
 
-  // 💡 [핵심 수정]: 원격 URL도 안전하게 Base64로 전송하여 추출 오류를 원천 차단
   async function autoFillTagFromPhoto(fileOrUrl, targetMode = 'insert') {
     if (!fileOrUrl) return;
     const hud = document.getElementById('measure-info-hud');
@@ -1380,7 +1365,7 @@
     try {
       photoPayload = await prepareImagePayloadForOcr(fileOrUrl);
     } catch (prepErr) {
-      console.warn("로컬 압축 실패, 원본 전송 시도:", prepErr);
+      console.warn("로컬 처리 건너뛰고 원본 전송:", prepErr);
       photoPayload = fileOrUrl;
     }
 
