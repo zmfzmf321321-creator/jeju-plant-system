@@ -685,6 +685,10 @@
   <div class="form-group"><label>기기명</label><input type="text" id="ocrName"></div>
   <div class="form-group"><label>모델명</label><input type="text" id="ocrModel"></div>
   <div class="form-group"><label>측정범위 / 신호</label><input type="text" id="ocrRange"></div>
+  <div class="form-group" id="ocrStatusGroup" style="display:none;">
+    <label>디스플레이 상태 및 정비 가이드</label>
+    <textarea id="ocrStatusContent" rows="3" readonly style="background:#f1f5f9;"></textarea>
+  </div>
   <div class="btn-wrap">
     <button class="btn-save" id="btnApplyOcrEdit">최종 수정 적용</button>
     <button class="btn-cancel" onclick="closeOcrEditModal()">취소</button>
@@ -814,12 +818,14 @@
     return bytes.buffer;
   }
 
-  async function compressImageForOcr(file) {
-    return new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
+  // 💡 [핵심 수정]: File 객체 및 웹 URL 주소를 모두 지원하는 안전 캔버스 압축 변환기
+  async function prepareImagePayloadForOcr(fileOrUrl) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous'; // CORS 에러 방어
+
+      img.onload = () => {
+        try {
           const canvas = document.createElement('canvas');
           let w = img.width;
           let h = img.height;
@@ -838,10 +844,26 @@
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, w, h);
           resolve(canvas.toDataURL('image/jpeg', 0.85));
-        };
-        img.src = e.target.result;
+        } catch (canvasErr) {
+          // 크로스도메인 문제로 canvas toDataURL이 막히면 URL 자체를 반환
+          if (typeof fileOrUrl === 'string') resolve(fileOrUrl);
+          else reject(canvasErr);
+        }
       };
-      reader.readAsDataURL(file);
+
+      img.onerror = () => {
+        if (typeof fileOrUrl === 'string') resolve(fileOrUrl);
+        else reject(new Error('이미지 로드에 실패했습니다.'));
+      };
+
+      if (typeof fileOrUrl === 'string') {
+        img.src = fileOrUrl;
+      } else {
+        const reader = new FileReader();
+        reader.onload = (e) => { img.src = e.target.result; };
+        reader.onerror = (e) => reject(e);
+        reader.readAsDataURL(fileOrUrl);
+      }
     });
   }
 
@@ -1275,7 +1297,78 @@
     }
   });
 
-    async function autoFillTagFromPhoto(fileOrUrl, targetMode = 'insert') {
+  function openOcrEditModal(target, parsed) {
+    document.getElementById('ocrTagNo').value = parsed.tag_no || (target ? target.tag_no : '') || '';
+    document.getElementById('ocrName').value = parsed.name || (target ? target.name : '') || '';
+    document.getElementById('ocrModel').value = parsed.model || (target ? target.model : '') || '';
+    document.getElementById('ocrRange').value = parsed.range || (target ? target.signal_range : '') || '';
+    
+    // 상태 및 가이드가 있으면 함께 표시
+    const statusBox = document.getElementById('ocrStatusGroup');
+    const statusContent = document.getElementById('ocrStatusContent');
+    if (parsed.status_content) {
+      statusContent.value = parsed.status_content;
+      statusBox.style.display = 'block';
+    } else {
+      statusBox.style.display = 'none';
+    }
+
+    document.getElementById('btnApplyOcrEdit').onclick = async () => {
+      if (target) {
+        const updateFields = {
+          tag_no: document.getElementById('ocrTagNo').value.trim(),
+          name: document.getElementById('ocrName').value.trim(),
+          model: document.getElementById('ocrModel').value.trim(),
+          signal_range: document.getElementById('ocrRange').value.trim()
+        };
+
+        // LCD 상태나 가이드가 추출된 경우 점검 이력 로그에 자동으로 새 이력으로 추가
+        if (parsed.status_content) {
+          const logs = Array.isArray(target.history_logs) ? [...target.history_logs] : [];
+          logs.unshift({
+            date: new Date().toISOString().slice(0, 10),
+            author: currentUserInfo.name || localStorage.getItem('jeju_worker_name') || 'AI 진단',
+            content: parsed.status_content,
+            photo: target.photo_url || target.image_data || null
+          });
+          updateFields.history_logs = logs;
+          target.history_logs = logs;
+        }
+
+        const { error } = await supabaseClient.from('instruments').update(updateFields).eq('id', target.id);
+        if (!error) {
+          Object.assign(target, updateFields);
+          closeOcrEditModal();
+          showDetail(target);
+          renderFloorPins();
+          render3DHotspots();
+          if (selectedSubTab === '관리이력') renderHistoryTable();
+        } else {
+          alert('❌ 저장 실패: ' + error.message);
+        }
+      } else {
+        document.getElementById('tagNo').value = document.getElementById('ocrTagNo').value.trim();
+        document.getElementById('name').value = document.getElementById('ocrName').value.trim();
+        document.getElementById('model').value = document.getElementById('ocrModel').value.trim();
+        document.getElementById('range').value = document.getElementById('ocrRange').value.trim();
+        closeOcrEditModal();
+      }
+      const hud = document.getElementById('measure-info-hud');
+      if (hud) {
+        hud.style.display = 'block';
+        hud.innerText = '✅ 수정하신 정보가 반영되었습니다!';
+        setTimeout(() => { if (!isMeasureMode) hud.style.display = 'none'; }, 2500);
+      }
+    };
+    document.getElementById('ocr-edit-modal').style.display = 'block';
+  }
+
+  window.closeOcrEditModal = function() {
+    document.getElementById('ocr-edit-modal').style.display = 'none';
+  };
+
+  // 💡 [핵심 수정]: 원격 URL도 안전하게 Base64로 전송하여 추출 오류를 원천 차단
+  async function autoFillTagFromPhoto(fileOrUrl, targetMode = 'insert') {
     if (!fileOrUrl) return;
     const hud = document.getElementById('measure-info-hud');
     if (hud) {
@@ -1284,10 +1377,11 @@
     }
 
     let photoPayload = null;
-    if (typeof fileOrUrl === 'string') {
+    try {
+      photoPayload = await prepareImagePayloadForOcr(fileOrUrl);
+    } catch (prepErr) {
+      console.warn("로컬 압축 실패, 원본 전송 시도:", prepErr);
       photoPayload = fileOrUrl;
-    } else {
-      photoPayload = await compressImageForOcr(fileOrUrl);
     }
 
     try {
@@ -1298,10 +1392,8 @@
       let replyText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
       if (!replyText && error) throw new Error(error.message);
 
-      // 마크다운 백틱 제거
       replyText = replyText.replace(/```json/gi, '').replace(/```/g, '').trim();
 
-      // JSON 추출 시도
       let parsed = null;
       try {
         parsed = JSON.parse(replyText);
@@ -1310,7 +1402,6 @@
         if (jsonMatch) {
           parsed = JSON.parse(jsonMatch[0]);
         } else {
-          // 혹시 잘려서 끝 중괄호가 없는 경우 닫아보기 시도
           parsed = JSON.parse(replyText + '"}');
         }
       }
@@ -1323,7 +1414,7 @@
       const modelVal = parsed.model || parsed.model_name || parsed.device_model || '';
       const rangeVal = parsed.range || parsed.signal_range || parsed.measuring_range || '';
 
-      // 2. 디스플레이 상태 및 정비 전문가 조치 가이드
+      // 2. 디스플레이 상태 및 조치 가이드
       const displayStatus = parsed.status || parsed.display_text || parsed.lcd_text || parsed.error_code || '';
       const actionGuide = parsed.action_guide || parsed.guide || parsed.solution || parsed.recommendation || parsed.diagnosis || '';
 
@@ -1331,7 +1422,7 @@
       if (displayStatus) combinedContent += `[디스플레이 상태]: ${displayStatus}\n`;
       if (actionGuide) combinedContent += `[정비 조치 가이드]:\n${actionGuide}\n`;
 
-      // 3. 입력창 자동 바인딩
+      // 3. 모달별 입력창 자동 바인딩
       if (targetMode === 'insert') {
         if (tagVal) document.getElementById('tagNo').value = tagVal;
         if (nameVal) document.getElementById('name').value = nameVal;
@@ -1353,8 +1444,10 @@
             tag_no: tagVal,
             name: nameVal,
             model: modelVal,
-            range: rangeVal
+            range: rangeVal,
+            status_content: combinedContent.trim()
           });
+          if (hud) hud.innerText = `✅ [${tagVal || '기기정보'}] 추출 완료! 창에서 확인 및 적용하세요.`;
         }
       }
     } catch (err) {
@@ -1364,7 +1457,6 @@
     }
     setTimeout(() => { if (!isMeasureMode && hud) hud.style.display = 'none'; }, 3500);
   }
-
 
   function appendAiMsg(role, text) {
     const box = document.getElementById('aiChatBox');
