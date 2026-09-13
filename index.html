@@ -1275,57 +1275,12 @@
     }
   });
 
-  function openOcrEditModal(target, parsed) {
-    document.getElementById('ocrTagNo').value = parsed.tag_no || (target ? target.tag_no : '') || '';
-    document.getElementById('ocrName').value = parsed.name || (target ? target.name : '') || '';
-    document.getElementById('ocrModel').value = parsed.model || (target ? target.model : '') || '';
-    document.getElementById('ocrRange').value = parsed.range || (target ? target.signal_range : '') || '';
-    document.getElementById('btnApplyOcrEdit').onclick = async () => {
-      if (target) {
-        const updateFields = {
-          tag_no: document.getElementById('ocrTagNo').value.trim(),
-          name: document.getElementById('ocrName').value.trim(),
-          model: document.getElementById('ocrModel').value.trim(),
-          signal_range: document.getElementById('ocrRange').value.trim()
-        };
-        const { error } = await supabaseClient.from('instruments').update(updateFields).eq('id', target.id);
-        if (!error) {
-          Object.assign(target, updateFields);
-          closeOcrEditModal();
-          showDetail(target);
-          renderFloorPins();
-          render3DHotspots();
-        } else {
-          alert('❌ 저장 실패: ' + error.message);
-        }
-      } else {
-        document.getElementById('tagNo').value = document.getElementById('ocrTagNo').value.trim();
-        document.getElementById('name').value = document.getElementById('ocrName').value.trim();
-        document.getElementById('model').value = document.getElementById('ocrModel').value.trim();
-        document.getElementById('range').value = document.getElementById('ocrRange').value.trim();
-        closeOcrEditModal();
-      }
-      const hud = document.getElementById('measure-info-hud');
-      if (hud) {
-        hud.style.display = 'block';
-        hud.innerText = '✅ 수정하신 정보가 반영되었습니다!';
-        setTimeout(() => { if (!isMeasureMode) hud.style.display = 'none'; }, 2500);
-      }
-    };
-    document.getElementById('ocr-edit-modal').style.display = 'block';
-  }
-
-  window.closeOcrEditModal = function() {
-    document.getElementById('ocr-edit-modal').style.display = 'none';
-  };
-
-  // 💡 명판 정보 + 디스플레이 상태 + 정비 진단/조치 가이드 자동 바인딩 로직
-  async function autoFillTagFromPhoto(fileOrUrl, targetMode = 'insert') {
+    async function autoFillTagFromPhoto(fileOrUrl, targetMode = 'insert') {
     if (!fileOrUrl) return;
     const hud = document.getElementById('measure-info-hud');
     if (hud) {
       hud.style.display = 'block';
-      hud.innerText = '🔍 사진 속 명판·LCD 상태·정비 가이드를 정밀 판독 중입니다...';
+      hud.innerText = '🔍 사진 속 명판·LCD 상태·정비 가이드를 정밀 분석 중입니다...';
     }
 
     let photoPayload = null;
@@ -1340,53 +1295,58 @@
         body: { prompt: "명판 추출 및 상태 진단", photosToSend: [photoPayload], mode: "ocr_tag" }
       });
 
-      const replyText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-      const jsonMatch = replyText.match(/\{[\s\S]*?\}/);
-      if (!jsonMatch) throw new Error('응답에서 JSON 데이터를 찾을 수 없습니다: ' + replyText);
+      let replyText = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      if (!replyText && error) throw new Error(error.message);
 
-      const parsed = JSON.parse(jsonMatch[0]);
+      // 마크다운 백틱 제거
+      replyText = replyText.replace(/```json/gi, '').replace(/```/g, '').trim();
 
-      // 1. 명판 기본 정보 추출 (유연한 키 대응)
+      // JSON 추출 시도
+      let parsed = null;
+      try {
+        parsed = JSON.parse(replyText);
+      } catch (jsonErr) {
+        const jsonMatch = replyText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          parsed = JSON.parse(jsonMatch[0]);
+        } else {
+          // 혹시 잘려서 끝 중괄호가 없는 경우 닫아보기 시도
+          parsed = JSON.parse(replyText + '"}');
+        }
+      }
+
+      if (!parsed) throw new Error('데이터 파싱 실패: ' + replyText);
+
+      // 1. 명판 기본 정보
       const tagVal = parsed.tag_no || parsed.tag || parsed.Tag || '';
       const nameVal = parsed.name || parsed.device_name || parsed.equipment_name || '';
       const modelVal = parsed.model || parsed.model_name || parsed.device_model || '';
       const rangeVal = parsed.range || parsed.signal_range || parsed.measuring_range || '';
 
-      // 2. 디스플레이 상태 및 정비 전문가 진단/조치 가이드 합성
+      // 2. 디스플레이 상태 및 정비 전문가 조치 가이드
       const displayStatus = parsed.status || parsed.display_text || parsed.lcd_text || parsed.error_code || '';
-      const diagnosisText = parsed.diagnosis || parsed.analysis || parsed.expert_diagnosis || '';
-      const actionGuide = parsed.action_guide || parsed.guide || parsed.solution || parsed.recommendation || '';
+      const actionGuide = parsed.action_guide || parsed.guide || parsed.solution || parsed.recommendation || parsed.diagnosis || '';
 
-      let combinedHistoryContent = '';
-      if (displayStatus) {
-        combinedHistoryContent += `[LCD/디스플레이 상태]: ${displayStatus}\n`;
-      }
-      if (diagnosisText) {
-        combinedHistoryContent += `[전문가 진단]: ${diagnosisText}\n`;
-      }
-      if (actionGuide) {
-        combinedHistoryContent += `[조치 가이드]: ${actionGuide}\n`;
-      }
+      let combinedContent = '';
+      if (displayStatus) combinedContent += `[디스플레이 상태]: ${displayStatus}\n`;
+      if (actionGuide) combinedContent += `[정비 조치 가이드]:\n${actionGuide}\n`;
 
-      // 3. 모달별 입력 필드에 자동 채움 적용
+      // 3. 입력창 자동 바인딩
       if (targetMode === 'insert') {
-        // [신규 계측기 등록 모달]
         if (tagVal) document.getElementById('tagNo').value = tagVal;
         if (nameVal) document.getElementById('name').value = nameVal;
         if (modelVal) document.getElementById('model').value = modelVal;
         if (rangeVal) document.getElementById('range').value = rangeVal;
 
-        // 이력 관리 텍스트 영역에 디스플레이 상태 + 진단 + 조치 가이드 자동 기재
-        const histInput = document.getElementById('initHistContent');
-        if (combinedHistoryContent) {
-          histInput.value = combinedHistoryContent.trim();
-        } else if (!histInput.value) {
-          histInput.value = '신규 등록 및 상태 점검 완료.';
+        const histTextarea = document.getElementById('initHistContent');
+        if (combinedContent.trim()) {
+          histTextarea.value = combinedContent.trim();
+        } else if (!histTextarea.value) {
+          histTextarea.value = '신규 설치 및 상태 점검 완료.';
         }
 
-        if (hud) hud.innerText = `✅ [${tagVal || '기기정보'}] 명판 및 정비 가이드가 자동 입력되었습니다!`;
+        if (hud) hud.innerText = `✅ [${tagVal || '기기정보'}] 명판 및 상태 점검 내용이 자동 입력되었습니다!`;
       } else if (targetMode === 'update') {
-        // [기존 계측기 상세 수정 모달]
         const target = currentInstruments.find(i => i.id === activeTargetId);
         if (target) {
           openOcrEditModal(target, {
@@ -1395,19 +1355,16 @@
             model: modelVal,
             range: rangeVal
           });
-
-          if (hud) {
-            hud.innerText = `✅ [${tagVal || '기기정보'}] 정보 추출 완료! 수정 창을 확인하세요.`;
-          }
         }
       }
     } catch (err) {
       console.error('OCR 처리 에러:', err);
-      if (hud) hud.innerText = '⚠️ 명판 및 상태 자동 판독에 실패했습니다.';
-      alert('⚠️ 명판 자동 추출 실패:\n' + err.message);
+      if (hud) hud.innerText = '⚠️ 분석 처리 중 오류가 발생했습니다.';
+      alert('⚠️ 명판 자동 추출 오류:\n' + err.message);
     }
     setTimeout(() => { if (!isMeasureMode && hud) hud.style.display = 'none'; }, 3500);
   }
+
 
   function appendAiMsg(role, text) {
     const box = document.getElementById('aiChatBox');
