@@ -210,7 +210,7 @@
       background: #080d1a; touch-action: none;
     }
 
-    /* 상단 배너 완전 숨김 */
+    /* 상단 배너 숨김 */
     #floor-room-header {
       display: none !important;
     }
@@ -232,7 +232,6 @@
       background: rgba(15, 23, 42, 0.9); padding: 12px 20px; border-radius: 8px; border: 1px dashed #334155;
     }
     
-    /* 핀 터치 스타일 완화 및 모바일 기본 액션 무력화 */
     .floor-inst-pin {
       position: absolute; width: 36px; height: 36px; border-radius: 50%; background: #00b4d8;
       border: 2px solid #ffffff; box-shadow: 0 0 14px rgba(0, 180, 216, 1);
@@ -364,10 +363,6 @@
     .ai-input-wrap { display: flex; gap: 6px; }
     .ai-input-wrap input { flex: 1; padding: 9px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; }
     .btn-ai-send { background: #6366f1; color: #fff; border: none; padding: 0 14px; border-radius: 6px; font-weight: bold; }
-    .btn-ai-detail-ask {
-      width: 100%; padding: 8px; background: linear-gradient(135deg, #4f46e5, #7c3aed);
-      color: #fff; border: none; border-radius: 6px; font-size: 12px; font-weight: bold; margin-top: 8px; cursor: pointer;
-    }
   </style>
 </head>
 <body>
@@ -578,7 +573,7 @@
 <div id="modal">
   <h3>계측기 등록 (<span id="modalUnitText" style="color:#0284c7; font-weight:bold;">기력 2호기</span> <span id="modalFloorText" style="color:#00b4d8; font-weight:bold;">1층</span>)</h3>
   <div class="form-group">
-    <label>기기 사진 첨부 (명판 촬영 시 Tag 자동 완성)</label>
+    <label>기기 사진 첨부 (촬영/선택 후 자동 추출 버튼 선택 가능)</label>
     <div class="photo-btn-group">
       <div class="file-input-wrapper">
         <div class="btn-file-upload">📷 즉시 촬영</div>
@@ -590,6 +585,10 @@
       </div>
     </div>
     <img id="photoPreview" class="preview-img">
+    <!-- 💡 사진 등록 후 원할 때만 명판을 자동 추출할 수 있도록 추가된 전용 버튼 -->
+    <button id="btnExtractNewPhoto" type="button" class="btn-file-upload" style="background:#059669; width:100%; margin-top:8px; padding:8px; font-size:12px; display:none;" onclick="triggerNewPhotoOcr()">
+      🔍 사진에서 Tag·기기정보 자동 추출 및 수정
+    </button>
   </div>
   <div class="form-group"><label>Tag No.</label><input type="text" id="tagNo" placeholder="예: 20-PT-101"></div>
   <div class="form-group"><label>기기명</label><input type="text" id="name" placeholder="예: 급수 압력 전송기"></div>
@@ -641,7 +640,7 @@
   <button id="btnExtractCurrentPhoto" class="btn-file-upload" style="background:#059669; width:100%; margin-top:6px; padding:9px; font-size:12px;" onclick="extractCurrentPhotoInfo()">
     🔍 등록된 사진에서 Tag·기기정보 자동 추출 및 수정
   </button>
-  <button class="btn-ai-detail-ask" id="btnAiAnalyzeThis">🤖 이 기기 사진·이력·매뉴얼 AI 종합 분석 받기</button>
+  <!-- 💡 [요구사항 1]: '이 기기 사진·이력·매뉴얼 AI 종합 분석 받기' 버튼 삭제 완료 -->
   <div class="history-section">
     <div class="history-title">📋 정비/점검 이력 관리</div>
     <div class="history-list" id="infoHistoryList"></div>
@@ -1139,6 +1138,24 @@
     }
   }
 
+  // 💡 [요구사항 2]: 신규 등록 시 사진에서 Tag 기기정보를 추출하는 트리거 함수
+  window.triggerNewPhotoOcr = async function() {
+    if (!pendingInstPhotoFile) {
+      alert('⚠️ 먼저 촬영하거나 앨범에서 사진을 선택해 주세요.');
+      return;
+    }
+    const btn = document.getElementById('btnExtractNewPhoto');
+    const origText = btn.innerText;
+    btn.innerText = '⏳ 사진에서 명판 정보 분석 중...';
+    btn.disabled = true;
+    try {
+      await autoFillTagFromPhoto(pendingInstPhotoFile, 'insert');
+    } finally {
+      btn.innerText = origText;
+      btn.disabled = false;
+    }
+  };
+
   window.extractCurrentPhotoInfo = async function() {
     const target = currentInstruments.find(i => i.id === activeTargetId);
     if (!target || !(target.photo_url || target.image_data)) {
@@ -1233,31 +1250,41 @@
   });
 
   function openOcrEditModal(target, parsed) {
-    document.getElementById('ocrTagNo').value = parsed.tag_no || target.tag_no || '';
-    document.getElementById('ocrName').value = parsed.name || target.name || '';
-    document.getElementById('ocrModel').value = parsed.model || target.model || '';
-    document.getElementById('ocrRange').value = parsed.range || target.signal_range || '';
+    document.getElementById('ocrTagNo').value = parsed.tag_no || (target ? target.tag_no : '') || '';
+    document.getElementById('ocrName').value = parsed.name || (target ? target.name : '') || '';
+    document.getElementById('ocrModel').value = parsed.model || (target ? target.model : '') || '';
+    document.getElementById('ocrRange').value = parsed.range || (target ? target.signal_range : '') || '';
     document.getElementById('btnApplyOcrEdit').onclick = async () => {
-      const updateFields = {
-        tag_no: document.getElementById('ocrTagNo').value.trim(),
-        name: document.getElementById('ocrName').value.trim(),
-        model: document.getElementById('ocrModel').value.trim(),
-        signal_range: document.getElementById('ocrRange').value.trim()
-      };
-      const { error } = await supabaseClient.from('instruments').update(updateFields).eq('id', target.id);
-      if (!error) {
-        Object.assign(target, updateFields);
-        closeOcrEditModal();
-        showDetail(target);
-        renderFloorPins();
-        render3DHotspots();
-        const hud = document.getElementById('measure-info-hud');
-        if (hud) {
-          hud.style.display = 'block';
-          hud.innerText = '✅ 수정하신 정보가 반영되었습니다!';
-          setTimeout(() => { if (!isMeasureMode) hud.style.display = 'none'; }, 2500);
+      if (target) {
+        const updateFields = {
+          tag_no: document.getElementById('ocrTagNo').value.trim(),
+          name: document.getElementById('ocrName').value.trim(),
+          model: document.getElementById('ocrModel').value.trim(),
+          signal_range: document.getElementById('ocrRange').value.trim()
+        };
+        const { error } = await supabaseClient.from('instruments').update(updateFields).eq('id', target.id);
+        if (!error) {
+          Object.assign(target, updateFields);
+          closeOcrEditModal();
+          showDetail(target);
+          renderFloorPins();
+          render3DHotspots();
+        } else {
+          alert('❌ 저장 실패: ' + error.message);
         }
-      } else alert('❌ 저장 실패: ' + error.message);
+      } else {
+        document.getElementById('tagNo').value = document.getElementById('ocrTagNo').value.trim();
+        document.getElementById('name').value = document.getElementById('ocrName').value.trim();
+        document.getElementById('model').value = document.getElementById('ocrModel').value.trim();
+        document.getElementById('range').value = document.getElementById('ocrRange').value.trim();
+        closeOcrEditModal();
+      }
+      const hud = document.getElementById('measure-info-hud');
+      if (hud) {
+        hud.style.display = 'block';
+        hud.innerText = '✅ 수정하신 정보가 반영되었습니다!';
+        setTimeout(() => { if (!isMeasureMode) hud.style.display = 'none'; }, 2500);
+      }
     };
     document.getElementById('ocr-edit-modal').style.display = 'block';
   }
@@ -1287,11 +1314,8 @@
         if (!jsonMatch) throw new Error('JSON 형식을 찾을 수 없음');
         const parsed = JSON.parse(jsonMatch[0]);
         if (targetMode === 'insert') {
-          if (parsed.tag_no) document.getElementById('tagNo').value = parsed.tag_no;
-          if (parsed.name) document.getElementById('name').value = parsed.name;
-          if (parsed.model) document.getElementById('model').value = parsed.model;
-          if (parsed.range) document.getElementById('range').value = parsed.range;
-          if (hud) hud.innerText = `✅ [${parsed.tag_no || '정보'}] 입력창에 자동 반영되었습니다. 내용을 확인 및 수정하세요.`;
+          openOcrEditModal(null, parsed);
+          if (hud) hud.innerText = '✅ 명판 추출 완료! 확인/수정 후 적용을 누르세요.';
         } else if (targetMode === 'update') {
           const target = currentInstruments.find(i => i.id === activeTargetId);
           if (target) {
@@ -1329,22 +1353,6 @@
     if (e.key === 'Enter') document.getElementById('btnSendAi').click();
   });
 
-  document.getElementById('btnAiAnalyzeThis').addEventListener('click', async () => {
-    const target = currentInstruments.find(i => i.id === activeTargetId);
-    if (!target) return;
-    document.getElementById('info-modal').style.display = 'none';
-    document.getElementById('gemini-modal').style.display = 'block';
-    switchAiTab('chat');
-    await fetchManuals();
-    const ctx = `Tag No: ${target.tag_no}\n기기명: ${target.name}\n설치위치: ${target.major_category || '기력'} ${target.unit} ${target.floor}\n모델명: ${target.model}\n측정범위: ${target.signal_range}\n대표사진: ${target.photo_url||target.image_data?'있음':'없음'}\n과거이력: ${JSON.stringify(target.history_logs || [])}`;
-    const photos = [];
-    if (target.photo_url || target.image_data) photos.push(target.photo_url || target.image_data);
-    (target.history_logs || []).forEach(h => {
-      if (h.photo && !photos.includes(h.photo)) photos.push(h.photo);
-    });
-    callGemini(`이 계측기(${target.tag_no})의 사진, 과거 이력, [정비 매뉴얼]을 종합하여 이상 유무 및 권장사항을 작성해줘.`, ctx, photos);
-  });
-
   function previewImageFile(file, previewElementId) {
     if (!file) return;
     const r = new FileReader();
@@ -1359,12 +1367,12 @@
   document.getElementById('instPhotoCam').addEventListener('change', (e) => {
     pendingInstPhotoFile = e.target.files[0];
     previewImageFile(pendingInstPhotoFile, 'photoPreview');
-    autoFillTagFromPhoto(pendingInstPhotoFile, 'insert');
+    document.getElementById('btnExtractNewPhoto').style.display = 'block';
   });
   document.getElementById('instPhotoGallery').addEventListener('change', (e) => {
     pendingInstPhotoFile = e.target.files[0];
     previewImageFile(pendingInstPhotoFile, 'photoPreview');
-    autoFillTagFromPhoto(pendingInstPhotoFile, 'insert');
+    document.getElementById('btnExtractNewPhoto').style.display = 'block';
   });
   document.getElementById('initHistPhotoCam').addEventListener('change', (e) => {
     pendingInitHistPhotoFile = e.target.files[0];
@@ -1396,7 +1404,6 @@
     await supabaseClient.from('instruments').update({ photo_url: uploadedUrl, image_data: uploadedUrl }).eq('id', activeTargetId);
     renderFloorPins();
     render3DHotspots();
-    autoFillTagFromPhoto(file, 'update');
   }
 
   document.getElementById('updateMainPhotoCam').addEventListener('change', (e) => handleUpdateMainPhoto(e.target.files[0]));
@@ -1840,6 +1847,7 @@
     document.getElementById('instPhotoCam').value = '';
     document.getElementById('instPhotoGallery').value = '';
     document.getElementById('photoPreview').style.display = 'none';
+    document.getElementById('btnExtractNewPhoto').style.display = 'none';
     pendingInitHistPhotoFile = null;
     document.getElementById('initHistPhotoCam').value = '';
     document.getElementById('initHistPhotoGallery').value = '';
@@ -1947,9 +1955,6 @@
     }
   }
 
-  // -------------------------------------------------------------
-  // 📍 핀 생성 및 드래그/클릭 완전 분리 로직 (핵심 수정)
-  // -------------------------------------------------------------
   function renderFloorPins() {
     board.querySelectorAll('.floor-inst-pin').forEach(el => el.remove());
     currentInstruments.forEach(item => {
@@ -1969,10 +1974,7 @@
       let pressStartTime = 0;
       let isDraggingThisPin = false;
 
-      // 브라우저 기본 우클릭/길게 누름 팝업 완전 방지
       pin.oncontextmenu = (e) => { e.preventDefault(); e.stopPropagation(); return false; };
-      
-      // 기존 HTML 기본 클릭 이벤트 무력화 (오작동 원천 차단)
       pin.onclick = (e) => { e.preventDefault(); e.stopPropagation(); };
 
       pin.addEventListener('pointerdown', (e) => {
@@ -1989,7 +1991,6 @@
         measureHud.style.display = 'block';
         measureHud.innerText = `⏳ [${item.tag_no}] 1초간 누르고 있으면 이동 모드로 전환됩니다...`;
 
-        // 1초간 꾹 누르면 이동 모드 진입
         pressTimer = setTimeout(() => {
           isDraggingThisPin = true;
           pin.classList.remove('pin-pressing');
@@ -2010,7 +2011,6 @@
           pin.style.left = `${curX}px`;
           pin.style.top = `${curY}px`;
         } else if (pressTimer) {
-          // 누르는 도중 손가락을 5px 이상 흔들면 롱프레스 취소
           if (Math.hypot(e.clientX - startClientX, e.clientY - startClientY) > 8) {
             clearTimeout(pressTimer);
             pressTimer = null;
@@ -2030,7 +2030,6 @@
         }
         pin.classList.remove('pin-pressing');
 
-        // 1. 드래그해서 위치를 옮긴 경우: 새 좌표 저장만 하고 이력창은 절대 열지 않음
         if (isDraggingThisPin) {
           isDraggingThisPin = false;
           try { pin.releasePointerCapture(e.pointerId); } catch(err) {}
@@ -2054,7 +2053,6 @@
           return;
         }
 
-        // 2. 짧게 터치(Tap)한 경우: 누른 시간이 350ms 이하이고 거의 안 움직였을 때만 상세/이력 창 오픈
         const pressDuration = Date.now() - pressStartTime;
         const moveDist = Math.hypot(e.clientX - startClientX, e.clientY - startClientY);
 
@@ -2062,7 +2060,6 @@
           if (!isMeasureMode) measureHud.style.display = 'none';
           showDetail(item);
         } else {
-          // 애매하게 길게 눌렀다 뗀 경우 아무 창도 띄우지 않고 상태만 초기화
           if (!isMeasureMode) measureHud.style.display = 'none';
         }
       };
