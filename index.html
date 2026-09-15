@@ -163,18 +163,44 @@
     .badge-steam { background: #0284c7; color: #fff; }
     .badge-engine { background: #d97706; color: #fff; }
 
-    .hotspot-pin {
-      background: #00b4d8; border: 2px solid #ffffff; border-radius: 50%; width: 28px; height: 28px;
-      display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold;
-      color: #0b132b; cursor: pointer; box-shadow: 0 0 10px rgba(0, 180, 216, 0.9);
-      transform: translate(-50%, -50%) scale(var(--pin-scale, 1));
-      transition: transform 0.1s ease-out; background-size: cover; background-position: center;
-    }
-    .hotspot-pin span {
-      position: absolute; top: -24px; left: 50%; transform: translateX(-50%);
-      background: rgba(11, 19, 43, 0.92); color: #38bdf8; padding: 2px 6px; border-radius: 4px;
-      font-size: 10px; white-space: nowrap; border: 1px solid #38bdf8; pointer-events: none;
-    }
+    /* 3D 모델링 핫스팟 핀 미니멀 디자인 (기존 28px -> 18px로 축소) */
+.hotspot-pin {
+  background: #00b4d8;
+  border: 1.5px solid #ffffff;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: bold;
+  color: #0b132b;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(0, 180, 216, 0.8);
+  transform: translate(-50%, -50%) scale(var(--pin-scale, 1));
+  transition: transform 0.1s ease-out;
+  background-size: cover;
+  background-position: center;
+}
+
+/* 핀 위 라벨: 복잡한 Tag 문구를 없애고 층수만 작고 깔끔하게 표시 */
+.hotspot-pin span {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(11, 19, 43, 0.85);
+  color: #38bdf8;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-size: 9px;
+  font-weight: bold;
+  white-space: nowrap;
+  border: 1px solid rgba(56, 189, 248, 0.5);
+  pointer-events: none;
+}
+
 
     #temp-measure-marker {
       background: #ef4444; border: 2px solid #ffffff; border-radius: 50%; width: 18px; height: 18px;
@@ -1737,15 +1763,37 @@
     }
   });
 
-  function renderMeasureVisuals3D() {
-    viewer.querySelectorAll('.measure-marker-3d').forEach(e => e.remove());
-    measurePoints.forEach((p) => {
-      const marker = document.createElement('button');
-      marker.className = 'measure-marker-3d';
-      marker.slot = `hotspot-measure-${p.idx}`;
-      marker.dataset.position = `${p.x3d} ${p.y3d} ${p.z3d}`;
-      marker.innerText = `${p.idx}`;
-      viewer.appendChild(marker);
+  function render3DHotspots() {
+    viewer.querySelectorAll('.hotspot-pin').forEach(el => el.remove());
+    currentInstruments.forEach(item => {
+      if (item.unit !== selectedSubTab) return;
+      let pos = item.model_position;
+      if (!pos || pos === '0 0 0') {
+        const h = floor3DHeights[item.floor] !== undefined ? floor3DHeights[item.floor] : 26;
+        const bounds = floorCorners2D[item.floor] || floorCorners2D['1층'];
+        const u = (item.coord_x - bounds.c1.x) / (bounds.c4.x - bounds.c1.x || 1);
+        const v = (item.coord_y - bounds.c1.y) / (bounds.c4.y - bounds.c1.y || 1);
+        const x3d = 19.96 + (u * (30.93 - 19.96)) + (v * (1.65 - 19.96));
+        const z3d = -11.43 + (u * (6.89 - (-11.43))) + (v * (-0.47 - (-11.43)));
+        pos = `${x3d.toFixed(2)} ${h} ${z3d.toFixed(2)}`;
+      }
+      const btn = document.createElement('button');
+      btn.className = 'hotspot-pin';
+      btn.slot = `hotspot-${item.id}`;
+      btn.dataset.position = pos;
+      
+      const img = item.photo_url || item.image_data;
+      btn.style.backgroundImage = img ? `url(${img})` : 'none';
+
+      // 💡 Tag No를 완전히 빼고 간결하게 '1F', '6F' 형태로만 표시
+      const floorLabel = (item.floor || '').replace('층', 'F');
+      btn.innerHTML = `<span>${floorLabel}</span>`;
+
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        showDetail(item);
+      };
+      viewer.appendChild(btn);
     });
   }
 
