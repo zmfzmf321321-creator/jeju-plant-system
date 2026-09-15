@@ -1106,9 +1106,40 @@
 
   async function callGemini(userPrompt, extraContext = '', targetPhotos = []) {
     appendAiMsg('user', userPrompt);
-    appendAiMsg('bot', '⏳ Supabase 보안 서버를 통해 데이터를 분석 중...');
+    appendAiMsg('bot', '⏳ 설비 데이터 및 교정 성적서 종합 분석 중...');
     let photosToSend = [...targetPhotos];
     let dynamicContext = extraContext;
+
+    // 💡 1. 신규 'Instrumnet_calibration' 테이블에서 교정 데이터 조회
+    let calibContext = '';
+    try {
+      const { data: calibList, error: calibErr } = await supabaseClient
+        .from('Instrumnet_calibration')
+        .select('*')
+        .limit(250);
+
+      if (!calibErr && calibList && calibList.length > 0) {
+        const promptLower = userPrompt.toLowerCase();
+        
+        // 질문과 관련된 Tag No나 기기명을 우선 필터링
+        const matchedCalib = calibList.filter(c => {
+          const tag = String(c["Tag No"] || c["tag_no"] || '').toLowerCase();
+          const name = String(c["기기명"] || c["name"] || '').toLowerCase();
+          const type = String(c["TYPE"] || c["type"] || '').toLowerCase();
+          return tag.includes(promptLower) || name.includes(promptLower) || promptLower.includes(tag);
+        });
+
+        // 질문과 직접 일치하는 항목이 있으면 해당 항목을, 없으면 전체 요약 제공
+        const targetList = matchedCalib.length > 0 ? matchedCalib : calibList.slice(0, 40);
+        calibContext = "📋 [교정 성적서 및 설비 베이스 데이터]:\n" + targetList.map(c => 
+          `- Tag: ${c["Tag No"] || c["tag_no"] || '-'} | 기기명: ${c["기기명"] || c["name"] || '-'} | TYPE: ${c["TYPE"] || c["type"] || '-'} | 교정정보: ${c["교정결과"] || c["비고"] || '-'}`
+        ).join('\n');
+      }
+    } catch (e) {
+      console.warn("교정 데이터 조회 건너뜀:", e);
+    }
+
+    // 💡 2. 기존 등록 계측기(instruments) 데이터 필터링
     if (!dynamicContext) {
       const promptLower = userPrompt.toLowerCase();
       const matchedInsts = currentInstruments.filter(inst => {
@@ -1130,10 +1161,12 @@
         }
         return hit;
       });
+
       if (matchedInsts.length > 0) {
-        dynamicContext = "🔍 [자동 검색된 관련 계측기 및 점검 이력 데이터]:\n" + matchedInsts.map(i =>
-          `- Tag No: ${i.tag_no}, 기기명: ${i.name}, 위치: ${i.major_category} ${i.unit} ${i.floor}, 모델: ${i.model}, 측정범위: ${i.signal_range}, 이력내역: ${JSON.stringify(i.history_logs)}`
+        dynamicContext = "🔍 [관련 등록 계측기 및 점검 이력]:\n" + matchedInsts.map(i =>
+          `- Tag No: ${i.tag_no}, 기기명: ${i.name}, 위치: ${i.major_category} ${i.unit} ${i.floor}, 모델: ${i.model}, 측정범위: ${i.signal_range}, 이력: ${JSON.stringify(i.history_logs)}`
         ).join('\n');
+
         if (photosToSend.length === 0) {
           matchedInsts.forEach(i => {
             const mainImg = i.photo_url || i.image_data;
@@ -1144,18 +1177,26 @@
           });
         }
       } else {
-        dynamicContext = "💡 [참고용 전체 등록 계측기 목록]:\n" + currentInstruments.map(i => `[${i.tag_no}] ${i.name} (${i.major_category} ${i.unit} ${i.floor})`).join(', ');
+        dynamicContext = "💡 [참고용 등록 계측기 요약]:\n" + currentInstruments.slice(0, 30).map(i => `[${i.tag_no}] ${i.name}`).join(', ');
       }
     }
+
+    // 💡 3. 통합 컨텍스트 구성
+    const enrichedContext = [calibContext, dynamicContext].filter(Boolean).join('\n\n');
+
+    // 💡 4. Edge Function 호출 및 결과 DB 영구 보관
     try {
       const { data, error } = await supabaseClient.functions.invoke('gemini-chat', {
-        body: { prompt: userPrompt, extraContext: dynamicContext, photosToSend, mode: 'chat' }
+        body: { prompt: userPrompt, extraContext: enrichedContext, photosToSend, mode: 'chat' }
       });
+
       const lastMsg = document.querySelector('#aiChatBox .ai-msg-bot:last-child');
       if (!error && data?.candidates?.[0]?.content?.parts?.[0]?.text) {
         const reply = data.candidates[0].content.parts[0].text;
         if (lastMsg && lastMsg.innerText.includes('⏳')) lastMsg.innerText = reply;
         else appendAiMsg('bot', reply);
+
+        // 과거 질의응답 이력 Supabase DB 자동 저장 (누락 방지)
         const workerName = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자';
         const { error: dbError } = await supabaseClient.from('ai_chat_history').insert([{
           user_name: workerName,
@@ -1164,16 +1205,17 @@
           response: reply,
           created_at: new Date().toISOString()
         }]);
-        if (dbError) { console.error('⚠️ DB 저장 실패:', dbError.message); }
+        if (dbError) console.error('⚠️ DB 이력 저장 실패:', dbError.message);
       } else {
-        const errMsg = error ? error.message : (data?.error ? JSON.stringify(data.error) : '응답 오류');
-        if (lastMsg && lastMsg.innerText.includes('⏳')) lastMsg.innerText = `❌ 오류: ${errMsg}`;
+        const errMsg = error ? error.message : (data?.error ? JSON.stringify(data.error) : '응답 분석 오류');
+        if (lastMsg && lastMsg.innerText.includes('⏳')) lastMsg.innerText = `❌ 서버 오류: ${errMsg}`;
       }
     } catch (err) {
       const lastMsg = document.querySelector('#aiChatBox .ai-msg-bot:last-child');
       if (lastMsg && lastMsg.innerText.includes('⏳')) lastMsg.innerText = `❌ 통신 실패: ${err.message}`;
     }
   }
+
 
   window.triggerNewPhotoOcr = async function() {
     if (!pendingInstPhotoFile) {
