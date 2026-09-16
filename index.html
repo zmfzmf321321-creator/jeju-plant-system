@@ -281,13 +281,13 @@
     }
     .floor-btn.active { background: #00b4d8; color: #0b132b; border-color: #90e0ef; }
 
-    #modal, #info-modal, #history-modal, #search-modal, #gemini-modal, #ocr-edit-modal, #edit-inst-modal {
+    #modal, #info-modal, #history-modal, #search-modal, #gemini-modal, #ocr-edit-modal, #edit-inst-modal, #edit-calib-modal {
       display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
       background: #ffffff; padding: 20px; border-radius: 12px; z-index: 9999999;
       width: 92%; max-width: 420px; color: #333; max-height: 88vh; overflow-y: auto;
       box-shadow: 0 10px 40px rgba(0,0,0,0.8); pointer-events: auto;
     }
-    #modal h3, #info-modal h3, #history-modal h3, #search-modal h3, #gemini-modal h3, #ocr-edit-modal h3, #edit-inst-modal h3 {
+    #modal h3, #info-modal h3, #history-modal h3, #search-modal h3, #gemini-modal h3, #ocr-edit-modal h3, #edit-inst-modal h3, #edit-calib-modal h3 {
       margin: 0 0 12px 0; font-size: 16px; color: #0b132b;
     }
     .form-group { margin-bottom: 10px; }
@@ -365,7 +365,7 @@
     .ai-input-wrap input { flex: 1; padding: 9px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; }
     .btn-ai-send { background: #6366f1; color: #fff; border: none; padding: 0 14px; border-radius: 6px; font-weight: bold; }
 
-    /* 💡 사진 전체화면 모달 스타일 */
+    /* 💡 사진 전체화면 모달 */
     #image-lightbox-modal {
       display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       background: rgba(0, 0, 0, 0.93); z-index: 99999999;
@@ -650,12 +650,18 @@
     </div>
   </div>
   <div id="infoBody" style="font-size: 13px; line-height: 1.5;"></div>
+  
   <button id="btnOpenEditInst" class="btn-file-upload" style="background:#0284c7; width:100%; margin-top:8px; padding:9px; font-size:12px;" onclick="openEditInstModal()">
     ✏️ 계측기 정보/사진 직접 수정
+  </button>
+  <!-- 💡 [방식 A]: 교정 성적서(10개 필드) 직접 확인 및 수정 모달 열기 버튼 -->
+  <button id="btnOpenCalibEdit" class="btn-file-upload" style="background:#4f46e5; width:100%; margin-top:6px; padding:9px; font-size:12px;" onclick="openCalibEditModal()">
+    📋 교정 성적서(제원·RANGE) 확인 및 수정
   </button>
   <button id="btnExtractCurrentPhoto" class="btn-file-upload" style="background:#059669; width:100%; margin-top:6px; padding:9px; font-size:12px;" onclick="extractCurrentPhotoInfo()">
     🔍 등록된 사진에서 Tag·기기정보 자동 추출 및 수정
   </button>
+  
   <div class="history-section">
     <div class="history-title">📋 정비/점검 이력 관리</div>
     <div class="history-list" id="infoHistoryList"></div>
@@ -691,6 +697,26 @@
   <div class="btn-wrap">
     <button class="btn-save" id="btnSaveEditInst">수정사항 저장</button>
     <button class="btn-cancel" onclick="document.getElementById('edit-inst-modal').style.display='none'">취소</button>
+  </div>
+</div>
+
+<!-- 💡 [방식 A 신규 모달]: 교정 성적서(10개 항목) 수정 모달 -->
+<div id="edit-calib-modal">
+  <h3>📋 교정 성적서 정보 수정</h3>
+  <div style="font-size:12px; color:#64748b; margin-bottom:12px;">Supabase 교정 데이터베이스(Instrumnet_calibration)에 반영됩니다.</div>
+  <div class="form-group"><label>Tag No</label><input type="text" id="calibTagNo"></div>
+  <div class="form-group"><label>기기명</label><input type="text" id="calibName"></div>
+  <div class="form-group"><label>TYPE</label><input type="text" id="calibType" placeholder="예: PT, TT, FT"></div>
+  <div class="form-group"><label>측정범위 (RANGE)</label><input type="text" id="calibRange" placeholder="예: 0 ~ 10 Kg/cm2"></div>
+  <div class="form-group"><label>설치위치</label><input type="text" id="calibLocation" placeholder="예: 6층 서측"></div>
+  <div class="form-group"><label>제작사</label><input type="text" id="calibMaker" placeholder="예: FOXBORO, YOKOGAWA"></div>
+  <div class="form-group"><label>모델명</label><input type="text" id="calibModel"></div>
+  <div class="form-group"><label>점검일자</label><input type="text" id="calibDate" placeholder="예: 2024-05-10"></div>
+  <div class="form-group"><label>점검자</label><input type="text" id="calibInspector"></div>
+  <div class="form-group"><label>감독자</label><input type="text" id="calibSupervisor"></div>
+  <div class="btn-wrap">
+    <button class="btn-save" id="btnSaveCalibData">교정 성적서 저장</button>
+    <button class="btn-cancel" onclick="document.getElementById('edit-calib-modal').style.display='none'; document.getElementById('info-modal').style.display='block';">닫기</button>
   </div>
 </div>
 
@@ -761,6 +787,7 @@
   let selectedSubTab = '2호기';
   let selectedFloor = 'ALL';
   let activeTargetId = null;
+  let activeCalibRecord = null; // 현재 선택된 교정 레코드 보관용
   let editingHistoryIndex = null;
   let clickedFloorCoord = { x: 0, y: 0 };
   let isMeasureMode = false;
@@ -800,7 +827,6 @@
     '7층':     { c1: { x: 132, y: 242 }, c4: { x: 569,  y: 855 } }
   };
 
-  // 💡 사진 전체화면 확대 열기/닫기 함수
   window.openImageLightbox = function(imgSrc) {
     if (!imgSrc) return;
     const modal = document.getElementById('image-lightbox-modal');
@@ -813,7 +839,6 @@
     document.getElementById('image-lightbox-modal').style.display = 'none';
   };
 
-  // 상세 창 대표 사진 클릭 시 전체화면 이벤트 바인딩
   document.getElementById('infoMainImg').addEventListener('click', (e) => {
     if (e.target.src) openImageLightbox(e.target.src);
   });
@@ -1164,7 +1189,6 @@
     let photosToSend = [...targetPhotos];
     let dynamicContext = extraContext;
 
-    // 💡 1. 'Instrumnet_calibration' 테이블의 10개 컬럼 전체 연동
     let calibContext = '';
     try {
       const { data: calibList, error: calibErr } = await supabaseClient
@@ -1194,7 +1218,6 @@
       console.warn("교정 데이터 조회 건너뜀:", e);
     }
 
-    // 💡 2. 도면 등록 계측기(instruments) 데이터 보완
     if (!dynamicContext) {
       const promptLower = userPrompt.toLowerCase();
       const matchedInsts = currentInstruments.filter(inst => {
@@ -1210,7 +1233,6 @@
       }
     }
 
-    // 💡 3. 연속 질문(맥락 파악) 지원: 직전 대화 기록(최근 6개)을 문맥으로 수집
     let chatHistoryContext = '';
     const chatMsgs = Array.from(document.querySelectorAll('#aiChatBox .ai-msg'));
     const previousMsgs = chatMsgs.slice(0, -2).slice(-6);
@@ -1221,10 +1243,8 @@
       }).join('\n');
     }
 
-    // 💡 4. 통합 컨텍스트 구성
     const enrichedContext = [chatHistoryContext, calibContext, dynamicContext].filter(Boolean).join('\n\n');
 
-    // 💡 5. Supabase Edge Function 호출
     try {
       const { data, error } = await supabaseClient.functions.invoke('gemini-chat', {
         body: { prompt: userPrompt, extraContext: enrichedContext, photosToSend, mode: 'chat' }
@@ -1315,6 +1335,97 @@
     }
     document.getElementById('edit-inst-modal').style.display = 'block';
   };
+
+  // 💡 [방식 A]: 교정 성적서 조회 및 수정 모달 열기 함수
+  window.openCalibEditModal = async function() {
+    const target = currentInstruments.find(i => i.id === activeTargetId);
+    if (!target) return;
+
+    const hud = document.getElementById('measure-info-hud');
+    if (hud) {
+      hud.style.display = 'block';
+      hud.innerText = `⏳ [${target.tag_no}] 교정 성적서 데이터 조회 중...`;
+    }
+
+    // Tag No 기준으로 교정 데이터베이스 조회
+    const { data, error } = await supabaseClient
+      .from('Instrumnet_calibration')
+      .select('*')
+      .eq('Tag No', target.tag_no)
+      .maybeSingle();
+
+    if (hud && !isMeasureMode) hud.style.display = 'none';
+
+    if (error) {
+      alert('⚠️ 교정 데이터 조회 실패: ' + error.message);
+      return;
+    }
+
+    // 조회된 데이터가 있거나 없으면 현재 계측기 정보를 기본값으로 설정
+    activeCalibRecord = data || { "Tag No": target.tag_no, "기기명": target.name, "모델명": target.model, "RANGE": target.signal_range };
+
+    document.getElementById('calibTagNo').value = activeCalibRecord["Tag No"] || target.tag_no || '';
+    document.getElementById('calibName').value = activeCalibRecord["기기명"] || target.name || '';
+    document.getElementById('calibType').value = activeCalibRecord["TYPE"] || '';
+    document.getElementById('calibRange').value = activeCalibRecord["RANGE"] || target.signal_range || '';
+    document.getElementById('calibLocation').value = activeCalibRecord["설치위치"] || `${target.major_category || '기력'} ${target.unit || '2호기'} ${target.floor}`;
+    document.getElementById('calibMaker').value = activeCalibRecord["제작사"] || '';
+    document.getElementById('calibModel').value = activeCalibRecord["모델명"] || target.model || '';
+    document.getElementById('calibDate').value = activeCalibRecord["점검일자"] || '';
+    document.getElementById('calibInspector').value = activeCalibRecord["점검자"] || currentUserInfo.name || '';
+    document.getElementById('calibSupervisor').value = activeCalibRecord["감독자"] || '';
+
+    document.getElementById('info-modal').style.display = 'none';
+    document.getElementById('edit-calib-modal').style.display = 'block';
+  };
+
+  // 💡 [방식 A]: 교정 성적서 10개 필드 Supabase UPDATE 처리
+  document.getElementById('btnSaveCalibData').addEventListener('click', async () => {
+    const tagNo = document.getElementById('calibTagNo').value.trim();
+    if (!tagNo) {
+      alert('⚠️ Tag No는 필수 입력값입니다.');
+      return;
+    }
+
+    const payload = {
+      "Tag No": tagNo,
+      "기기명": document.getElementById('calibName').value.trim(),
+      "TYPE": document.getElementById('calibType').value.trim(),
+      "RANGE": document.getElementById('calibRange').value.trim(),
+      "설치위치": document.getElementById('calibLocation').value.trim(),
+      "제작사": document.getElementById('calibMaker').value.trim(),
+      "모델명": document.getElementById('calibModel').value.trim(),
+      "점검일자": document.getElementById('calibDate').value.trim(),
+      "점검자": document.getElementById('calibInspector').value.trim(),
+      "감독자": document.getElementById('calibSupervisor').value.trim()
+    };
+
+    alert('⏳ 교정 성적서 데이터를 Supabase에 저장 중...');
+
+    let updateRes = null;
+    if (activeCalibRecord && activeCalibRecord["구분"]) {
+      updateRes = await supabaseClient.from('Instrumnet_calibration').update(payload).eq('구분', activeCalibRecord["구분"]);
+    } else {
+      // 기존에 없었던 기기라면 새로 등록(Insert)
+      updateRes = await supabaseClient.from('Instrumnet_calibration').upsert([payload], { onConflict: 'Tag No' });
+    }
+
+    if (!updateRes.error) {
+      // 계측기 도면 정보(모델명, 범위)도 동기화
+      const target = currentInstruments.find(i => i.id === activeTargetId);
+      if (target) {
+        target.signal_range = payload["RANGE"];
+        target.model = payload["모델명"];
+        await supabaseClient.from('instruments').update({ signal_range: payload["RANGE"], model: payload["모델명"] }).eq('id', target.id);
+        showDetail(target);
+      }
+
+      document.getElementById('edit-calib-modal').style.display = 'none';
+      alert('✅ [교정 성적서] 10개 항목이 성공적으로 수정·저장되었습니다!');
+    } else {
+      alert('❌ 교정 성적서 저장 실패:\n' + updateRes.error.message);
+    }
+  });
 
   document.getElementById('editInstPhotoCam').addEventListener('change', (e) => {
     pendingEditInstPhotoFile = e.target.files[0];
