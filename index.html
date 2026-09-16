@@ -163,44 +163,20 @@
     .badge-steam { background: #0284c7; color: #fff; }
     .badge-engine { background: #d97706; color: #fff; }
 
-    /* 3D 모델링 핫스팟 핀 미니멀 디자인 (기존 28px -> 18px로 축소) */
-.hotspot-pin {
-  background: #00b4d8;
-  border: 1.5px solid #ffffff;
-  border-radius: 50%;
-  width: 18px;
-  height: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 9px;
-  font-weight: bold;
-  color: #0b132b;
-  cursor: pointer;
-  box-shadow: 0 0 8px rgba(0, 180, 216, 0.8);
-  transform: translate(-50%, -50%) scale(var(--pin-scale, 1));
-  transition: transform 0.1s ease-out;
-  background-size: cover;
-  background-position: center;
-}
-
-/* 핀 위 라벨: 복잡한 Tag 문구를 없애고 층수만 작고 깔끔하게 표시 */
-.hotspot-pin span {
-  position: absolute;
-  top: -18px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(11, 19, 43, 0.85);
-  color: #38bdf8;
-  padding: 1px 4px;
-  border-radius: 3px;
-  font-size: 9px;
-  font-weight: bold;
-  white-space: nowrap;
-  border: 1px solid rgba(56, 189, 248, 0.5);
-  pointer-events: none;
-}
-
+    /* 3D 모델링 핫스팟 핀 미니멀 디자인 (18px) */
+    .hotspot-pin {
+      background: #00b4d8; border: 1.5px solid #ffffff; border-radius: 50%; width: 18px; height: 18px;
+      display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold;
+      color: #0b132b; cursor: pointer; box-shadow: 0 0 8px rgba(0, 180, 216, 0.8);
+      transform: translate(-50%, -50%) scale(var(--pin-scale, 1));
+      transition: transform 0.1s ease-out; background-size: cover; background-position: center;
+    }
+    .hotspot-pin span {
+      position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
+      background: rgba(11, 19, 43, 0.85); color: #38bdf8; padding: 1px 4px; border-radius: 3px;
+      font-size: 9px; font-weight: bold; white-space: nowrap; border: 1px solid rgba(56, 189, 248, 0.5);
+      pointer-events: none;
+    }
 
     #temp-measure-marker {
       background: #ef4444; border: 2px solid #ffffff; border-radius: 50%; width: 18px; height: 18px;
@@ -333,8 +309,9 @@
     }
     .preview-img {
       display: none; width: 100%; max-height: 140px; object-fit: contain; margin-top: 8px;
-      border-radius: 8px; border: 1px solid #cbd5e1;
+      border-radius: 8px; border: 1px solid #cbd5e1; cursor: pointer; transition: transform 0.15s ease;
     }
+    .preview-img:active { transform: scale(0.98); }
     .btn-wrap { display: flex; gap: 8px; margin-top: 14px; }
     .btn-wrap button { flex: 1; padding: 10px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
     .btn-save { background: #0077b6; color: #fff; }
@@ -352,7 +329,7 @@
     .btn-hist-action { background: transparent; border: none; cursor: pointer; font-size: 11px; font-weight: bold; padding: 2px 4px; border-radius: 3px; }
     .btn-hist-edit { color: #0284c7; }
     .btn-hist-del { color: #ef4444; }
-    .hist-img { width: 100%; max-height: 100px; object-fit: cover; border-radius: 4px; margin-top: 6px; }
+    .hist-img { width: 100%; max-height: 100px; object-fit: cover; border-radius: 4px; margin-top: 6px; cursor: pointer; }
 
     .btn-add-history-quick {
       width: 100%; padding: 9px; background: #0284c7; color: #fff; border: none;
@@ -387,6 +364,22 @@
     .ai-input-wrap { display: flex; gap: 6px; }
     .ai-input-wrap input { flex: 1; padding: 9px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; }
     .btn-ai-send { background: #6366f1; color: #fff; border: none; padding: 0 14px; border-radius: 6px; font-weight: bold; }
+
+    /* 💡 사진 전체화면 모달 스타일 */
+    #image-lightbox-modal {
+      display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.93); z-index: 99999999;
+      align-items: center; justify-content: center; touch-action: pan-x pan-y pinch-zoom;
+    }
+    #image-lightbox-modal img {
+      max-width: 96vw; max-height: 92vh; object-fit: contain; border-radius: 6px;
+      box-shadow: 0 0 30px rgba(0,0,0,0.8);
+    }
+    .lightbox-close-btn {
+      position: absolute; top: 16px; right: 18px; color: #fff; font-size: 32px;
+      font-weight: bold; cursor: pointer; z-index: 10; padding: 6px 12px;
+      background: rgba(15, 23, 42, 0.7); border-radius: 50%; border: 1px solid #475569;
+    }
   </style>
 </head>
 <body>
@@ -608,7 +601,7 @@
         <input type="file" id="instPhotoGallery" accept="image/*">
       </div>
     </div>
-    <img id="photoPreview" class="preview-img">
+    <img id="photoPreview" class="preview-img" title="클릭 시 전체화면">
     <button id="btnExtractNewPhoto" type="button" class="btn-file-upload" style="background:#059669; width:100%; margin-top:8px; padding:8px; font-size:12px; display:none;" onclick="triggerNewPhotoOcr()">
       🔍 사진에서 Tag·기기정보 자동 추출 및 반영
     </button>
@@ -633,7 +626,7 @@
           <input type="file" id="initHistPhotoGallery" accept="image/*">
         </div>
       </div>
-      <img id="initHistPreview" class="preview-img">
+      <img id="initHistPreview" class="preview-img" title="클릭 시 전체화면">
     </div>
   </div>
   <div class="btn-wrap">
@@ -645,7 +638,7 @@
 <!-- 상세 정보 모달 -->
 <div id="info-modal">
   <h3 id="infoTitle">계측기 상세</h3>
-  <img id="infoMainImg" class="preview-img" style="margin-bottom:6px;">
+  <img id="infoMainImg" class="preview-img" style="margin-bottom:6px;" title="클릭 시 전체화면 확대">
   <div class="photo-btn-group" style="margin-bottom: 8px;">
     <div class="file-input-wrapper">
       <div class="btn-file-upload" style="padding: 7px; font-size: 11px;">📷 대표사진 촬영 (즉시교체)</div>
@@ -689,7 +682,7 @@
         <input type="file" id="editInstPhotoGallery" accept="image/*">
       </div>
     </div>
-    <img id="editInstPhotoPreview" class="preview-img">
+    <img id="editInstPhotoPreview" class="preview-img" title="클릭 시 전체화면">
   </div>
   <div class="form-group"><label>Tag No.</label><input type="text" id="editTagNo"></div>
   <div class="form-group"><label>기기명</label><input type="text" id="editName"></div>
@@ -740,12 +733,18 @@
         <input type="file" id="histPhotoGallery" accept="image/*">
       </div>
     </div>
-    <img id="histPhotoPreview" class="preview-img">
+    <img id="histPhotoPreview" class="preview-img" title="클릭 시 전체화면">
   </div>
   <div class="btn-wrap">
     <button class="btn-save" id="btnSaveHist">이력 저장</button>
     <button class="btn-cancel" onclick="document.getElementById('history-modal').style.display='none'">취소</button>
   </div>
+</div>
+
+<!-- 💡 사진 전체화면 확대 모달 (라이트박스) -->
+<div id="image-lightbox-modal" onclick="closeImageLightbox()">
+  <span class="lightbox-close-btn" onclick="closeImageLightbox()">✕</span>
+  <img id="lightbox-target-img" src="" alt="확대 사진" onclick="event.stopPropagation()">
 </div>
 
 <script>
@@ -801,6 +800,36 @@
     '7층':     { c1: { x: 132, y: 242 }, c4: { x: 569,  y: 855 } }
   };
 
+  // 💡 사진 전체화면 확대 열기/닫기 함수
+  window.openImageLightbox = function(imgSrc) {
+    if (!imgSrc) return;
+    const modal = document.getElementById('image-lightbox-modal');
+    const targetImg = document.getElementById('lightbox-target-img');
+    targetImg.src = imgSrc;
+    modal.style.display = 'flex';
+  };
+
+  window.closeImageLightbox = function() {
+    document.getElementById('image-lightbox-modal').style.display = 'none';
+  };
+
+  // 상세 창 대표 사진 클릭 시 전체화면 이벤트 바인딩
+  document.getElementById('infoMainImg').addEventListener('click', (e) => {
+    if (e.target.src) openImageLightbox(e.target.src);
+  });
+  document.getElementById('photoPreview').addEventListener('click', (e) => {
+    if (e.target.src) openImageLightbox(e.target.src);
+  });
+  document.getElementById('initHistPreview').addEventListener('click', (e) => {
+    if (e.target.src) openImageLightbox(e.target.src);
+  });
+  document.getElementById('editInstPhotoPreview').addEventListener('click', (e) => {
+    if (e.target.src) openImageLightbox(e.target.src);
+  });
+  document.getElementById('histPhotoPreview').addEventListener('click', (e) => {
+    if (e.target.src) openImageLightbox(e.target.src);
+  });
+
   function get3DCoordFrom2D(floor, cx, cy) {
     const h = floor3DHeights[floor] !== undefined ? floor3DHeights[floor] : 26;
     const bounds = floorCorners2D[floor] || floorCorners2D['1층'];
@@ -844,7 +873,6 @@
     return bytes.buffer;
   }
 
-  // 💡 File 객체 및 웹 URL 주소를 모두 지원하는 안전 캔버스 압축 변환기
   async function prepareImagePayloadForOcr(fileOrUrl) {
     if (typeof fileOrUrl === 'string') {
       return fileOrUrl;
@@ -1060,7 +1088,7 @@
     allLogs.forEach(log => {
       const tr = document.createElement('tr');
       const isEngine = log.category.includes('내연');
-      tr.innerHTML = `<td><span class="badge-category ${isEngine ? 'badge-engine' : 'badge-steam'}">${log.category}</span></td><td style="white-space: nowrap;">${log.date}</td><td style="font-weight: bold; color: #38bdf8; white-space: nowrap;">${log.tag_no}</td><td style="white-space: nowrap;">${log.name}</td><td style="white-space: nowrap;">${log.author}</td><td><div>${log.content}</div>${log.photo ? `<img src="${log.photo}" style="max-height: 45px; border-radius: 4px; margin-top: 4px; display: block;">` : ''}</td>`;
+      tr.innerHTML = `<td><span class="badge-category ${isEngine ? 'badge-engine' : 'badge-steam'}">${log.category}</span></td><td style="white-space: nowrap;">${log.date}</td><td style="font-weight: bold; color: #38bdf8; white-space: nowrap;">${log.tag_no}</td><td style="white-space: nowrap;">${log.name}</td><td style="white-space: nowrap;">${log.author}</td><td><div>${log.content}</div>${log.photo ? `<img src="${log.photo}" class="hist-img" style="max-height: 45px; border-radius: 4px; margin-top: 4px; display: block;" onclick="openImageLightbox('${log.photo}')">` : ''}</td>`;
       tbody.appendChild(tr);
     });
   };
@@ -1130,7 +1158,7 @@
     await fetchManuals();
   });
 
-    async function callGemini(userPrompt, extraContext = '', targetPhotos = []) {
+  async function callGemini(userPrompt, extraContext = '', targetPhotos = []) {
     appendAiMsg('user', userPrompt);
     appendAiMsg('bot', '⏳ 설비 데이터 및 교정 성적서 종합 분석 중...');
     let photosToSend = [...targetPhotos];
@@ -1147,7 +1175,6 @@
       if (!calibErr && calibList && calibList.length > 0) {
         const promptLower = userPrompt.toLowerCase();
         
-        // 질문과 관련된 Tag No, 기기명, 제작사, 모델명, 설치위치 필터링
         const matchedCalib = calibList.filter(c => {
           const tag = String(c["Tag No"] || c["tag_no"] || '').toLowerCase();
           const name = String(c["기기명"] || c["name"] || '').toLowerCase();
@@ -1186,7 +1213,6 @@
     // 💡 3. 연속 질문(맥락 파악) 지원: 직전 대화 기록(최근 6개)을 문맥으로 수집
     let chatHistoryContext = '';
     const chatMsgs = Array.from(document.querySelectorAll('#aiChatBox .ai-msg'));
-    // 마지막 질문과 '⏳' 응답을 제외한 직전 대화들을 수집
     const previousMsgs = chatMsgs.slice(0, -2).slice(-6);
     if (previousMsgs.length > 0) {
       chatHistoryContext = "💬 [직전 대화 내역 (연속 질의 맥락 파악용)]:\n" + previousMsgs.map(el => {
@@ -1195,7 +1221,7 @@
       }).join('\n');
     }
 
-    // 💡 4. 통합 컨텍스트 구성 (이전 대화 맥락 + 교정 10개 필드 + 도면 정보)
+    // 💡 4. 통합 컨텍스트 구성
     const enrichedContext = [chatHistoryContext, calibContext, dynamicContext].filter(Boolean).join('\n\n');
 
     // 💡 5. Supabase Edge Function 호출
@@ -1446,13 +1472,11 @@
 
       if (!parsed) throw new Error('데이터 파싱 실패: ' + replyText);
 
-      // 1. 명판 기본 정보
       const tagVal = parsed.tag_no || parsed.tag || parsed.Tag || '';
       const nameVal = parsed.name || parsed.device_name || parsed.equipment_name || '';
       const modelVal = parsed.model || parsed.model_name || parsed.device_model || '';
       const rangeVal = parsed.range || parsed.signal_range || parsed.measuring_range || '';
 
-      // 2. 디스플레이 상태 및 조치 가이드
       const displayStatus = parsed.status || parsed.display_text || parsed.lcd_text || parsed.error_code || '';
       const actionGuide = parsed.action_guide || parsed.guide || parsed.solution || parsed.recommendation || parsed.diagnosis || '';
 
@@ -1460,7 +1484,6 @@
       if (displayStatus) combinedContent += `[디스플레이 상태]: ${displayStatus}\n`;
       if (actionGuide) combinedContent += `[정비 조치 가이드]:\n${actionGuide}\n`;
 
-      // 3. 모달별 입력창 자동 바인딩
       if (targetMode === 'insert') {
         if (tagVal) document.getElementById('tagNo').value = tagVal;
         if (nameVal) document.getElementById('name').value = nameVal;
@@ -1781,14 +1804,10 @@
       btn.className = 'hotspot-pin';
       btn.slot = `hotspot-${item.id}`;
       btn.dataset.position = pos;
-      
       const img = item.photo_url || item.image_data;
       btn.style.backgroundImage = img ? `url(${img})` : 'none';
-
-      // 💡 Tag No를 완전히 빼고 간결하게 '1F', '6F' 형태로만 표시
       const floorLabel = (item.floor || '').replace('층', 'F');
       btn.innerHTML = `<span>${floorLabel}</span>`;
-
       btn.onclick = (e) => {
         e.stopPropagation();
         showDetail(item);
@@ -2276,7 +2295,8 @@
       btn.dataset.position = pos;
       const img = item.photo_url || item.image_data;
       btn.style.backgroundImage = img ? `url(${img})` : 'none';
-      btn.innerHTML = img ? `<span>${item.floor} (${item.tag_no})</span>` : `📍<span>${item.floor} (${item.tag_no})</span>`;
+      const floorLabel = (item.floor || '').replace('층', 'F');
+      btn.innerHTML = `<span>${floorLabel}</span>`;
       btn.onclick = (e) => {
         e.stopPropagation();
         showDetail(item);
@@ -2340,7 +2360,7 @@
           </div>
         </div>
         <div style="color:#111; font-weight:bold; font-size:12px; margin-top:2px; white-space: pre-line;">${h.content}</div>
-        ${h.photo ? `<img src="${h.photo}" class="hist-img">` : ''}
+        ${h.photo ? `<img src="${h.photo}" class="hist-img" title="클릭 시 전체화면 확대" onclick="openImageLightbox('${h.photo}')">` : ''}
       </div>
     `).join('');
   }
