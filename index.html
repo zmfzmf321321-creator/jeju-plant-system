@@ -19,7 +19,6 @@
       user-select: auto !important; -webkit-user-select: auto !important; pointer-events: auto !important; cursor: pointer;
     }
     
-    /* 인증 오버레이 */
     #auth-overlay {
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       background: #0b132b; display: flex; align-items: center; justify-content: center;
@@ -73,7 +72,6 @@
     .auth-status-error { color: #ef4444; font-size: 12px; margin-top: 10px; display: none; line-height: 1.4; }
     #admin-login-box, #register-box { display: none; }
 
-    /* 헤더 */
     #header {
       position: fixed; top: 0; left: 0; width: 100vw; height: 52px; background: #1c2541;
       display: flex; align-items: center; justify-content: space-between; padding: 0 10px;
@@ -96,7 +94,6 @@
     .btn-bio-reg { background: #065f46; border: 1px solid #10b981; color: #a7f3d0; }
     .btn-logout { background: transparent; border: 1px solid #64748b; color: #cbd5e1; font-size: 13px; padding: 5px 7px; }
 
-    /* 3단계 네비게이션 바 (108px) */
     #unit-selector-bar {
       position: fixed; top: 52px; left: 0; width: 100vw; height: 108px; background: #0f172a;
       border-bottom: 2px solid #3a506b; display: flex; flex-direction: column; justify-content: center;
@@ -131,7 +128,6 @@
       background: #10b981; color: #fff; border-color: #34d399; box-shadow: 0 0 8px rgba(16, 185, 129, 0.7);
     }
 
-    /* 계측 HUD */
     #measure-info-hud {
       display: none; position: absolute; top: 166px; left: 50%; transform: translateX(-50%);
       background: rgba(15, 23, 42, 0.96); border: 2px solid #f59e0b; padding: 9px 18px;
@@ -140,7 +136,6 @@
       max-width: 92vw; white-space: normal; line-height: 1.4;
     }
 
-    /* 뷰포트 영역 */
     #main-viewport {
       position: fixed; top: 160px; bottom: 65px; left: 0; width: 100vw;
       background: radial-gradient(circle at center, #1b2838 0%, #080d1a 100%);
@@ -156,7 +151,6 @@
       color: #64748b; font-size: 14px; text-align: center; line-height: 1.6;
     }
 
-    /* 관리이력 테이블 */
     #history-table-view {
       display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0;
       background: #080d1a; z-index: 50; overflow-y: auto; padding: 12px;
@@ -181,7 +175,6 @@
     .badge-steam { background: #0284c7; color: #fff; }
     .badge-engine { background: #d97706; color: #fff; }
 
-    /* 3D 핫스팟 핀 (18px 축소 및 간결 층수 표기) */
     .hotspot-pin {
       background: #00b4d8; border: 1.5px solid #ffffff; border-radius: 50%; width: 18px; height: 18px;
       display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold;
@@ -196,7 +189,6 @@
       pointer-events: none;
     }
 
-    /* 계측 마커 및 라인 */
     #temp-measure-marker {
       background: #ef4444; border: 2px solid #ffffff; border-radius: 50%; width: 18px; height: 18px;
       transform: translate(-50%, -50%); box-shadow: 0 0 12px #ef4444; pointer-events: none;
@@ -226,7 +218,6 @@
       pointer-events: none; z-index: 98; box-shadow: 0 0 8px rgba(245, 158, 11, 0.7);
     }
 
-    /* 2D 도면 캔버스 */
     #floor-room-view {
       display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0;
       background: #080d1a; touch-action: none;
@@ -248,7 +239,6 @@
       background: rgba(15, 23, 42, 0.9); padding: 12px 20px; border-radius: 8px; border: 1px dashed #334155;
     }
     
-    /* 2D 도면 핀 */
     .floor-inst-pin {
       position: absolute; width: 36px; height: 36px; border-radius: 50%; background: #00b4d8;
       border: 2px solid #ffffff; box-shadow: 0 0 14px rgba(0, 180, 216, 1);
@@ -285,7 +275,6 @@
       box-shadow: 0 4px 12px rgba(0,0,0,0.5);
     }
 
-    /* 하단 층수 바 */
     #floor-bar {
       position: fixed; bottom: 0; left: 0; width: 100vw; height: 65px; background: #111a33;
       border-top: 2px solid #3a506b; display: flex; align-items: center; padding: 0 10px; gap: 6px;
@@ -299,7 +288,6 @@
     }
     .floor-btn.active { background: #00b4d8; color: #0b132b; border-color: #90e0ef; }
 
-    /* 모달 공통 */
     #modal, #info-modal, #history-modal, #search-modal, #gemini-modal, #ocr-edit-modal, #edit-inst-modal, #edit-calib-modal {
       display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
       background: #ffffff; padding: 20px; border-radius: 12px; z-index: 9999999;
@@ -336,7 +324,6 @@
     .btn-save { background: #0077b6; color: #fff; }
     .btn-cancel { background: #e2e8f0; color: #475569; }
 
-    /* 이력 관리 섹션 */
     .history-section { margin-top: 12px; padding-top: 10px; border-top: 1px dashed #cbd5e1; }
     .history-title { font-size: 13px; font-weight: bold; color: #0284c7; margin-bottom: 8px; }
     .history-list { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
@@ -360,7 +347,6 @@
       color: #fff; font-size: 12px; font-weight: bold; cursor: pointer;
     }
 
-    /* 검색창 */
     .search-input-box {
       width: 100%; padding: 10px 12px; border: 2px solid #00b4d8; border-radius: 8px;
       font-size: 14px; outline: none; margin-bottom: 12px;
@@ -375,7 +361,6 @@
     .search-item-sub { font-size: 11px; color: #64748b; margin-top: 2px; }
     .search-item-badge { background: #0284c7; color: #fff; padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; white-space: nowrap; }
 
-    /* AI 대화창 */
     .ai-chat-box {
       height: 250px; overflow-y: auto; background: #f8fafc; border: 1px solid #e2e8f0;
       border-radius: 8px; padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px;
@@ -387,7 +372,6 @@
     .ai-input-wrap input { flex: 1; padding: 9px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; }
     .btn-ai-send { background: #6366f1; color: #fff; border: none; padding: 0 14px; border-radius: 6px; font-weight: bold; }
 
-    /* 이미지 라이트박스 */
     #image-lightbox-modal {
       display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       background: rgba(0, 0, 0, 0.93); z-index: 99999999;
@@ -460,15 +444,12 @@
   </div>
 </div>
 
-<!-- 💡 3단계 계층 네비게이션 -->
 <div id="unit-selector-bar">
-  <!-- 1단: 대분류 -->
   <div class="selector-row">
     <button class="major-tab-btn active" id="btn-major-steam" onclick="switchMajor('기력')">⚡ 기력 발전</button>
     <button class="major-tab-btn" id="btn-major-engine" onclick="switchMajor('내연')">🔥 내연 발전</button>
   </div>
   
-  <!-- 2단: 기력 하위 설비군 -->
   <div class="selector-row" id="sub-tabs-steam">
     <button class="sub-tab-btn active" id="sub-steam-2" onclick="switchSubTab('2호기')">2호기</button>
     <button class="sub-tab-btn" id="sub-steam-3" onclick="switchSubTab('3호기')">3호기</button>
@@ -477,14 +458,12 @@
     <button class="sub-tab-btn" id="sub-steam-hist" onclick="switchSubTab('관리이력')">📋 관리이력</button>
   </div>
   
-  <!-- 2단: 내연 하위 설비군 -->
   <div class="selector-row" id="sub-tabs-engine" style="display: none;">
     <button class="sub-tab-btn active" id="sub-engine-1" onclick="switchSubTab('1호기')">1호기</button>
     <button class="sub-tab-btn" id="sub-engine-2" onclick="switchSubTab('2호기')">2호기</button>
     <button class="sub-tab-btn" id="sub-engine-hist" onclick="switchSubTab('관리이력')">📋 관리이력</button>
   </div>
 
-  <!-- 3단: 2호기/3호기 세부 구분 (보일러 / 탈질) -->
   <div class="selector-row" id="section-selector-row">
     <button class="sec-tab-btn active" id="sec-boiler" onclick="switchSection('보일러')">🏭 보일러</button>
     <button class="sec-tab-btn" id="sec-am" onclick="switchSection('탈질')">🌿 탈질설비 (AM)</button>
@@ -705,6 +684,7 @@
   </div>
   <div class="form-group"><label>Tag No.</label><input type="text" id="editTagNo"></div>
   <div class="form-group"><label>기기명</label><input type="text" id="editName"></div>
+  <div class="form-group"><label>도면 층 (예: 6층, 1층, IDF)</label><input type="text" id="editFloor"></div>
   <div class="form-group"><label>모델명</label><input type="text" id="editModel"></div>
   <div class="form-group"><label>측정범위 / 신호</label><input type="text" id="editRange"></div>
   <div class="btn-wrap">
@@ -780,7 +760,6 @@
   </div>
 </div>
 
-<!-- 사진 전체화면 확대 모달 (라이트박스) -->
 <div id="image-lightbox-modal" onclick="closeImageLightbox()">
   <span class="lightbox-close-btn" onclick="closeImageLightbox()">✕</span>
   <img id="lightbox-target-img" src="" alt="확대 사진" onclick="event.stopPropagation()">
@@ -798,7 +777,7 @@
 
   let selectedMajor = '기력';
   let selectedSubTab = '2호기';
-  let selectedSection = '보일러'; // 보일러 or 탈질
+  let selectedSection = '보일러';
   let selectedFloor = 'ALL';
   let activeTargetId = null;
   let activeCalibRecord = null;
@@ -820,14 +799,12 @@
   let initialPinchDist = 0;
   let initialScale = 0.65;
 
-  /* 3D 층고 기준 좌표계 */
   const floor3DHeights = {
     'IDF': 5.00, '1층': 8.14, '2층': 11.50, '2.5층': 14.50, '3층': 17.50,
     '3.1/3층': 20.50, '3.2/3층': 23.50, '4층': 26.50, '4.5층': 29.50,
     '5층': 32.50, '5.5층': 35.50, '6층': 38.50, '7층': 44.80
   };
 
-  /* 2D 도면 4각 모서리 캘리브레이션 맵 (3D 입체 투영 정밀 산출용) */
   const floorCorners2D = {
     'IDF':     { c1: { x: 300, y: 200 }, c4: { x: 1100, y: 900 } },
     '1층':     { c1: { x: 397, y: 216 }, c4: { x: 1118, y: 928 } },
@@ -844,7 +821,25 @@
     '7층':     { c1: { x: 132, y: 242 }, c4: { x: 569,  y: 855 } }
   };
 
-  /* 라이트박스 뷰어 함수 */
+  /* 💡 층수 명칭 완벽 정규화 함수 (어떤 형태로 입력되어 있어도 시스템 표준으로 변환) */
+  function normalizeFloor(floorStr) {
+    if (!floorStr) return '6층';
+    let s = String(floorStr).trim();
+    if (s.includes('IDF')) return 'IDF';
+    if (s.includes('암모니아') || s.includes('탱크')) return '암모니아 탱크 구역';
+    if (s.includes('연료')) return '연료펌프 1층';
+    if (s.includes('탈질')) {
+      if (s.includes('3.1/3')) return '탈질 3.1/3층';
+      if (s.includes('4.5')) return '탈질 4.5층';
+      if (s.includes('3')) return '탈질 3층';
+      return '탈질 1층';
+    }
+    // 일반 층수 처리 ('6', '6F', '6f', '6층' -> '6층')
+    s = s.replace(/f$/i, '').trim();
+    if (!s.endsWith('층')) s += '층';
+    return s;
+  }
+
   window.openImageLightbox = function(imgSrc) {
     if (!imgSrc) return;
     const modal = document.getElementById('image-lightbox-modal');
@@ -873,10 +868,10 @@
     if (e.target.src) openImageLightbox(e.target.src);
   });
 
-  /* 2D 도면 좌표를 3D 공간 좌표로 역변환 */
   function get3DCoordFrom2D(floor, cx, cy) {
-    const h = floor3DHeights[floor] !== undefined ? floor3DHeights[floor] : 26;
-    const bounds = floorCorners2D[floor] || floorCorners2D['1층'];
+    const validFloor = normalizeFloor(floor);
+    const h = floor3DHeights[validFloor] !== undefined ? floor3DHeights[validFloor] : 26;
+    const bounds = floorCorners2D[validFloor] || floorCorners2D['1층'];
     const u = (cx - bounds.c1.x) / (bounds.c4.x - bounds.c1.x || 1);
     const v = (cy - bounds.c1.y) / (bounds.c4.y - bounds.c1.y || 1);
     const x3d = 19.96 + (u * (30.93 - 19.96)) + (v * (1.65 - 19.96));
@@ -884,7 +879,6 @@
     return { x3d, y3d: h, z3d };
   }
 
-  /* Supabase 스토리지 이미지 업로드 */
   async function uploadImageToStorage(file) {
     if (!file) return null;
     try {
@@ -918,7 +912,6 @@
     return bytes.buffer;
   }
 
-  /* OCR 전송용 이미지 안전 압축 변환 (URL / File 동시 지원) */
   async function prepareImagePayloadForOcr(fileOrUrl) {
     if (typeof fileOrUrl === 'string') {
       return fileOrUrl;
@@ -955,7 +948,6 @@
     });
   }
 
-  /* 생체인증 등록 및 로그인 */
   async function registerBiometrics(isAdmin = false) {
     if (!window.PublicKeyCredential) {
       alert('⚠️ 현재 브라우저 환경에서 생체인증을 지원하지 않습니다.');
@@ -1041,7 +1033,6 @@
     registerBiometrics(sessionStorage.getItem('jeju_admin_auth') === 'true');
   });
 
-  /* 💡 1단 네비게이션: 대분류 (기력 / 내연) */
   window.switchMajor = function(major) {
     selectedMajor = major;
     measurePoints = [];
@@ -1060,7 +1051,6 @@
     }
   };
 
-  /* 💡 2단 네비게이션: 기력 / 내연 하위 설비군 */
   window.switchSubTab = function(sub) {
     selectedSubTab = sub;
     measurePoints = [];
@@ -1115,7 +1105,6 @@
     updateFloorTitle();
   };
 
-  /* 💡 3단 네비게이션: 보일러 / 탈질 (AM) */
   window.switchSection = function(section) {
     selectedSection = section;
     document.getElementById('sec-boiler').classList.toggle('active', section === '보일러');
@@ -1130,7 +1119,6 @@
     updateFloorTitle();
   };
 
-  /* 💡 하단 층수 바 동적 구성 (IDF를 1층 앞에 배치) */
   function renderFloorBar() {
     const bar = document.getElementById('floor-bar');
     bar.innerHTML = '';
@@ -1285,7 +1273,6 @@
     await fetchManuals();
   });
 
-  /* 💡 Gemini 연속 대화 및 교정 성적서 10개 필드 연동 */
   async function callGemini(userPrompt, extraContext = '', targetPhotos = []) {
     appendAiMsg('user', userPrompt);
     appendAiMsg('bot', '⏳ 설비 데이터 및 교정 성적서 종합 분석 중...');
@@ -1422,6 +1409,7 @@
     if (!target) return;
     document.getElementById('editTagNo').value = target.tag_no || '';
     document.getElementById('editName').value = target.name || '';
+    document.getElementById('editFloor').value = target.floor || '6층';
     document.getElementById('editModel').value = target.model || '';
     document.getElementById('editRange').value = target.signal_range || '';
     pendingEditInstPhotoFile = null;
@@ -1438,7 +1426,6 @@
     document.getElementById('edit-inst-modal').style.display = 'block';
   };
 
-  /* 💡 교정 성적서 수정 모달 열기 */
   window.openCalibEditModal = async function() {
     const target = currentInstruments.find(i => i.id === activeTargetId);
     if (!target) return;
@@ -1479,7 +1466,6 @@
     document.getElementById('edit-calib-modal').style.display = 'block';
   };
 
-  /* 💡 교정 성적서 Supabase UPDATE 저장 */
   document.getElementById('btnSaveCalibData').addEventListener('click', async () => {
     const tagNo = document.getElementById('calibTagNo').value.trim();
     if (!tagNo) {
@@ -1539,6 +1525,7 @@
     if (!target) return;
     const newTag = document.getElementById('editTagNo').value.trim();
     const newName = document.getElementById('editName').value.trim();
+    const newFloor = normalizeFloor(document.getElementById('editFloor').value.trim());
     const newModel = document.getElementById('editModel').value.trim();
     const newRange = document.getElementById('editRange').value.trim();
     if (!newTag || !newName) {
@@ -1554,6 +1541,7 @@
     const updateFields = {
       tag_no: newTag,
       name: newName,
+      floor: newFloor,
       model: newModel,
       signal_range: newRange,
       photo_url: photoUrl,
@@ -1998,35 +1986,15 @@
     }
   });
 
-  function render3DHotspots() {
-    viewer.querySelectorAll('.hotspot-pin').forEach(el => el.remove());
-    if (selectedSection !== '보일러') return;
-
-    currentInstruments.forEach(item => {
-      if (item.unit !== selectedSubTab) return;
-      let pos = item.model_position;
-      if (!pos || pos === '0 0 0') {
-        const h = floor3DHeights[item.floor] !== undefined ? floor3DHeights[item.floor] : 26;
-        const bounds = floorCorners2D[item.floor] || floorCorners2D['1층'];
-        const u = (item.coord_x - bounds.c1.x) / (bounds.c4.x - bounds.c1.x || 1);
-        const v = (item.coord_y - bounds.c1.y) / (bounds.c4.y - bounds.c1.y || 1);
-        const x3d = 19.96 + (u * (30.93 - 19.96)) + (v * (1.65 - 19.96));
-        const z3d = -11.43 + (u * (6.89 - (-11.43))) + (v * (-0.47 - (-11.43)));
-        pos = `${x3d.toFixed(2)} ${h} ${z3d.toFixed(2)}`;
-      }
-      const btn = document.createElement('button');
-      btn.className = 'hotspot-pin';
-      btn.slot = `hotspot-${item.id}`;
-      btn.dataset.position = pos;
-      const img = item.photo_url || item.image_data;
-      btn.style.backgroundImage = img ? `url(${img})` : 'none';
-      const floorLabel = (item.floor || '').replace('층', 'F');
-      btn.innerHTML = `<span>${floorLabel}</span>`;
-      btn.onclick = (e) => {
-        e.stopPropagation();
-        showDetail(item);
-      };
-      viewer.appendChild(btn);
+  function renderMeasureVisuals3D() {
+    viewer.querySelectorAll('.measure-marker-3d').forEach(e => e.remove());
+    measurePoints.forEach((p) => {
+      const marker = document.createElement('button');
+      marker.className = 'measure-marker-3d';
+      marker.slot = `hotspot-measure-${p.idx}`;
+      marker.dataset.position = `${p.x3d} ${p.y3d} ${p.z3d}`;
+      marker.innerText = `${p.idx}`;
+      viewer.appendChild(marker);
     });
   }
 
@@ -2108,7 +2076,7 @@
   }
 
   window.openFloorRoom = function(floor, imgFile, btn) {
-    selectedFloor = floor;
+    selectedFloor = normalizeFloor(floor);
     document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
     if (btn) btn.classList.add('active');
     document.getElementById('overall-3d-view').style.display = 'none';
@@ -2162,7 +2130,6 @@
     updateTransform();
   };
 
-  /* 캔버스 드래그 및 핀치 줌 인터랙션 */
   canvasWrap.addEventListener('touchstart', (e) => {
     if (e.target.closest('.floor-inst-pin')) return;
     if (e.touches.length === 1) {
@@ -2219,7 +2186,6 @@
     zoomCanvas(e.deltaY < 0 ? 0.15 : -0.15);
   }, { passive: false });
 
-  /* 도면 클릭 시 신규 등록 또는 계측 */
   board.addEventListener('click', (e) => {
     if (e.target.closest('.floor-inst-pin')) return;
     const rect = board.getBoundingClientRect();
@@ -2320,7 +2286,7 @@
       name: name,
       model: document.getElementById('model').value.trim() || 'EMPTY',
       signal_range: document.getElementById('range').value.trim() || 'EMPTY',
-      floor: selectedFloor,
+      floor: normalizeFloor(selectedFloor),
       unit: targetUnit,
       major_category: selectedMajor,
       coord_x: clickedFloorCoord.x,
@@ -2348,11 +2314,12 @@
     }
   });
 
+  /* 💡 층수 및 설비 정보 정규화 로직이 적용된 fetchInstruments */
   async function fetchInstruments() {
     const { data, error } = await supabaseClient.from('instruments').select('*');
     if (!error) {
       currentInstruments = (data || []).map(item => {
-        let f = item.floor;
+        let f = normalizeFloor(item.floor);
         let u = item.unit || '2호기';
         let major = item.major_category || '기력';
         if (typeof u === 'string' && u.includes('_') && !u.includes('탈질')) {
@@ -2381,7 +2348,6 @@
     }
   }
 
-  /* 💡 2D 도면 핀 렌더링 및 1초 롱프레스 이동/터치 조회 복원 */
   function renderFloorPins() {
     board.querySelectorAll('.floor-inst-pin').forEach(el => el.remove());
     
@@ -2500,6 +2466,39 @@
       pin.addEventListener('pointerup', handlePointerUp);
       pin.addEventListener('pointercancel', handlePointerUp);
       board.appendChild(pin);
+    });
+  }
+
+  function render3DHotspots() {
+    viewer.querySelectorAll('.hotspot-pin').forEach(el => el.remove());
+    if (selectedSection !== '보일러') return;
+
+    currentInstruments.forEach(item => {
+      if (item.unit !== selectedSubTab) return;
+      let pos = item.model_position;
+      if (!pos || pos === '0 0 0') {
+        const floorKey = normalizeFloor(item.floor);
+        const h = floor3DHeights[floorKey] !== undefined ? floor3DHeights[floorKey] : 26;
+        const bounds = floorCorners2D[floorKey] || floorCorners2D['1층'];
+        const u = (item.coord_x - bounds.c1.x) / (bounds.c4.x - bounds.c1.x || 1);
+        const v = (item.coord_y - bounds.c1.y) / (bounds.c4.y - bounds.c1.y || 1);
+        const x3d = 19.96 + (u * (30.93 - 19.96)) + (v * (1.65 - 19.96));
+        const z3d = -11.43 + (u * (6.89 - (-11.43))) + (v * (-0.47 - (-11.43)));
+        pos = `${x3d.toFixed(2)} ${h} ${z3d.toFixed(2)}`;
+      }
+      const btn = document.createElement('button');
+      btn.className = 'hotspot-pin';
+      btn.slot = `hotspot-${item.id}`;
+      btn.dataset.position = pos;
+      const img = item.photo_url || item.image_data;
+      btn.style.backgroundImage = img ? `url(${img})` : 'none';
+      const floorLabel = (item.floor || '').replace('층', 'F');
+      btn.innerHTML = `<span>${floorLabel}</span>`;
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        showDetail(item);
+      };
+      viewer.appendChild(btn);
     });
   }
 
@@ -2704,7 +2703,8 @@
       '암모니아 탱크 구역': 'am_tank_floor.jpg', '연료펌프 1층': 'fuel_floor_1f.jpg'
     };
 
-    openFloorRoom(item.floor, floorFileNameMap[item.floor] || 'floor_1f.jpg', null);
+    const targetFloor = normalizeFloor(item.floor);
+    openFloorRoom(targetFloor, floorFileNameMap[targetFloor] || 'floor_1f.jpg', null);
     scale = 1.0;
     panX = (700 - item.coord_x) * scale;
     panY = (500 - item.coord_y) * scale;
