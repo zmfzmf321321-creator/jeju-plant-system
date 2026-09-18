@@ -235,9 +235,11 @@
     .todo-item {
       display: flex; align-items: flex-start; gap: 10px; padding: 12px;
       background: #0f172a; border: 1px solid #334155; border-radius: 9px;
-      transition: opacity 0.2s ease, transform 0.2s ease;
+      transition: background 0.2s ease, border-color 0.2s ease;
     }
-    .todo-item.completing { opacity: 0; transform: translateX(14px); }
+    .todo-item.completed { background: #111827; border-color: #263449; }
+    .todo-item.completed .todo-text { color: #64748b; text-decoration: line-through; text-decoration-thickness: 2px; }
+    .todo-item.completed .todo-meta { color: #475569; }
     .todo-checkbox {
       width: 22px; height: 22px; margin: 0; flex-shrink: 0; accent-color: #10b981; cursor: pointer;
     }
@@ -652,7 +654,7 @@
   <div id="todo-management-view">
     <div class="todo-panel">
       <div class="todo-title" id="todoManagementTitle">☑ [기력발전] To Do List</div>
-      <div class="todo-desc">할 일을 입력해 추가하세요. 완료한 항목의 체크박스를 누르면 목록에서 사라집니다.</div>
+      <div class="todo-desc">완료한 항목을 체크하면 취소선이 표시됩니다. 체크를 풀면 다시 할 일로 돌아옵니다.</div>
       <form class="todo-add-form" id="todoAddForm">
         <input id="todoTaskInput" class="todo-input" type="text" maxlength="300" placeholder="할 일을 입력하세요" autocomplete="off">
         <button id="btnAddTodo" class="todo-add-btn" type="submit">추가</button>
@@ -1204,19 +1206,21 @@
     if (!records.length) {
       const empty = document.createElement('div');
       empty.className = 'todo-empty';
-      empty.textContent = `[${selectedMajor}발전]에 남아 있는 할 일이 없습니다.`;
+      empty.textContent = `[${selectedMajor}발전]에 등록된 할 일이 없습니다.`;
       list.appendChild(empty);
       return;
     }
 
     records.forEach(record => {
       const item = document.createElement('div');
-      item.className = 'todo-item';
+      const isCompleted = Boolean(record.completed_at);
+      item.className = `todo-item${isCompleted ? ' completed' : ''}`;
 
       const checkbox = document.createElement('input');
       checkbox.type = 'checkbox';
       checkbox.className = 'todo-checkbox';
-      checkbox.setAttribute('aria-label', `${record.task_text} 완료`);
+      checkbox.checked = isCompleted;
+      checkbox.setAttribute('aria-label', `${record.task_text} ${isCompleted ? '완료 취소' : '완료'}`);
 
       const content = document.createElement('div');
       content.className = 'todo-content';
@@ -1227,20 +1231,20 @@
       meta.className = 'todo-meta';
       const creator = record.created_by_name || '작업자';
       const date = formatTodoDate(record.created_at);
-      meta.textContent = [creator, date].filter(Boolean).join(' · ');
+      meta.textContent = [creator, date, isCompleted ? '완료' : ''].filter(Boolean).join(' · ');
       content.append(task, meta);
       item.append(checkbox, content);
       list.appendChild(item);
 
       checkbox.addEventListener('change', async () => {
-        if (!checkbox.checked) return;
+        const willComplete = checkbox.checked;
         checkbox.disabled = true;
-        setTodoStatus('완료 처리하는 중입니다.');
+        setTodoStatus(willComplete ? '완료 처리하는 중입니다.' : '할 일로 되돌리는 중입니다.');
 
         const { data: authData } = await supabaseClient.auth.getUser();
         const user = authData?.user;
         if (!user) {
-          checkbox.checked = false;
+          checkbox.checked = isCompleted;
           checkbox.disabled = false;
           setTodoStatus('로그인 상태를 확인해 주세요.', 'error');
           return;
@@ -1248,22 +1252,23 @@
 
         const { data, error } = await supabaseClient
           .from('maintenance_todos')
-          .update({ completed_at: new Date().toISOString(), completed_by: user.id })
+          .update({
+            completed_at: willComplete ? new Date().toISOString() : null,
+            completed_by: willComplete ? user.id : null
+          })
           .eq('id', record.id)
-          .is('completed_at', null)
           .select('id');
 
         if (error || !data?.length) {
           console.error('할 일 완료 처리 오류:', error);
-          checkbox.checked = false;
+          checkbox.checked = isCompleted;
           checkbox.disabled = false;
-          setTodoStatus('완료 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.', 'error');
+          setTodoStatus('상태를 변경하지 못했습니다. 잠시 후 다시 시도해 주세요.', 'error');
           return;
         }
 
-        item.classList.add('completing');
-        setTodoStatus('완료된 할 일을 목록에서 지웠습니다.', 'success');
-        window.setTimeout(() => loadTodos(), 220);
+        await loadTodos();
+        setTodoStatus(willComplete ? '완료 항목에 취소선을 표시했습니다.' : '다시 할 일로 되돌렸습니다.', 'success');
       });
     });
   }
@@ -1279,9 +1284,8 @@
 
     const { data, error } = await supabaseClient
       .from('maintenance_todos')
-      .select('id, task_text, created_by_name, created_at')
+      .select('id, task_text, created_by_name, created_at, completed_at')
       .eq('major_category', selectedMajor)
-      .is('completed_at', null)
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -1291,8 +1295,15 @@
       return;
     }
 
-    renderTodos(data || []);
-    setTodoStatus(`남은 할 일 ${(data || []).length}개`);
+    const records = data || [];
+    records.sort((a, b) => {
+      const completedOrder = Number(Boolean(a.completed_at)) - Number(Boolean(b.completed_at));
+      if (completedOrder !== 0) return completedOrder;
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    });
+    renderTodos(records);
+    const remainingCount = records.filter(record => !record.completed_at).length;
+    setTodoStatus(`남은 할 일 ${remainingCount}개 · 완료 ${records.length - remainingCount}개`);
   }
 
   document.getElementById('todoAddForm').addEventListener('submit', async (event) => {
