@@ -544,6 +544,185 @@
       font-weight: bold; cursor: pointer; z-index: 10; padding: 6px 12px;
       background: rgba(15, 23, 42, 0.7); border-radius: 50%; border: 1px solid #475569;
     }
+
+    /* 2026 UI refresh: 기능은 유지하고 탐색·업무·보조도구의 위계를 분리 */
+    :root {
+      --app-bg: #07101f;
+      --surface: #0e1a2e;
+      --surface-raised: #142238;
+      --surface-soft: #0a1425;
+      --line: #26364f;
+      --line-strong: #38506f;
+      --text: #edf4ff;
+      --muted: #8fa2bd;
+      --primary: #35b9e7;
+      --primary-deep: #087ca8;
+      --success: #24b47e;
+      --header-h: 60px;
+      --nav-h: 116px;
+      --floor-h: 62px;
+    }
+    html, body { background: var(--app-bg); color: var(--text); }
+    button, input, textarea, select { font: inherit; }
+    button { transition: background .18s ease, border-color .18s ease, color .18s ease, transform .12s ease; }
+    button:active { transform: translateY(1px); }
+    button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+      outline: 2px solid var(--primary); outline-offset: 2px;
+    }
+
+    #header {
+      height: var(--header-h); padding: 0 14px; gap: 14px;
+      background: rgba(10, 20, 37, .96); border-bottom: 1px solid var(--line);
+      box-shadow: 0 8px 28px rgba(0, 0, 0, .2); backdrop-filter: blur(14px);
+    }
+    .brand { min-width: 0; gap: 9px; font-size: 14px; letter-spacing: -.2px; }
+    .brand-name { color: var(--text); white-space: nowrap; }
+    .location-tag {
+      max-width: 260px; padding: 4px 9px; border: 1px solid rgba(53,185,231,.28);
+      background: rgba(53,185,231,.1); color: #8bdef7; border-radius: 999px;
+      font-size: 11px; font-weight: 700;
+    }
+    .header-btns { max-width: none; margin-left: auto; gap: 7px; padding: 0; }
+    .header-btns button {
+      min-height: 34px; padding: 0 10px; border-radius: 9px; font-size: 11px;
+      background: var(--surface-raised); border: 1px solid var(--line); color: #c9d7e9;
+      box-shadow: none;
+    }
+    .header-btns button:hover { background: #1a2c47; border-color: var(--line-strong); color: #fff; }
+    .header-btns .btn-ai-top { background: rgba(99,102,241,.16); border-color: rgba(129,140,248,.4); color: #c7d2fe; }
+    .header-btns .btn-search-top { background: rgba(14,165,233,.14); border-color: rgba(56,189,248,.35); color: #bae6fd; }
+    .header-btns .btn-measure.active { background: #d97706; border-color: #fbbf24; color: #fff; }
+    .header-btns .btn-logout { background: transparent; color: #91a3ba; }
+    #loginUserBadge {
+      display: inline-flex; align-items: center; min-height: 30px; padding: 0 9px;
+      margin-right: 2px !important; border-radius: 999px; background: var(--surface-soft);
+      border: 1px solid var(--line); color: #8bdef7 !important;
+    }
+
+    #unit-selector-bar {
+      top: var(--header-h); height: var(--nav-h); padding: 8px 10px; gap: 7px;
+      justify-content: flex-start; background: rgba(12, 23, 41, .98);
+      border-bottom: 1px solid var(--line); box-shadow: 0 8px 24px rgba(0,0,0,.2);
+    }
+    .nav-kicker { display: none; color: #6f849f; font-size: 10px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+    .selector-row { gap: 6px; min-height: 27px; }
+    .major-tab-btn {
+      height: 30px; min-width: 128px; border-radius: 8px; background: var(--surface-raised);
+      border-color: var(--line); color: #aebed2; box-shadow: none;
+    }
+    .major-tab-btn.active {
+      background: #0a769e; border-color: #35b9e7; color: #fff;
+      box-shadow: 0 4px 14px rgba(8,124,168,.28);
+    }
+    .sub-tab-btn {
+      height: 30px; padding: 0 11px; border-radius: 8px; background: transparent;
+      border-color: var(--line); color: #93a6bd; box-shadow: none;
+    }
+    .sub-tab-btn:hover { color: #e5f3ff; border-color: var(--line-strong); background: rgba(255,255,255,.035); }
+    .sub-tab-btn.active {
+      background: rgba(53,185,231,.14); color: #8bdef7; border-color: rgba(53,185,231,.6);
+      box-shadow: none;
+    }
+    .sub-tab-btn.nav-work { border-style: dashed; }
+    .sec-tab-btn {
+      height: 27px; border-radius: 7px; background: transparent; border-color: var(--line); color: #8fa2bd;
+    }
+    .sec-tab-btn.active { background: rgba(36,180,126,.13); border-color: #24b47e; color: #8ce4c1; box-shadow: none; }
+
+    #main-viewport {
+      top: calc(var(--header-h) + var(--nav-h)); bottom: var(--floor-h);
+      background: radial-gradient(circle at 50% 35%, #17263a 0%, #07101f 68%);
+    }
+    #measure-info-hud { top: calc(var(--header-h) + var(--nav-h) + 9px); }
+    #floor-bar {
+      height: var(--floor-h); padding: 8px 12px; gap: 7px; background: rgba(10,20,37,.97);
+      border-top: 1px solid var(--line); box-shadow: 0 -8px 24px rgba(0,0,0,.18);
+    }
+    .floor-btn {
+      height: 42px; min-width: 60px; border-radius: 9px; background: var(--surface-raised);
+      border-color: var(--line); color: #91a3ba;
+    }
+    .floor-btn.active { background: #0a769e; border-color: var(--primary); color: #fff; }
+
+    #history-table-view, #logic-management-view, #todo-management-view, #materials-management-view {
+      background: var(--app-bg); padding: 24px;
+    }
+    .logic-management-panel, .todo-panel, .materials-panel {
+      background: transparent; border: 0; box-shadow: none; padding: 0; border-radius: 0;
+    }
+    .logic-management-panel, .materials-panel { max-width: 1080px; }
+    .todo-panel { max-width: 760px; }
+    .logic-management-title, .todo-title, .materials-title, .history-table-title {
+      color: var(--text); font-size: 19px; letter-spacing: -.35px;
+    }
+    .logic-management-desc, .todo-desc, .materials-desc { color: var(--muted); }
+    .logic-form-grid, .materials-form, .todo-add-form {
+      background: var(--surface-soft); border-color: var(--line); border-radius: 12px;
+    }
+    .todo-add-form { padding: 10px; }
+    .logic-input, .materials-input, .todo-input, .materials-search, .history-search-bar {
+      background: #07101f; border-color: var(--line-strong); color: var(--text); border-radius: 8px;
+    }
+    .todo-item, .material-item { background: var(--surface); border-color: var(--line); border-radius: 11px; }
+    .todo-item:hover, .material-item:hover { border-color: var(--line-strong); background: #111f34; }
+    .logic-table-wrap { border-color: var(--line); border-radius: 11px; }
+    .logic-table th, .custom-history-table th { background: var(--surface-raised); color: #8bdef7; }
+    .custom-history-table td, .logic-table td { border-color: var(--line); }
+
+    #modal, #info-modal, #history-modal, #search-modal, #gemini-modal, #ocr-edit-modal, #edit-inst-modal, #edit-calib-modal {
+      border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 24px 70px rgba(0,0,0,.56);
+    }
+
+    @media (min-width: 900px) {
+      :root { --side-w: 208px; --nav-h: 0px; }
+      #unit-selector-bar {
+        top: var(--header-h); left: 0; width: var(--side-w); height: calc(100vh - var(--header-h));
+        padding: 18px 12px; gap: 13px; border-right: 1px solid var(--line); border-bottom: 0;
+        box-shadow: 10px 0 28px rgba(0,0,0,.18); overflow-y: auto;
+      }
+      .nav-kicker { display: block; padding: 0 7px; }
+      .selector-row { flex-direction: column; align-items: stretch; overflow: visible; min-height: auto; white-space: normal; }
+      .major-tab-btn, .sub-tab-btn, .sec-tab-btn {
+        width: 100%; flex: none; min-width: 0; height: 38px; justify-content: flex-start; text-align: left; padding: 0 12px;
+      }
+      .major-tab-btn { margin-bottom: 2px; }
+      .sub-tab-btn.nav-work { margin-top: 4px; }
+      #section-selector-row { padding-top: 12px; margin-top: 3px; border-top: 1px solid var(--line); }
+      #main-viewport { left: var(--side-w); width: calc(100vw - var(--side-w)); top: var(--header-h); }
+      #floor-bar { left: var(--side-w); width: calc(100vw - var(--side-w)); }
+      #measure-info-hud { top: calc(var(--header-h) + 10px); margin-left: calc(var(--side-w) / 2); }
+      .materials-form { grid-template-columns: minmax(220px, 1fr) 170px; }
+    }
+
+    @media (max-width: 899px) {
+      .tool-label { display: none; }
+      .header-btns button { width: 34px; padding: 0; font-size: 14px; }
+      .header-btns .btn-logout { width: 34px; }
+    }
+
+    @media (max-width: 600px) {
+      :root { --header-h: 56px; --nav-h: 112px; --floor-h: 58px; }
+      #header { padding: 0 9px; gap: 7px; }
+      .brand { gap: 6px; font-size: 12px; }
+      .brand-name { max-width: 72px; overflow: hidden; text-overflow: ellipsis; }
+      .location-tag { max-width: 116px; padding: 3px 7px; font-size: 10px; }
+      #loginUserBadge { display: none; }
+      .header-btns { gap: 5px; }
+      .header-btns button { min-height: 32px; width: 32px; border-radius: 8px; }
+      .header-btns .btn-passkey-reg { display: none; }
+      #unit-selector-bar { padding: 7px 8px; gap: 6px; }
+      .selector-row { gap: 5px; }
+      .major-tab-btn { height: 28px; }
+      .sub-tab-btn { height: 28px; padding: 0 9px; }
+      .sec-tab-btn { height: 25px; }
+      #history-table-view, #logic-management-view, #todo-management-view, #materials-management-view { padding: 14px 10px; }
+      .logic-management-panel, .todo-panel, .materials-panel { padding: 0; }
+      .logic-management-title, .todo-title, .materials-title, .history-table-title { font-size: 17px; }
+      .history-table-header { align-items: flex-start; gap: 9px; }
+      .history-search-bar { width: 132px; }
+      #floor-bar { padding: 7px 8px; }
+      .floor-btn { height: 40px; }
+    }
   </style>
 </head>
 <body>
@@ -575,43 +754,44 @@
 
 <div id="header">
   <div class="brand">
-    <span>⚡ 제주 발전</span>
+    <span class="brand-name">⚡ 제주 발전</span>
     <span class="location-tag" id="currentFloorTag">기력 2호기 보일러 전체</span>
   </div>
   <div class="header-btns">
     <span id="loginUserBadge" style="font-size:11px; color:#38bdf8; font-weight:bold; margin-right:4px; flex-shrink:0;"></span>
-    <button class="btn-ai-top" id="btnOpenGemini">🤖 AI 분석</button>
-    <button class="btn-search-top" id="btnOpenSearch">🔍 검색</button>
-    <button class="btn-measure" id="btnToggleMeasure">📐 계측</button>
-    <button class="btn-passkey-reg" id="btnRegisterPasskey" title="이 기기에 패스키 등록">🔐 지문등록</button>
-    <button class="btn-logout" id="btnLogout" title="로그아웃">🚪 로그아웃</button>
+    <button class="btn-search-top" id="btnOpenSearch" title="계측기 검색">🔍 <span class="tool-label">검색</span></button>
+    <button class="btn-ai-top" id="btnOpenGemini" title="AI 분석">🤖 <span class="tool-label">AI 분석</span></button>
+    <button class="btn-measure" id="btnToggleMeasure" title="3D 거리 계측">📐 <span class="tool-label">계측</span></button>
+    <button class="btn-passkey-reg" id="btnRegisterPasskey" title="이 기기에 패스키 등록">🔐 <span class="tool-label">지문등록</span></button>
+    <button class="btn-logout" id="btnLogout" title="로그아웃">↪ <span class="tool-label">로그아웃</span></button>
   </div>
 </div>
 
 <div id="unit-selector-bar">
+  <div class="nav-kicker">발전 구분</div>
   <div class="selector-row">
     <button class="major-tab-btn active" id="btn-major-steam" onclick="switchMajor('기력')">⚡ 기력 발전</button>
     <button class="major-tab-btn" id="btn-major-engine" onclick="switchMajor('내연')">🔥 내연 발전</button>
   </div>
   
   <div class="selector-row" id="sub-tabs-steam">
-    <button class="sub-tab-btn" id="sub-steam-todo" onclick="switchSubTab('할일')">☑ 할 일</button>
-    <button class="sub-tab-btn" id="sub-steam-materials" onclick="switchSubTab('자료실')">📁 자료실</button>
     <button class="sub-tab-btn active" id="sub-steam-2" onclick="switchSubTab('2호기')">2호기</button>
     <button class="sub-tab-btn" id="sub-steam-3" onclick="switchSubTab('3호기')">3호기</button>
     <button class="sub-tab-btn" id="sub-steam-fuel" onclick="switchSubTab('연료펌프룸')">⛽ 연료펌프룸</button>
     <button class="sub-tab-btn" id="sub-steam-am" onclick="switchSubTab('암모니아탱크')">🧪 암모니아 탱크</button>
-    <button class="sub-tab-btn" id="sub-steam-hist" onclick="switchSubTab('관리이력')">📋 관리이력</button>
-    <button class="sub-tab-btn" id="sub-steam-logic" onclick="switchSubTab('로직관리')">🧩 로직관리</button>
+    <button class="sub-tab-btn nav-work" id="sub-steam-todo" onclick="switchSubTab('할일')">☑ 할 일</button>
+    <button class="sub-tab-btn nav-work" id="sub-steam-hist" onclick="switchSubTab('관리이력')">📋 관리이력</button>
+    <button class="sub-tab-btn nav-work" id="sub-steam-logic" onclick="switchSubTab('로직관리')">🧩 로직관리</button>
+    <button class="sub-tab-btn nav-work" id="sub-steam-materials" onclick="switchSubTab('자료실')">📁 자료실</button>
   </div>
   
   <div class="selector-row" id="sub-tabs-engine" style="display: none;">
-    <button class="sub-tab-btn" id="sub-engine-todo" onclick="switchSubTab('할일')">☑ 할 일</button>
-    <button class="sub-tab-btn" id="sub-engine-materials" onclick="switchSubTab('자료실')">📁 자료실</button>
     <button class="sub-tab-btn active" id="sub-engine-1" onclick="switchSubTab('1호기')">1호기</button>
     <button class="sub-tab-btn" id="sub-engine-2" onclick="switchSubTab('2호기')">2호기</button>
-    <button class="sub-tab-btn" id="sub-engine-hist" onclick="switchSubTab('관리이력')">📋 관리이력</button>
-    <button class="sub-tab-btn" id="sub-engine-logic" onclick="switchSubTab('로직관리')">🧩 로직관리</button>
+    <button class="sub-tab-btn nav-work" id="sub-engine-todo" onclick="switchSubTab('할일')">☑ 할 일</button>
+    <button class="sub-tab-btn nav-work" id="sub-engine-hist" onclick="switchSubTab('관리이력')">📋 관리이력</button>
+    <button class="sub-tab-btn nav-work" id="sub-engine-logic" onclick="switchSubTab('로직관리')">🧩 로직관리</button>
+    <button class="sub-tab-btn nav-work" id="sub-engine-materials" onclick="switchSubTab('자료실')">📁 자료실</button>
   </div>
 
   <div class="selector-row" id="section-selector-row">
