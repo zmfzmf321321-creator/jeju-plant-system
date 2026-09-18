@@ -41,36 +41,15 @@
       border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; margin-top: 6px; display: block;
     }
     .auth-btn:active { background: #0096c7; }
-    .btn-biometric {
-      width: 100%; padding: 13px; background: #10b981; color: #fff; border: none;
-      border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; margin-bottom: 12px;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-    }
-    .btn-biometric:active { background: #059669; }
-    .btn-biometric-admin {
-      width: 100%; padding: 13px; background: #0284c7; color: #fff; border: 1px solid #38bdf8;
-      border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; margin-bottom: 12px;
-      display: flex; align-items: center; justify-content: center; gap: 6px;
-    }
-    .btn-biometric-admin:active { background: #0369a1; }
-    .btn-reg-admin-bio {
-      width: 100%; padding: 10px; background: #1e293b; color: #38bdf8; border: 1px dashed #0284c7;
-      border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; margin-top: 10px;
-    }
     .auth-divider { display: flex; align-items: center; margin: 16px 0; color: #64748b; font-size: 12px; }
     .auth-divider::before, .auth-divider::after { content: ''; flex: 1; border-bottom: 1px solid #334155; }
     .auth-divider span { padding: 0 10px; }
-    .btn-admin-pass {
-      width: 100%; padding: 12px; background: #111a33; border: 1px solid #3b82f6; color: #93c5fd;
-      border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer;
-    }
-    .btn-admin-pass:active { background: #1e3a8a; }
     .auth-toggle-link {
       margin-top: 16px; font-size: 13px; color: #94a3b8; cursor: pointer; text-decoration: underline;
       padding: 6px; display: inline-block;
     }
     .auth-status-error { color: #ef4444; font-size: 12px; margin-top: 10px; display: none; line-height: 1.4; }
-    #admin-login-box, #register-box { display: none; }
+    #register-box { display: none; }
 
     #header {
       position: fixed; top: 0; left: 0; width: 100vw; height: 52px; background: #1c2541;
@@ -91,7 +70,6 @@
     .btn-search-top { background: #0284c7; border: 1px solid #38bdf8; color: #fff; }
     .btn-measure { background: #334155; border: 1px solid #64748b; color: #f8fafc; }
     .btn-measure.active { background: #f59e0b; border-color: #fbbf24; color: #111827; }
-    .btn-bio-reg { background: #065f46; border: 1px solid #10b981; color: #a7f3d0; }
     .btn-logout { background: transparent; border: 1px solid #64748b; color: #cbd5e1; font-size: 13px; padding: 5px 7px; }
 
     #unit-selector-bar {
@@ -174,6 +152,55 @@
     .badge-category { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; white-space: nowrap; }
     .badge-steam { background: #0284c7; color: #fff; }
     .badge-engine { background: #d97706; color: #fff; }
+
+    #logic-management-view {
+      display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0;
+      background: #080d1a; z-index: 50; overflow-y: auto; padding: 16px;
+    }
+    .logic-management-panel {
+      max-width: 960px; margin: 0 auto; background: #111a33; border: 1px solid #334155;
+      border-radius: 14px; padding: 20px; box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+    }
+    .logic-management-title { color: #38bdf8; font-size: 18px; font-weight: 800; margin-bottom: 8px; }
+    .logic-management-desc { color: #94a3b8; font-size: 13px; line-height: 1.6; }
+    .logic-form-grid {
+      display: grid; grid-template-columns: minmax(180px, 1fr) minmax(160px, 0.7fr); gap: 12px;
+      margin-top: 18px;
+    }
+    .logic-form-field { display: flex; flex-direction: column; gap: 6px; }
+    .logic-form-field.logic-wide { grid-column: 1 / -1; }
+    .logic-form-field label { color: #cbd5e1; font-size: 12px; font-weight: 700; }
+    .logic-input {
+      width: 100%; padding: 10px 11px; background: #080d1a; border: 1px solid #475569;
+      border-radius: 7px; color: #f8fafc; font-size: 13px; outline: none;
+    }
+    .logic-input:focus { border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56,189,248,0.12); }
+    textarea.logic-input { min-height: 78px; resize: vertical; line-height: 1.45; }
+    .logic-form-actions { display: flex; align-items: center; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+    .logic-save-btn {
+      padding: 10px 18px; background: #0284c7; border: 1px solid #38bdf8; border-radius: 7px;
+      color: #fff; font-size: 13px; font-weight: 800;
+    }
+    .logic-save-btn:disabled { opacity: 0.6; cursor: wait; }
+    .logic-status { color: #94a3b8; font-size: 12px; line-height: 1.4; }
+    .logic-status.error { color: #fca5a5; }
+    .logic-status.success { color: #6ee7b7; }
+    .logic-list-section { margin-top: 22px; padding-top: 16px; border-top: 1px solid #334155; }
+    .logic-list-title { color: #e2e8f0; font-size: 14px; font-weight: 800; margin-bottom: 10px; }
+    .logic-table-wrap { overflow-x: auto; border: 1px solid #334155; border-radius: 8px; }
+    .logic-table { width: 100%; min-width: 680px; border-collapse: collapse; font-size: 12px; }
+    .logic-table th { background: #1e293b; color: #38bdf8; padding: 9px 8px; text-align: left; white-space: nowrap; }
+    .logic-table td {
+      padding: 9px 8px; border-top: 1px solid #263449; color: #cbd5e1; vertical-align: top;
+      white-space: pre-wrap; word-break: break-word;
+    }
+    .logic-empty { text-align: center; color: #64748b !important; padding: 22px 8px !important; }
+    @media (max-width: 600px) {
+      #logic-management-view { padding: 10px; }
+      .logic-management-panel { padding: 14px; }
+      .logic-form-grid { grid-template-columns: 1fr; }
+      .logic-form-field.logic-wide { grid-column: auto; }
+    }
 
     .hotspot-pin {
       background: #00b4d8; border: 1.5px solid #ffffff; border-radius: 50%; width: 18px; height: 18px;
@@ -394,28 +421,11 @@
   <div id="login-box" class="auth-box">
     <div class="auth-title">🔐 시스템 로그인</div>
     <div class="auth-desc">보일러 계측제어 관리 시스템</div>
-    <button class="btn-biometric" id="btnBioLogin" type="button">👆 기기 생체/지문 즉시 로그인</button>
-    <div id="bioLoginMsg" class="auth-status-error"></div>
-    <div class="auth-divider"><span>또는 사번 로그인</span></div>
     <input type="text" id="loginEmail" class="auth-input" placeholder="사번(이메일: 12345@jeju.com)">
     <input type="password" id="loginPassword" class="auth-input" placeholder="비밀번호">
     <button class="auth-btn" id="btnMemberLogin" type="button">팀원 로그인</button>
     <div id="loginMsg" class="auth-status-error"></div>
     <div class="auth-toggle-link" id="linkToRegister">신규 팀원 계정 신청</div>
-    <div class="auth-divider"><span>또는</span></div>
-    <button class="btn-admin-pass" id="btnGoAdmin" type="button">👑 최고관리자 즉시 입장</button>
-  </div>
-
-  <div id="admin-login-box" class="auth-box">
-    <div class="auth-title" style="color: #38bdf8;">👑 최고관리자 모드</div>
-    <button class="btn-biometric-admin" id="btnAdminBioLogin" type="button">👆 최고관리자 지문 즉시 로그인</button>
-    <div id="adminBioLoginMsg" class="auth-status-error"></div>
-    <div class="auth-divider"><span>또는 마스터 비밀번호</span></div>
-    <input type="password" id="adminPassInput" class="auth-input" placeholder="마스터 비밀번호">
-    <button class="auth-btn" style="background: #38bdf8;" id="btnAdminSubmit" type="button">관리자 접속</button>
-    <div id="adminErrorMsg" class="auth-status-error">⚠️ 비밀번호가 틀렸습니다.</div>
-    <button class="btn-reg-admin-bio" id="btnDirectRegAdminBio" type="button">🔑 비밀번호 확인 후 이 기기 지문 등록</button>
-    <div class="auth-toggle-link" id="linkBackLogin">돌아가기</div>
   </div>
 
   <div id="register-box" class="auth-box">
@@ -423,7 +433,7 @@
     <input type="text" id="regName" class="auth-input" placeholder="이름 (예: 홍길동)">
     <input type="text" id="regEmail" class="auth-input" placeholder="사번 (12345@jeju.com)">
     <input type="password" id="regPassword" class="auth-input" placeholder="비밀번호 (6자리 이상)">
-    <button class="auth-btn" id="btnRegisterSubmit" type="button">가입 신청 및 입장</button>
+    <button class="auth-btn" id="btnRegisterSubmit" type="button">가입 신청</button>
     <div id="regMsg" class="auth-status-error"></div>
     <div class="auth-toggle-link" id="linkBackLogin2">돌아가기</div>
   </div>
@@ -439,7 +449,6 @@
     <button class="btn-ai-top" id="btnOpenGemini">🤖 AI 분석</button>
     <button class="btn-search-top" id="btnOpenSearch">🔍 검색</button>
     <button class="btn-measure" id="btnToggleMeasure">📐 계측</button>
-    <button class="btn-bio-reg" id="btnRegisterBio">👆 지문</button>
     <button class="btn-logout" id="btnLogout" title="로그아웃">🚪 로그아웃</button>
   </div>
 </div>
@@ -456,12 +465,14 @@
     <button class="sub-tab-btn" id="sub-steam-fuel" onclick="switchSubTab('연료펌프룸')">⛽ 연료펌프룸</button>
     <button class="sub-tab-btn" id="sub-steam-am" onclick="switchSubTab('암모니아탱크')">🧪 암모니아 탱크</button>
     <button class="sub-tab-btn" id="sub-steam-hist" onclick="switchSubTab('관리이력')">📋 관리이력</button>
+    <button class="sub-tab-btn" id="sub-steam-logic" onclick="switchSubTab('로직관리')">🧩 로직관리</button>
   </div>
   
   <div class="selector-row" id="sub-tabs-engine" style="display: none;">
     <button class="sub-tab-btn active" id="sub-engine-1" onclick="switchSubTab('1호기')">1호기</button>
     <button class="sub-tab-btn" id="sub-engine-2" onclick="switchSubTab('2호기')">2호기</button>
     <button class="sub-tab-btn" id="sub-engine-hist" onclick="switchSubTab('관리이력')">📋 관리이력</button>
+    <button class="sub-tab-btn" id="sub-engine-logic" onclick="switchSubTab('로직관리')">🧩 로직관리</button>
   </div>
 
   <div class="selector-row" id="section-selector-row">
@@ -528,6 +539,55 @@
         </thead>
         <tbody id="historyTableBody"></tbody>
       </table>
+    </div>
+  </div>
+
+  <div id="logic-management-view">
+    <div class="logic-management-panel">
+      <div class="logic-management-title" id="logicManagementTitle">🧩 [기력발전] 로직관리</div>
+      <div class="logic-management-desc" id="logicManagementDesc">
+        설비 로직의 수정 내역을 등록하고 날짜순으로 확인합니다. 등록된 이력은 감사 기록 보존을 위해 수정하거나 삭제할 수 없습니다.
+      </div>
+      <div class="logic-form-grid">
+        <div class="logic-form-field">
+          <label for="logicEquipmentName">설비명</label>
+          <input id="logicEquipmentName" class="logic-input" type="text" maxlength="200" placeholder="예: 보일러 급수펌프" autocomplete="off">
+        </div>
+        <div class="logic-form-field">
+          <label for="logicChangeDate">수정날짜</label>
+          <input id="logicChangeDate" class="logic-input" type="date">
+        </div>
+        <div class="logic-form-field logic-wide">
+          <label for="logicChangeContent">수정내용</label>
+          <textarea id="logicChangeContent" class="logic-input" maxlength="5000" placeholder="변경한 로직 내용을 입력하세요."></textarea>
+        </div>
+        <div class="logic-form-field logic-wide">
+          <label for="logicChangeReason">수정사유</label>
+          <textarea id="logicChangeReason" class="logic-input" maxlength="5000" placeholder="변경이 필요한 이유를 입력하세요."></textarea>
+        </div>
+      </div>
+      <div class="logic-form-actions">
+        <button type="button" class="logic-save-btn" id="btnSaveLogicRecord">로직 수정이력 등록</button>
+        <span class="logic-status" id="logicManagementStatus" role="status" aria-live="polite"></span>
+      </div>
+      <div class="logic-list-section">
+        <div class="logic-list-title">최근 수정이력</div>
+        <div class="logic-table-wrap">
+          <table class="logic-table">
+            <thead>
+              <tr>
+                <th>설비명</th>
+                <th>수정내용</th>
+                <th>수정사유</th>
+                <th>수정날짜</th>
+              </tr>
+            </thead>
+            <tbody id="logicManagementBody">
+              <tr><td class="logic-empty" colspan="4">로직관리 탭을 열면 이력을 불러옵니다.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -766,7 +826,6 @@
 </div>
 
 <script>
-  const ADMIN_MASTER_PASS = 'dydy423156!!##';
   const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   const SUPABASE_KEY = 'sb_publishable_p3OXbhWhj04w_eFGMpu83w_ZbybQ_t_';
   const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -897,21 +956,6 @@
     }
   }
 
-  function uint8ArrayToBase64(uint8Array) {
-    let binary = '';
-    for (let i = 0; i < uint8Array.length; i++) binary += String.fromCharCode(uint8Array[i]);
-    return btoa(binary);
-  }
-
-  function base64ToUint8Array(base64) {
-    let clean = base64.replace(/-/g, '+').replace(/_/g, '/');
-    while (clean.length % 4) clean += '=';
-    const binary = atob(clean);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return bytes.buffer;
-  }
-
   async function prepareImagePayloadForOcr(fileOrUrl) {
     if (typeof fileOrUrl === 'string') {
       return fileOrUrl;
@@ -948,89 +992,116 @@
     });
   }
 
-  async function registerBiometrics(isAdmin = false) {
-    if (!window.PublicKeyCredential) {
-      alert('⚠️ 현재 브라우저 환경에서 생체인증을 지원하지 않습니다.');
-      return;
-    }
-    try {
-      const challenge = new Uint8Array(32);
-      window.crypto.getRandomValues(challenge);
-      const userId = new Uint8Array(16);
-      window.crypto.getRandomValues(userId);
-      const workerName = isAdmin ? '최고관리자' : (currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자');
-      const credential = await navigator.credentials.create({
-        publicKey: {
-          challenge,
-          rp: { name: '제주 보일러 제어 시스템', id: window.location.hostname },
-          user: { id: userId, name: isAdmin ? 'jeju_admin' : (workerName || 'user'), displayName: workerName },
-          pubKeyCredParams: [{ alg: -7, type: 'public-key' }, { alg: -257, type: 'public-key' }],
-          authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'preferred', residentKey: 'preferred' },
-          timeout: 60000
-        }
-      });
-      if (credential) {
-        const rawIdBase64 = uint8ArrayToBase64(new Uint8Array(credential.rawId));
-        localStorage.setItem('jeju_bio_raw_id', rawIdBase64);
-        localStorage.setItem('jeju_bio_user_name', workerName);
-        if (isAdmin) {
-          localStorage.setItem('jeju_admin_bio_auth', 'true');
-          alert('🎉 [최고관리자] 지문이 성공적으로 등록되었습니다!');
-        } else {
-          localStorage.removeItem('jeju_admin_bio_auth');
-          alert(`✅ [${workerName}] 님의 팀원 지문이 등록되었습니다.`);
-        }
-      }
-    } catch (err) {
-      if (err.name !== 'NotAllowedError') alert('❌ 지문 등록 실패: ' + (err.message || err.name));
-    }
+  function getLocalDateValue() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
-  async function loginBiometrics(isAdminLogin = false) {
-    const rawIdBase64 = localStorage.getItem('jeju_bio_raw_id');
-    const msgEl = isAdminLogin ? document.getElementById('adminBioLoginMsg') : document.getElementById('bioLoginMsg');
-    msgEl.style.display = 'none';
-    if (!rawIdBase64) {
-      msgEl.innerText = isAdminLogin ? '⚠️ 등록된 지문이 없습니다. 마스터 비밀번호 접속 후 먼저 지문을 등록해 주세요.' : '⚠️ 저장된 지문이 없습니다.';
-      msgEl.style.display = 'block';
-      return;
-    }
-    try {
-      const challenge = new Uint8Array(32);
-      window.crypto.getRandomValues(challenge);
-      const rawIdBuffer = base64ToUint8Array(rawIdBase64);
-      const assertion = await navigator.credentials.get({
-        publicKey: { challenge, rpId: window.location.hostname, allowCredentials: [{ id: rawIdBuffer, type: 'public-key' }], userVerification: 'preferred', timeout: 60000 }
-      });
-      if (assertion) {
-        if (isAdminLogin || localStorage.getItem('jeju_admin_bio_auth') === 'true') {
-          sessionStorage.setItem('jeju_admin_auth', 'true');
-          unlock('최고관리자', 'admin@jeju.com');
-        } else {
-          const savedName = localStorage.getItem('jeju_bio_user_name') || '작업자';
-          unlock(savedName, `${savedName}@jeju.com`);
-        }
-      }
-    } catch (err) {
-      if (err.name !== 'NotAllowedError') msgEl.innerText = '⚠️ 지문 인증 실패: 일치하지 않거나 만료되었습니다.';
-      else msgEl.innerText = '⚠️ 지문 인증이 취소되었습니다.';
-      msgEl.style.display = 'block';
-    }
+  function setLogicStatus(message, type = '') {
+    const status = document.getElementById('logicManagementStatus');
+    status.textContent = message;
+    status.className = `logic-status${type ? ` ${type}` : ''}`;
   }
 
-  document.getElementById('btnBioLogin').addEventListener('click', (e) => { e.preventDefault(); loginBiometrics(false); });
-  document.getElementById('btnAdminBioLogin').addEventListener('click', (e) => { e.preventDefault(); loginBiometrics(true); });
-  document.getElementById('btnDirectRegAdminBio').addEventListener('click', (e) => {
-    e.preventDefault();
-    if (document.getElementById('adminPassInput').value.trim() !== ADMIN_MASTER_PASS) {
-      alert('⚠️ 마스터 비밀번호를 정확히 입력해 주세요.');
+  function renderLogicRecords(records) {
+    const body = document.getElementById('logicManagementBody');
+    body.replaceChildren();
+
+    if (!records.length) {
+      const row = document.createElement('tr');
+      const cell = document.createElement('td');
+      cell.colSpan = 4;
+      cell.className = 'logic-empty';
+      cell.textContent = `[${selectedMajor}발전]에 등록된 로직 수정이력이 없습니다.`;
+      row.appendChild(cell);
+      body.appendChild(row);
       return;
     }
-    registerBiometrics(true);
-  });
-  document.getElementById('btnRegisterBio').addEventListener('click', (e) => {
-    e.preventDefault();
-    registerBiometrics(sessionStorage.getItem('jeju_admin_auth') === 'true');
+
+    records.forEach(record => {
+      const row = document.createElement('tr');
+      [record.equipment_name, record.change_content, record.change_reason, record.change_date].forEach(value => {
+        const cell = document.createElement('td');
+        cell.textContent = value || '-';
+        row.appendChild(cell);
+      });
+      body.appendChild(row);
+    });
+  }
+
+  async function loadLogicRecords() {
+    const dateInput = document.getElementById('logicChangeDate');
+    if (!dateInput.value) dateInput.value = getLocalDateValue();
+    setLogicStatus('수정이력을 불러오는 중입니다.');
+
+    const { data: authData } = await supabaseClient.auth.getSession();
+    if (!authData.session) {
+      renderLogicRecords([]);
+      setLogicStatus('Supabase 팀원 계정으로 로그인해야 로직 이력을 조회·등록할 수 있습니다.', 'error');
+      return;
+    }
+
+    const { data, error } = await supabaseClient
+      .from('logic_change_logs')
+      .select('id, equipment_name, change_content, change_reason, change_date, created_at')
+      .eq('major_category', selectedMajor)
+      .order('change_date', { ascending: false })
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('로직 수정이력 조회 오류:', error);
+      renderLogicRecords([]);
+      setLogicStatus('수정이력을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.', 'error');
+      return;
+    }
+
+    renderLogicRecords(data || []);
+    setLogicStatus(`총 ${(data || []).length}건의 이력을 불러왔습니다.`);
+  }
+
+  document.getElementById('btnSaveLogicRecord').addEventListener('click', async () => {
+    const equipmentName = document.getElementById('logicEquipmentName').value.trim();
+    const changeContent = document.getElementById('logicChangeContent').value.trim();
+    const changeReason = document.getElementById('logicChangeReason').value.trim();
+    const changeDate = document.getElementById('logicChangeDate').value;
+    const saveButton = document.getElementById('btnSaveLogicRecord');
+
+    if (!equipmentName || !changeContent || !changeReason || !changeDate) {
+      setLogicStatus('설비명, 수정내용, 수정사유, 수정날짜를 모두 입력해 주세요.', 'error');
+      return;
+    }
+
+    const { data: authData } = await supabaseClient.auth.getSession();
+    if (!authData.session) {
+      setLogicStatus('Supabase 팀원 계정으로 로그인해야 등록할 수 있습니다.', 'error');
+      return;
+    }
+
+    saveButton.disabled = true;
+    setLogicStatus('수정이력을 등록하는 중입니다.');
+    const { error } = await supabaseClient.from('logic_change_logs').insert([{
+      major_category: selectedMajor,
+      equipment_name: equipmentName,
+      change_content: changeContent,
+      change_reason: changeReason,
+      change_date: changeDate
+    }]);
+    saveButton.disabled = false;
+
+    if (error) {
+      console.error('로직 수정이력 등록 오류:', error);
+      setLogicStatus('등록하지 못했습니다. 로그인 상태와 입력 내용을 확인해 주세요.', 'error');
+      return;
+    }
+
+    document.getElementById('logicEquipmentName').value = '';
+    document.getElementById('logicChangeContent').value = '';
+    document.getElementById('logicChangeReason').value = '';
+    await loadLogicRecords();
+    setLogicStatus('로직 수정이력을 등록했습니다.', 'success');
   });
 
   window.switchMajor = function(major) {
@@ -1057,8 +1128,8 @@
     clearAllMeasureVisuals();
 
     if (selectedMajor === '기력') {
-      ['2호기', '3호기', '연료펌프룸', '암모니아탱크', '관리이력'].forEach(key => {
-        const idMap = { '2호기': 'sub-steam-2', '3호기': 'sub-steam-3', '연료펌프룸': 'sub-steam-fuel', '암모니아탱크': 'sub-steam-am', '관리이력': 'sub-steam-hist' };
+      ['2호기', '3호기', '연료펌프룸', '암모니아탱크', '관리이력', '로직관리'].forEach(key => {
+        const idMap = { '2호기': 'sub-steam-2', '3호기': 'sub-steam-3', '연료펌프룸': 'sub-steam-fuel', '암모니아탱크': 'sub-steam-am', '관리이력': 'sub-steam-hist', '로직관리': 'sub-steam-logic' };
         const el = document.getElementById(idMap[key]);
         if (el) el.classList.toggle('active', sub === key);
       });
@@ -1067,6 +1138,7 @@
       document.getElementById('sub-engine-1').classList.toggle('active', sub === '1호기');
       document.getElementById('sub-engine-2').classList.toggle('active', sub === '2호기');
       document.getElementById('sub-engine-hist').classList.toggle('active', sub === '관리이력');
+      document.getElementById('sub-engine-logic').classList.toggle('active', sub === '로직관리');
       document.getElementById('section-selector-row').style.display = 'none';
     }
 
@@ -1074,18 +1146,25 @@
     const viewFloor = document.getElementById('floor-room-view');
     const viewEmpty = document.getElementById('empty-engine-view');
     const viewHist = document.getElementById('history-table-view');
+    const viewLogic = document.getElementById('logic-management-view');
     const floorBar = document.getElementById('floor-bar');
 
     view3D.style.display = 'none';
     viewFloor.style.display = 'none';
     viewEmpty.style.display = 'none';
     viewHist.style.display = 'none';
+    viewLogic.style.display = 'none';
 
     if (sub === '관리이력') {
       floorBar.style.display = 'none';
       viewHist.style.display = 'block';
       document.getElementById('historyTableTitle').innerText = `📋 [${selectedMajor}발전] 전체 점검 및 관리이력`;
       renderHistoryTable();
+    } else if (sub === '로직관리') {
+      floorBar.style.display = 'none';
+      viewLogic.style.display = 'block';
+      document.getElementById('logicManagementTitle').innerText = `🧩 [${selectedMajor}발전] 로직관리`;
+      loadLogicRecords();
     } else if (sub === '연료펌프룸') {
       floorBar.style.display = 'flex';
       renderFloorBar();
@@ -1163,6 +1242,8 @@
     const floorTag = document.getElementById('currentFloorTag');
     if (selectedSubTab === '관리이력') {
       floorTag.innerText = `${selectedMajor} 관리이력`;
+    } else if (selectedSubTab === '로직관리') {
+      floorTag.innerText = `${selectedMajor} 로직관리`;
     } else if (selectedSubTab === '연료펌프룸' || selectedSubTab === '암모니아탱크') {
       floorTag.innerText = `기력 ${selectedSubTab}`;
     } else if (selectedMajor === '기력') {
@@ -1799,8 +1880,7 @@
     currentUserInfo = { name: finalName, email };
     const authOverlay = document.getElementById('auth-overlay');
     if (authOverlay) authOverlay.remove();
-    const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
-    document.getElementById('loginUserBadge').innerText = isAdmin ? `👑 최고관리자` : `👤 ${finalName}`;
+    document.getElementById('loginUserBadge').innerText = `👤 ${finalName}`;
     selectedMajor = '기력';
     selectedSubTab = '2호기';
     selectedSection = '보일러';
@@ -1816,6 +1896,7 @@
     document.getElementById('floor-room-view').style.display = 'none';
     document.getElementById('empty-engine-view').style.display = 'none';
     document.getElementById('history-table-view').style.display = 'none';
+    document.getElementById('logic-management-view').style.display = 'none';
     document.getElementById('floor-bar').style.display = 'flex';
 
     renderFloorBar();
@@ -1824,16 +1905,6 @@
     fetchInstruments();
   }
 
-  document.getElementById('btnGoAdmin').addEventListener('click', (e) => {
-    e.preventDefault();
-    document.getElementById('login-box').style.display = 'none';
-    document.getElementById('admin-login-box').style.display = 'block';
-  });
-  document.getElementById('linkBackLogin').addEventListener('click', (e) => {
-    e.preventDefault();
-    document.getElementById('admin-login-box').style.display = 'none';
-    document.getElementById('login-box').style.display = 'block';
-  });
   document.getElementById('linkToRegister').addEventListener('click', (e) => {
     e.preventDefault();
     document.getElementById('login-box').style.display = 'none';
@@ -1844,14 +1915,6 @@
     e.preventDefault();
     document.getElementById('register-box').style.display = 'none';
     document.getElementById('login-box').style.display = 'block';
-  });
-
-  document.getElementById('btnAdminSubmit').addEventListener('click', (e) => {
-    e.preventDefault();
-    if (document.getElementById('adminPassInput').value.trim() === ADMIN_MASTER_PASS) {
-      sessionStorage.setItem('jeju_admin_auth', 'true');
-      unlock('최고관리자', 'admin@jeju.com');
-    } else document.getElementById('adminErrorMsg').style.display = 'block';
   });
 
   document.getElementById('btnMemberLogin').addEventListener('click', async (e) => {
@@ -1893,14 +1956,26 @@
       return;
     }
     regMsg.style.display = 'none';
+    const { data, error } = await supabaseClient.auth.signUp({ email, password: pass });
+    if (error) {
+      regMsg.innerText = `❌ 가입 신청 실패: ${error.message}`;
+      regMsg.style.display = 'block';
+      return;
+    }
     localStorage.setItem('jeju_worker_name', name);
-    try { await supabaseClient.auth.signUp({ email, password: pass }); } catch (err) {}
-    alert(`🎉 [${name}] 팀원님 가입 완료!`);
-    unlock(name, email);
+    if (data.session) {
+      unlock(name, email);
+    } else {
+      alert(`✅ [${name}] 가입 신청이 완료되었습니다. 이메일 인증 후 로그인해 주세요.`);
+      document.getElementById('register-box').style.display = 'none';
+      document.getElementById('login-box').style.display = 'block';
+      document.getElementById('loginEmail').value = email;
+    }
   });
 
-  document.getElementById('btnLogout').addEventListener('click', () => {
-    sessionStorage.removeItem('jeju_admin_auth');
+  document.getElementById('btnLogout').addEventListener('click', async () => {
+    await supabaseClient.auth.signOut({ scope: 'local' });
+    localStorage.removeItem('jeju_worker_name');
     location.reload();
   });
 
@@ -1919,20 +1994,13 @@
   function updateMeasureHudPrompt() {
     if (!isMeasureMode) { measureHud.style.display = 'none'; return; }
     measureHud.style.display = 'block';
-    const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
-    if (isAdmin) {
+    const count = measurePoints.length;
+    if (count === 0) {
       measureHud.innerHTML = selectedFloor === 'ALL'
-        ? `📍 <b>[최고관리자 모드]</b> 3D 모델 표면 터치 시 <b>좌표가 자동 복사</b>됩니다.`
-        : `📍 <b>[최고관리자 모드]</b> 도면 터치 시 <b>2D 좌표(X, Y)가 자동 복사</b>됩니다.`;
+        ? `📐 <b>[거리 계측 모드]</b> 3D 모델에서 첫 번째 지점(P1)을 터치하세요. (최대 10개)`
+        : `📐 <b>[거리 계측 모드]</b> 도면에서 첫 번째 지점(P1)을 터치하세요. (최대 10개)`;
     } else {
-      const count = measurePoints.length;
-      if (count === 0) {
-        measureHud.innerHTML = selectedFloor === 'ALL'
-          ? `📐 <b>[거리 계측 모드]</b> 3D 모델에서 첫 번째 지점(P1)을 터치하세요. (최대 10개)`
-          : `📐 <b>[거리 계측 모드]</b> 도면에서 첫 번째 지점(P1)을 터치하세요. (최대 10개)`;
-      } else {
-        updateMeasureHudResult();
-      }
+      updateMeasureHudResult();
     }
   }
 
@@ -1976,8 +2044,7 @@
     clearAllMeasureVisuals();
     if (isMeasureMode) {
       btnMeasure.classList.add('active');
-      const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
-      btnMeasure.innerText = isAdmin ? '📐 좌표 ON' : '📐 계측 ON';
+      btnMeasure.innerText = '📐 계측 ON';
       updateMeasureHudPrompt();
     } else {
       btnMeasure.classList.remove('active');
@@ -2003,22 +2070,6 @@
     const rect = viewer.getBoundingClientRect();
     const hit = viewer.positionAndNormalFromPoint(event.clientX - rect.left, event.clientY - rect.top);
     if (hit) {
-      const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
-      if (isAdmin) {
-        const posStr = `${hit.position.x.toFixed(2)} ${hit.position.y.toFixed(2)} ${hit.position.z.toFixed(2)}`;
-        let marker = viewer.querySelector('#temp-measure-marker');
-        if (!marker) {
-          marker = document.createElement('button');
-          marker.id = 'temp-measure-marker';
-          marker.slot = 'hotspot-measure-point';
-          viewer.appendChild(marker);
-        }
-        marker.dataset.position = `${hit.position.x} ${hit.position.y} ${hit.position.z}`;
-        measureHud.style.display = 'block';
-        measureHud.innerHTML = `📍 3D 좌표: <b style="color:#38bdf8;">${posStr}</b> (복사됨)`;
-        navigator.clipboard.writeText(posStr).catch(() => {});
-        return;
-      }
       if (measurePoints.length >= 10) {
         measurePoints = [];
         clearAllMeasureVisuals();
@@ -2194,21 +2245,6 @@
     const curX = Math.round(Math.max(0, Math.min(1400, clickX)));
     const curY = Math.round(Math.max(0, Math.min(1000, clickY)));
     if (isMeasureMode) {
-      const isAdmin = sessionStorage.getItem('jeju_admin_auth') === 'true';
-      if (isAdmin) {
-        let m = board.querySelector('#temp-measure-marker-2d');
-        if (!m) {
-          m = document.createElement('div');
-          m.id = 'temp-measure-marker-2d';
-          board.appendChild(m);
-        }
-        m.style.left = `${curX}px`;
-        m.style.top = `${curY}px`;
-        measureHud.style.display = 'block';
-        measureHud.innerHTML = `📍 2D 도면 좌표: <b style="color:#38bdf8;">X:${curX}, Y:${curY}</b> (복사됨)`;
-        navigator.clipboard.writeText(`X:${curX} Y:${curY}`).catch(() => {});
-        return;
-      }
       if (measurePoints.length >= 10) {
         measurePoints = [];
         clearAllMeasureVisuals();
@@ -2719,9 +2755,15 @@
     }, 200);
   };
 
-  if (sessionStorage.getItem('jeju_admin_auth') === 'true') {
-    unlock('최고관리자', 'admin@jeju.com');
-  }
+  localStorage.removeItem('jeju_admin_bio_auth');
+  sessionStorage.removeItem('jeju_admin_auth');
+
+  supabaseClient.auth.getUser().then(({ data, error }) => {
+    if (error || !data.user) return;
+    const email = data.user.email || 'user@jeju.com';
+    const savedName = localStorage.getItem('jeju_worker_name') || email.split('@')[0];
+    unlock(savedName, email);
+  });
 </script>
 </body>
 </html>
