@@ -207,6 +207,53 @@
       .logic-form-field.logic-wide { grid-column: auto; }
     }
 
+    #todo-management-view {
+      display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0;
+      background: #080d1a; z-index: 50; overflow-y: auto; padding: 16px;
+    }
+    .todo-panel {
+      max-width: 760px; margin: 0 auto; background: #111a33; border: 1px solid #334155;
+      border-radius: 14px; padding: 20px; box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+    }
+    .todo-title { color: #38bdf8; font-size: 18px; font-weight: 800; margin-bottom: 6px; }
+    .todo-desc { color: #94a3b8; font-size: 12px; line-height: 1.5; margin-bottom: 16px; }
+    .todo-add-form { display: flex; gap: 8px; }
+    .todo-input {
+      flex: 1; min-width: 0; padding: 11px 12px; background: #080d1a; border: 1px solid #475569;
+      border-radius: 8px; color: #f8fafc; font-size: 14px; outline: none;
+    }
+    .todo-input:focus { border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56,189,248,0.12); }
+    .todo-add-btn {
+      flex-shrink: 0; padding: 0 18px; background: #0284c7; border: 1px solid #38bdf8;
+      border-radius: 8px; color: #fff; font-size: 13px; font-weight: 800; cursor: pointer;
+    }
+    .todo-add-btn:disabled { opacity: 0.6; cursor: wait; }
+    .todo-status { min-height: 18px; color: #94a3b8; font-size: 12px; margin: 8px 2px 0; }
+    .todo-status.error { color: #fca5a5; }
+    .todo-status.success { color: #6ee7b7; }
+    .todo-list { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+    .todo-item {
+      display: flex; align-items: flex-start; gap: 10px; padding: 12px;
+      background: #0f172a; border: 1px solid #334155; border-radius: 9px;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+    .todo-item.completing { opacity: 0; transform: translateX(14px); }
+    .todo-checkbox {
+      width: 22px; height: 22px; margin: 0; flex-shrink: 0; accent-color: #10b981; cursor: pointer;
+    }
+    .todo-content { min-width: 0; flex: 1; }
+    .todo-text { color: #f8fafc; font-size: 14px; line-height: 1.45; word-break: break-word; }
+    .todo-meta { color: #64748b; font-size: 10px; margin-top: 4px; }
+    .todo-empty {
+      padding: 28px 12px; text-align: center; color: #64748b; font-size: 13px;
+      border: 1px dashed #334155; border-radius: 9px;
+    }
+    @media (max-width: 600px) {
+      #todo-management-view { padding: 10px; }
+      .todo-panel { padding: 14px; }
+      .todo-add-btn { padding: 0 14px; }
+    }
+
     .hotspot-pin {
       background: #00b4d8; border: 1.5px solid #ffffff; border-radius: 50%; width: 18px; height: 18px;
       display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold;
@@ -469,6 +516,7 @@
   </div>
   
   <div class="selector-row" id="sub-tabs-steam">
+    <button class="sub-tab-btn" id="sub-steam-todo" onclick="switchSubTab('할일')">☑ 할 일</button>
     <button class="sub-tab-btn active" id="sub-steam-2" onclick="switchSubTab('2호기')">2호기</button>
     <button class="sub-tab-btn" id="sub-steam-3" onclick="switchSubTab('3호기')">3호기</button>
     <button class="sub-tab-btn" id="sub-steam-fuel" onclick="switchSubTab('연료펌프룸')">⛽ 연료펌프룸</button>
@@ -478,6 +526,7 @@
   </div>
   
   <div class="selector-row" id="sub-tabs-engine" style="display: none;">
+    <button class="sub-tab-btn" id="sub-engine-todo" onclick="switchSubTab('할일')">☑ 할 일</button>
     <button class="sub-tab-btn active" id="sub-engine-1" onclick="switchSubTab('1호기')">1호기</button>
     <button class="sub-tab-btn" id="sub-engine-2" onclick="switchSubTab('2호기')">2호기</button>
     <button class="sub-tab-btn" id="sub-engine-hist" onclick="switchSubTab('관리이력')">📋 관리이력</button>
@@ -596,6 +645,21 @@
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="todo-management-view">
+    <div class="todo-panel">
+      <div class="todo-title" id="todoManagementTitle">☑ [기력발전] To Do List</div>
+      <div class="todo-desc">할 일을 입력해 추가하세요. 완료한 항목의 체크박스를 누르면 목록에서 사라집니다.</div>
+      <form class="todo-add-form" id="todoAddForm">
+        <input id="todoTaskInput" class="todo-input" type="text" maxlength="300" placeholder="할 일을 입력하세요" autocomplete="off">
+        <button id="btnAddTodo" class="todo-add-btn" type="submit">추가</button>
+      </form>
+      <div class="todo-status" id="todoManagementStatus" role="status" aria-live="polite"></div>
+      <div class="todo-list" id="todoList">
+        <div class="todo-empty">할 일 탭을 열면 목록을 불러옵니다.</div>
       </div>
     </div>
   </div>
@@ -1118,6 +1182,158 @@
     setLogicStatus('로직 수정이력을 등록했습니다.', 'success');
   });
 
+  function setTodoStatus(message, type = '') {
+    const status = document.getElementById('todoManagementStatus');
+    status.textContent = message;
+    status.className = `todo-status${type ? ` ${type}` : ''}`;
+  }
+
+  function formatTodoDate(value) {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return new Intl.DateTimeFormat('ko-KR', {
+      year: 'numeric', month: '2-digit', day: '2-digit'
+    }).format(date);
+  }
+
+  function renderTodos(records) {
+    const list = document.getElementById('todoList');
+    list.replaceChildren();
+
+    if (!records.length) {
+      const empty = document.createElement('div');
+      empty.className = 'todo-empty';
+      empty.textContent = `[${selectedMajor}발전]에 남아 있는 할 일이 없습니다.`;
+      list.appendChild(empty);
+      return;
+    }
+
+    records.forEach(record => {
+      const item = document.createElement('div');
+      item.className = 'todo-item';
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'todo-checkbox';
+      checkbox.setAttribute('aria-label', `${record.task_text} 완료`);
+
+      const content = document.createElement('div');
+      content.className = 'todo-content';
+      const task = document.createElement('div');
+      task.className = 'todo-text';
+      task.textContent = record.task_text;
+      const meta = document.createElement('div');
+      meta.className = 'todo-meta';
+      const creator = record.created_by_name || '작업자';
+      const date = formatTodoDate(record.created_at);
+      meta.textContent = [creator, date].filter(Boolean).join(' · ');
+      content.append(task, meta);
+      item.append(checkbox, content);
+      list.appendChild(item);
+
+      checkbox.addEventListener('change', async () => {
+        if (!checkbox.checked) return;
+        checkbox.disabled = true;
+        setTodoStatus('완료 처리하는 중입니다.');
+
+        const { data: authData } = await supabaseClient.auth.getUser();
+        const user = authData?.user;
+        if (!user) {
+          checkbox.checked = false;
+          checkbox.disabled = false;
+          setTodoStatus('로그인 상태를 확인해 주세요.', 'error');
+          return;
+        }
+
+        const { data, error } = await supabaseClient
+          .from('maintenance_todos')
+          .update({ completed_at: new Date().toISOString(), completed_by: user.id })
+          .eq('id', record.id)
+          .is('completed_at', null)
+          .select('id');
+
+        if (error || !data?.length) {
+          console.error('할 일 완료 처리 오류:', error);
+          checkbox.checked = false;
+          checkbox.disabled = false;
+          setTodoStatus('완료 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.', 'error');
+          return;
+        }
+
+        item.classList.add('completing');
+        setTodoStatus('완료된 할 일을 목록에서 지웠습니다.', 'success');
+        window.setTimeout(() => loadTodos(), 220);
+      });
+    });
+  }
+
+  async function loadTodos() {
+    setTodoStatus('할 일을 불러오는 중입니다.');
+    const { data: authData } = await supabaseClient.auth.getSession();
+    if (!authData.session) {
+      renderTodos([]);
+      setTodoStatus('팀원 계정으로 로그인해야 할 일을 확인할 수 있습니다.', 'error');
+      return;
+    }
+
+    const { data, error } = await supabaseClient
+      .from('maintenance_todos')
+      .select('id, task_text, created_by_name, created_at')
+      .eq('major_category', selectedMajor)
+      .is('completed_at', null)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('할 일 조회 오류:', error);
+      renderTodos([]);
+      setTodoStatus('할 일을 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.', 'error');
+      return;
+    }
+
+    renderTodos(data || []);
+    setTodoStatus(`남은 할 일 ${(data || []).length}개`);
+  }
+
+  document.getElementById('todoAddForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const input = document.getElementById('todoTaskInput');
+    const addButton = document.getElementById('btnAddTodo');
+    const taskText = input.value.trim();
+
+    if (!taskText) {
+      setTodoStatus('할 일을 입력해 주세요.', 'error');
+      input.focus();
+      return;
+    }
+
+    const { data: authData } = await supabaseClient.auth.getSession();
+    if (!authData.session) {
+      setTodoStatus('팀원 계정으로 로그인해야 추가할 수 있습니다.', 'error');
+      return;
+    }
+
+    addButton.disabled = true;
+    setTodoStatus('할 일을 추가하는 중입니다.');
+    const { error } = await supabaseClient.from('maintenance_todos').insert([{
+      major_category: selectedMajor,
+      task_text: taskText,
+      created_by_name: currentUserInfo.name || '작업자'
+    }]);
+    addButton.disabled = false;
+
+    if (error) {
+      console.error('할 일 등록 오류:', error);
+      setTodoStatus('할 일을 추가하지 못했습니다. 잠시 후 다시 시도해 주세요.', 'error');
+      return;
+    }
+
+    input.value = '';
+    await loadTodos();
+    setTodoStatus('할 일을 추가했습니다.', 'success');
+    input.focus();
+  });
+
   window.switchMajor = function(major) {
     selectedMajor = major;
     measurePoints = [];
@@ -1142,13 +1358,14 @@
     clearAllMeasureVisuals();
 
     if (selectedMajor === '기력') {
-      ['2호기', '3호기', '연료펌프룸', '암모니아탱크', '관리이력', '로직관리'].forEach(key => {
-        const idMap = { '2호기': 'sub-steam-2', '3호기': 'sub-steam-3', '연료펌프룸': 'sub-steam-fuel', '암모니아탱크': 'sub-steam-am', '관리이력': 'sub-steam-hist', '로직관리': 'sub-steam-logic' };
+      ['할일', '2호기', '3호기', '연료펌프룸', '암모니아탱크', '관리이력', '로직관리'].forEach(key => {
+        const idMap = { '할일': 'sub-steam-todo', '2호기': 'sub-steam-2', '3호기': 'sub-steam-3', '연료펌프룸': 'sub-steam-fuel', '암모니아탱크': 'sub-steam-am', '관리이력': 'sub-steam-hist', '로직관리': 'sub-steam-logic' };
         const el = document.getElementById(idMap[key]);
         if (el) el.classList.toggle('active', sub === key);
       });
       document.getElementById('section-selector-row').style.display = (sub === '2호기' || sub === '3호기') ? 'flex' : 'none';
     } else {
+      document.getElementById('sub-engine-todo').classList.toggle('active', sub === '할일');
       document.getElementById('sub-engine-1').classList.toggle('active', sub === '1호기');
       document.getElementById('sub-engine-2').classList.toggle('active', sub === '2호기');
       document.getElementById('sub-engine-hist').classList.toggle('active', sub === '관리이력');
@@ -1161,6 +1378,7 @@
     const viewEmpty = document.getElementById('empty-engine-view');
     const viewHist = document.getElementById('history-table-view');
     const viewLogic = document.getElementById('logic-management-view');
+    const viewTodo = document.getElementById('todo-management-view');
     const floorBar = document.getElementById('floor-bar');
 
     view3D.style.display = 'none';
@@ -1168,8 +1386,14 @@
     viewEmpty.style.display = 'none';
     viewHist.style.display = 'none';
     viewLogic.style.display = 'none';
+    viewTodo.style.display = 'none';
 
-    if (sub === '관리이력') {
+    if (sub === '할일') {
+      floorBar.style.display = 'none';
+      viewTodo.style.display = 'block';
+      document.getElementById('todoManagementTitle').innerText = `☑ [${selectedMajor}발전] To Do List`;
+      loadTodos();
+    } else if (sub === '관리이력') {
       floorBar.style.display = 'none';
       viewHist.style.display = 'block';
       document.getElementById('historyTableTitle').innerText = `📋 [${selectedMajor}발전] 전체 점검 및 관리이력`;
@@ -1254,7 +1478,9 @@
 
   function updateFloorTitle() {
     const floorTag = document.getElementById('currentFloorTag');
-    if (selectedSubTab === '관리이력') {
+    if (selectedSubTab === '할일') {
+      floorTag.innerText = `${selectedMajor} 할 일`;
+    } else if (selectedSubTab === '관리이력') {
       floorTag.innerText = `${selectedMajor} 관리이력`;
     } else if (selectedSubTab === '로직관리') {
       floorTag.innerText = `${selectedMajor} 로직관리`;
@@ -1929,6 +2155,7 @@
     document.getElementById('empty-engine-view').style.display = 'none';
     document.getElementById('history-table-view').style.display = 'none';
     document.getElementById('logic-management-view').style.display = 'none';
+    document.getElementById('todo-management-view').style.display = 'none';
     document.getElementById('floor-bar').style.display = 'flex';
 
     renderFloorBar();
