@@ -428,7 +428,7 @@
     <input type="password" id="loginPassword" class="auth-input" placeholder="비밀번호">
     <button class="auth-btn" id="btnMemberLogin" type="button">팀원 로그인</button>
     <div class="auth-divider"><span>또는</span></div>
-    <button class="auth-btn auth-btn-passkey" id="btnPasskeyLogin" type="button">🔐 지문·화면잠금으로 로그인</button>
+    <button class="auth-btn auth-btn-passkey" id="btnPasskeyLogin" type="button">🔐 지문등록·로그인</button>
     <div id="loginMsg" class="auth-status-error"></div>
     <div class="auth-toggle-link" id="linkToRegister">신규 팀원 계정 신청</div>
   </div>
@@ -1972,21 +1972,63 @@
     }
 
     button.disabled = true;
-    button.innerText = '지문·화면잠금 확인 중...';
-    const { data, error } = await supabaseClient.auth.signInWithPasskey();
-    button.disabled = false;
-    button.innerText = '🔐 지문·화면잠금으로 로그인';
+    button.innerText = '등록된 지문 키 확인 중...';
+    const { data: passkeyData, error: passkeyError } = await supabaseClient.auth.signInWithPasskey();
 
-    if (error || !data?.user) {
-      msgEl.innerText = `❌ ${getPasskeyErrorMessage(error, '지문·화면잠금 로그인')}`;
+    if (!passkeyError && passkeyData?.user) {
+      button.disabled = false;
+      button.innerText = '🔐 지문등록·로그인';
+      const email = passkeyData.user.email || 'user@jeju.com';
+      const name = email.split('@')[0];
+      localStorage.setItem('jeju_worker_name', name);
+      unlock(name, email);
+      return;
+    }
+
+    if (passkeyError?.code === 'passkey_disabled') {
+      button.disabled = false;
+      button.innerText = '🔐 지문등록·로그인';
+      msgEl.innerText = `❌ ${getPasskeyErrorMessage(passkeyError, '지문·화면잠금 로그인')}`;
       msgEl.style.display = 'block';
       return;
     }
 
-    const email = data.user.email || 'user@jeju.com';
-    const name = email.split('@')[0];
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass = document.getElementById('loginPassword').value.trim();
+    if (!email || !pass) {
+      button.disabled = false;
+      button.innerText = '🔐 지문등록·로그인';
+      msgEl.innerText = '처음 지문을 등록할 때만 사번(이메일)과 비밀번호를 입력한 뒤 이 버튼을 눌러주세요.';
+      msgEl.style.display = 'block';
+      return;
+    }
+
+    button.innerText = '최초 본인 확인 중...';
+    const { data: passwordData, error: passwordError } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
+    if (passwordError || !passwordData?.user) {
+      button.disabled = false;
+      button.innerText = '🔐 지문등록·로그인';
+      msgEl.innerText = '❌ 사번(이메일) 또는 비밀번호가 올바르지 않습니다.';
+      msgEl.style.display = 'block';
+      return;
+    }
+
+    button.innerText = '지문 등록 중...';
+    const { data: registerData, error: registerError } = await supabaseClient.auth.registerPasskey();
+    button.disabled = false;
+    button.innerText = '🔐 지문등록·로그인';
+
+    if (registerError && registerError.code !== 'webauthn_credential_exists') {
+      alert(`지문등록은 완료되지 않았지만 비밀번호 로그인은 완료되었습니다.\n${getPasskeyErrorMessage(registerError, '지문등록')}`);
+    } else {
+      const deviceName = registerData?.friendly_name ? ` (${registerData.friendly_name})` : '';
+      alert(`✅ 지문 키가 등록되었습니다${deviceName}. 다음부터 이 버튼을 누르면 바로 로그인됩니다.`);
+    }
+
+    const signedInEmail = passwordData.user.email || email;
+    const name = signedInEmail.split('@')[0];
     localStorage.setItem('jeju_worker_name', name);
-    unlock(name, email);
+    unlock(name, signedInEmail);
   });
 
   document.getElementById('btnRegisterPasskey').addEventListener('click', async (e) => {
