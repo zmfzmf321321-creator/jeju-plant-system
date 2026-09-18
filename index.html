@@ -256,6 +256,83 @@
       .todo-add-btn { padding: 0 14px; }
     }
 
+    #materials-management-view {
+      display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0;
+      background: #080d1a; z-index: 50; overflow-y: auto; padding: 16px;
+    }
+    .materials-panel {
+      max-width: 960px; margin: 0 auto; background: #111a33; border: 1px solid #334155;
+      border-radius: 14px; padding: 20px; box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+    }
+    .materials-title { color: #38bdf8; font-size: 18px; font-weight: 800; margin-bottom: 6px; }
+    .materials-desc { color: #94a3b8; font-size: 12px; line-height: 1.5; margin-bottom: 16px; }
+    .materials-form {
+      display: grid; grid-template-columns: minmax(160px, 1fr) 140px; gap: 10px;
+      padding: 14px; border: 1px solid #334155; border-radius: 10px; background: #0f172a;
+    }
+    .materials-field { display: flex; flex-direction: column; gap: 5px; }
+    .materials-field.wide { grid-column: 1 / -1; }
+    .materials-field label { color: #cbd5e1; font-size: 11px; font-weight: 700; }
+    .materials-input {
+      width: 100%; padding: 9px 10px; background: #080d1a; border: 1px solid #475569;
+      border-radius: 7px; color: #f8fafc; font-size: 12px; outline: none;
+    }
+    .materials-input:focus { border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56,189,248,0.12); }
+    textarea.materials-input { min-height: 62px; resize: vertical; line-height: 1.4; }
+    .materials-file-input { padding: 7px; }
+    .materials-file-help { color: #64748b; font-size: 10px; line-height: 1.4; }
+    .materials-upload-row { display: flex; align-items: center; gap: 10px; grid-column: 1 / -1; }
+    .materials-upload-btn {
+      padding: 10px 18px; background: #0284c7; border: 1px solid #38bdf8; border-radius: 7px;
+      color: #fff; font-size: 13px; font-weight: 800; cursor: pointer;
+    }
+    .materials-upload-btn:disabled { opacity: 0.6; cursor: wait; }
+    .materials-status { color: #94a3b8; font-size: 12px; line-height: 1.4; }
+    .materials-status.error { color: #fca5a5; }
+    .materials-status.success { color: #6ee7b7; }
+    .materials-list-header {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      margin-top: 20px; padding-top: 16px; border-top: 1px solid #334155;
+    }
+    .materials-list-title { color: #e2e8f0; font-size: 14px; font-weight: 800; }
+    .materials-search {
+      width: 210px; padding: 7px 10px; background: #080d1a; border: 1px solid #475569;
+      border-radius: 7px; color: #f8fafc; font-size: 12px; outline: none;
+    }
+    .materials-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+    .material-item {
+      display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center;
+      padding: 12px; background: #0f172a; border: 1px solid #334155; border-radius: 9px;
+    }
+    .material-main { min-width: 0; }
+    .material-name { color: #f8fafc; font-size: 14px; font-weight: 700; word-break: break-word; }
+    .material-description { color: #94a3b8; font-size: 11px; line-height: 1.45; margin-top: 4px; white-space: pre-wrap; }
+    .material-meta { color: #64748b; font-size: 10px; margin-top: 5px; word-break: break-word; }
+    .material-type {
+      display: inline-block; margin-right: 5px; padding: 2px 6px; background: #1d4ed8;
+      border-radius: 4px; color: #dbeafe; font-size: 10px; font-weight: 700;
+    }
+    .material-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    .material-action-btn {
+      padding: 7px 9px; border: 1px solid #475569; border-radius: 6px; background: #1e293b;
+      color: #e2e8f0; font-size: 11px; font-weight: 700; cursor: pointer;
+    }
+    .material-action-btn.delete { border-color: #7f1d1d; background: #450a0a; color: #fecaca; }
+    .materials-empty {
+      padding: 28px 12px; text-align: center; color: #64748b; font-size: 13px;
+      border: 1px dashed #334155; border-radius: 9px;
+    }
+    @media (max-width: 600px) {
+      #materials-management-view { padding: 10px; }
+      .materials-panel { padding: 14px; }
+      .materials-form { grid-template-columns: 1fr; }
+      .materials-field.wide, .materials-upload-row { grid-column: auto; }
+      .materials-upload-row { align-items: flex-start; flex-direction: column; }
+      .materials-search { width: 150px; }
+      .material-item { grid-template-columns: 1fr; }
+      .material-actions { justify-content: flex-start; }
+    }
+
     .hotspot-pin {
       background: #00b4d8; border: 1.5px solid #ffffff; border-radius: 50%; width: 18px; height: 18px;
       display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: bold;
@@ -519,6 +596,7 @@
   
   <div class="selector-row" id="sub-tabs-steam">
     <button class="sub-tab-btn" id="sub-steam-todo" onclick="switchSubTab('할일')">☑ 할 일</button>
+    <button class="sub-tab-btn" id="sub-steam-materials" onclick="switchSubTab('자료실')">📁 자료실</button>
     <button class="sub-tab-btn active" id="sub-steam-2" onclick="switchSubTab('2호기')">2호기</button>
     <button class="sub-tab-btn" id="sub-steam-3" onclick="switchSubTab('3호기')">3호기</button>
     <button class="sub-tab-btn" id="sub-steam-fuel" onclick="switchSubTab('연료펌프룸')">⛽ 연료펌프룸</button>
@@ -529,6 +607,7 @@
   
   <div class="selector-row" id="sub-tabs-engine" style="display: none;">
     <button class="sub-tab-btn" id="sub-engine-todo" onclick="switchSubTab('할일')">☑ 할 일</button>
+    <button class="sub-tab-btn" id="sub-engine-materials" onclick="switchSubTab('자료실')">📁 자료실</button>
     <button class="sub-tab-btn active" id="sub-engine-1" onclick="switchSubTab('1호기')">1호기</button>
     <button class="sub-tab-btn" id="sub-engine-2" onclick="switchSubTab('2호기')">2호기</button>
     <button class="sub-tab-btn" id="sub-engine-hist" onclick="switchSubTab('관리이력')">📋 관리이력</button>
@@ -662,6 +741,51 @@
       <div class="todo-status" id="todoManagementStatus" role="status" aria-live="polite"></div>
       <div class="todo-list" id="todoList">
         <div class="todo-empty">할 일 탭을 열면 목록을 불러옵니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="materials-management-view">
+    <div class="materials-panel">
+      <div class="materials-title" id="materialsManagementTitle">📁 [기력발전] 자료실</div>
+      <div class="materials-desc">내부 자료는 비공개로 저장되며 로그인한 팀원만 열거나 다운로드할 수 있습니다.</div>
+      <form class="materials-form" id="materialsUploadForm">
+        <div class="materials-field">
+          <label for="materialTitle">자료명</label>
+          <input id="materialTitle" class="materials-input" type="text" maxlength="200" placeholder="예: 압력전송기 매뉴얼" autocomplete="off">
+        </div>
+        <div class="materials-field">
+          <label for="materialType">자료 구분</label>
+          <select id="materialType" class="materials-input">
+            <option value="매뉴얼">매뉴얼</option>
+            <option value="도면">도면</option>
+            <option value="성적서">성적서</option>
+            <option value="로직">로직</option>
+            <option value="엑셀">엑셀</option>
+            <option value="사진">사진</option>
+            <option value="기타">기타</option>
+          </select>
+        </div>
+        <div class="materials-field wide">
+          <label for="materialDescription">설명 (선택)</label>
+          <textarea id="materialDescription" class="materials-input" maxlength="2000" placeholder="자료에 대한 간단한 설명을 입력하세요."></textarea>
+        </div>
+        <div class="materials-field wide">
+          <label for="materialFile">파일 선택</label>
+          <input id="materialFile" class="materials-input materials-file-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.xlsx,.xls,.csv,.doc,.docx,.ppt,.pptx,.txt,.zip,.hwp,.hwpx">
+          <div class="materials-file-help">PDF·사진·엑셀·문서·ZIP 파일, 최대 20MB</div>
+        </div>
+        <div class="materials-upload-row">
+          <button id="btnUploadMaterial" class="materials-upload-btn" type="submit">자료 업로드</button>
+          <span id="materialsManagementStatus" class="materials-status" role="status" aria-live="polite"></span>
+        </div>
+      </form>
+      <div class="materials-list-header">
+        <div class="materials-list-title">등록된 자료</div>
+        <input id="materialsSearchInput" class="materials-search" type="search" placeholder="자료 검색..." autocomplete="off">
+      </div>
+      <div id="materialsList" class="materials-list">
+        <div class="materials-empty">자료실 탭을 열면 목록을 불러옵니다.</div>
       </div>
     </div>
   </div>
@@ -911,7 +1035,8 @@
 
   let currentInstruments = [];
   let currentManuals = [];
-  let currentUserInfo = { name: '', email: '', role: 'member' };
+  let currentMaterials = [];
+  let currentUserInfo = { id: '', name: '', email: '', role: 'member' };
   let isAdminMode = false;
 
   let selectedMajor = '기력';
@@ -1345,6 +1470,278 @@
     input.focus();
   });
 
+  function setMaterialsStatus(message, type = '') {
+    const status = document.getElementById('materialsManagementStatus');
+    status.textContent = message;
+    status.className = `materials-status${type ? ` ${type}` : ''}`;
+  }
+
+  function formatFileSize(bytes) {
+    const size = Number(bytes) || 0;
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  }
+
+  function renderMaterials() {
+    const list = document.getElementById('materialsList');
+    const keyword = document.getElementById('materialsSearchInput').value.trim().toLowerCase();
+    const records = currentMaterials.filter(record => {
+      if (!keyword) return true;
+      return [record.title, record.description, record.material_type, record.original_file_name, record.uploaded_by_name]
+        .some(value => String(value || '').toLowerCase().includes(keyword));
+    });
+    list.replaceChildren();
+
+    if (!records.length) {
+      const empty = document.createElement('div');
+      empty.className = 'materials-empty';
+      empty.textContent = keyword
+        ? '검색 결과가 없습니다.'
+        : `[${selectedMajor}발전]에 등록된 자료가 없습니다.`;
+      list.appendChild(empty);
+      return;
+    }
+
+    records.forEach(record => {
+      const item = document.createElement('div');
+      item.className = 'material-item';
+
+      const main = document.createElement('div');
+      main.className = 'material-main';
+      const name = document.createElement('div');
+      name.className = 'material-name';
+      name.textContent = record.title;
+      const description = document.createElement('div');
+      description.className = 'material-description';
+      description.textContent = record.description || '';
+      if (!record.description) description.style.display = 'none';
+      const meta = document.createElement('div');
+      meta.className = 'material-meta';
+      const type = document.createElement('span');
+      type.className = 'material-type';
+      type.textContent = record.material_type;
+      meta.appendChild(type);
+      meta.append(document.createTextNode(
+        `${record.original_file_name} · ${formatFileSize(record.file_size)} · ${record.uploaded_by_name || '작업자'} · ${formatTodoDate(record.created_at)}`
+      ));
+      main.append(name, description, meta);
+
+      const actions = document.createElement('div');
+      actions.className = 'material-actions';
+      const openButton = document.createElement('button');
+      openButton.type = 'button';
+      openButton.className = 'material-action-btn';
+      openButton.textContent = '열기';
+      openButton.addEventListener('click', () => openMaterial(record));
+      const downloadButton = document.createElement('button');
+      downloadButton.type = 'button';
+      downloadButton.className = 'material-action-btn';
+      downloadButton.textContent = '다운로드';
+      downloadButton.addEventListener('click', () => downloadMaterial(record));
+      actions.append(openButton, downloadButton);
+
+      if (isAdminMode || record.uploaded_by === currentUserInfo.id) {
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.className = 'material-action-btn delete';
+        deleteButton.textContent = '삭제';
+        deleteButton.addEventListener('click', () => deleteMaterial(record, deleteButton));
+        actions.appendChild(deleteButton);
+      }
+
+      item.append(main, actions);
+      list.appendChild(item);
+    });
+  }
+
+  async function loadMaterials() {
+    setMaterialsStatus('자료 목록을 불러오는 중입니다.');
+    const { data: authData } = await supabaseClient.auth.getSession();
+    if (!authData.session) {
+      currentMaterials = [];
+      renderMaterials();
+      setMaterialsStatus('팀원 계정으로 로그인해야 자료를 확인할 수 있습니다.', 'error');
+      return;
+    }
+
+    const { data, error } = await supabaseClient
+      .from('maintenance_materials')
+      .select('id, major_category, title, description, material_type, original_file_name, storage_path, mime_type, file_size, uploaded_by, uploaded_by_name, created_at')
+      .eq('major_category', selectedMajor)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('자료 목록 조회 오류:', error);
+      currentMaterials = [];
+      renderMaterials();
+      setMaterialsStatus('자료 목록을 불러오지 못했습니다.', 'error');
+      return;
+    }
+
+    currentMaterials = data || [];
+    renderMaterials();
+    setMaterialsStatus(`총 ${currentMaterials.length}개의 자료가 있습니다.`);
+  }
+
+  async function openMaterial(record) {
+    setMaterialsStatus('자료를 여는 중입니다.');
+    const { data, error } = await supabaseClient.storage
+      .from('maintenance-materials')
+      .createSignedUrl(record.storage_path, 300);
+    if (error || !data?.signedUrl) {
+      console.error('자료 열기 오류:', error);
+      setMaterialsStatus('자료를 열지 못했습니다.', 'error');
+      return;
+    }
+    window.open(data.signedUrl, '_blank', 'noopener');
+    setMaterialsStatus('자료를 새 창에서 열었습니다.', 'success');
+  }
+
+  async function downloadMaterial(record) {
+    setMaterialsStatus('자료를 다운로드하는 중입니다.');
+    const { data, error } = await supabaseClient.storage
+      .from('maintenance-materials')
+      .download(record.storage_path);
+    if (error || !data) {
+      console.error('자료 다운로드 오류:', error);
+      setMaterialsStatus('자료를 다운로드하지 못했습니다.', 'error');
+      return;
+    }
+    const url = URL.createObjectURL(data);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = record.original_file_name;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setMaterialsStatus('다운로드를 시작했습니다.', 'success');
+  }
+
+  async function deleteMaterial(record, button) {
+    if (!confirm(`'${record.title}' 자료를 삭제하시겠습니까?\n삭제한 파일은 복구할 수 없습니다.`)) return;
+    button.disabled = true;
+    setMaterialsStatus('자료를 삭제하는 중입니다.');
+
+    const { error: storageError } = await supabaseClient.storage
+      .from('maintenance-materials')
+      .remove([record.storage_path]);
+    if (storageError) {
+      console.error('자료 파일 삭제 오류:', storageError);
+      button.disabled = false;
+      setMaterialsStatus('파일을 삭제하지 못했습니다. 권한을 확인해 주세요.', 'error');
+      return;
+    }
+
+    const { error: metadataError } = await supabaseClient
+      .from('maintenance_materials')
+      .delete()
+      .eq('id', record.id);
+    if (metadataError) {
+      console.error('자료 정보 삭제 오류:', metadataError);
+      setMaterialsStatus('파일은 삭제됐지만 목록 정리에 실패했습니다. 관리자에게 알려주세요.', 'error');
+      await loadMaterials();
+      return;
+    }
+
+    await loadMaterials();
+    setMaterialsStatus('자료를 삭제했습니다.', 'success');
+  }
+
+  document.getElementById('materialsSearchInput').addEventListener('input', renderMaterials);
+
+  document.getElementById('materialFile').addEventListener('change', event => {
+    const file = event.target.files?.[0];
+    const title = document.getElementById('materialTitle');
+    if (file && !title.value.trim()) {
+      title.value = file.name.replace(/\.[^.]+$/, '');
+    }
+  });
+
+  document.getElementById('materialsUploadForm').addEventListener('submit', async event => {
+    event.preventDefault();
+    const titleInput = document.getElementById('materialTitle');
+    const descriptionInput = document.getElementById('materialDescription');
+    const typeInput = document.getElementById('materialType');
+    const fileInput = document.getElementById('materialFile');
+    const uploadButton = document.getElementById('btnUploadMaterial');
+    const title = titleInput.value.trim();
+    const file = fileInput.files?.[0];
+
+    if (!title || !file) {
+      setMaterialsStatus('자료명과 파일을 모두 입력해 주세요.', 'error');
+      return;
+    }
+    if (file.size <= 0 || file.size > 20 * 1024 * 1024) {
+      setMaterialsStatus('파일 크기는 20MB 이하여야 합니다.', 'error');
+      return;
+    }
+
+    const rawExtension = file.name.includes('.') ? file.name.split('.').pop().toLowerCase() : '';
+    const allowedExtensions = ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'xlsx', 'xls', 'csv', 'doc', 'docx', 'ppt', 'pptx', 'txt', 'zip', 'hwp', 'hwpx'];
+    if (!allowedExtensions.includes(rawExtension)) {
+      setMaterialsStatus('지원하지 않는 파일 형식입니다.', 'error');
+      return;
+    }
+
+    const { data: authData } = await supabaseClient.auth.getUser();
+    const user = authData?.user;
+    if (!user) {
+      setMaterialsStatus('팀원 계정으로 로그인해야 업로드할 수 있습니다.', 'error');
+      return;
+    }
+
+    const extension = rawExtension.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10);
+    const fileId = crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const storagePath = `${user.id}/${fileId}${extension ? `.${extension}` : ''}`;
+
+    uploadButton.disabled = true;
+    setMaterialsStatus('파일을 업로드하는 중입니다.');
+    const { error: uploadError } = await supabaseClient.storage
+      .from('maintenance-materials')
+      .upload(storagePath, file, {
+        contentType: file.type || 'application/octet-stream',
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (uploadError) {
+      console.error('자료 파일 업로드 오류:', uploadError);
+      uploadButton.disabled = false;
+      setMaterialsStatus('파일을 업로드하지 못했습니다. 로그인 상태와 파일 크기를 확인해 주세요.', 'error');
+      return;
+    }
+
+    setMaterialsStatus('자료 정보를 저장하는 중입니다.');
+    const { error: metadataError } = await supabaseClient.from('maintenance_materials').insert([{
+      major_category: selectedMajor,
+      title,
+      description: descriptionInput.value.trim(),
+      material_type: typeInput.value,
+      original_file_name: file.name.slice(0, 255),
+      storage_path: storagePath,
+      mime_type: file.type || null,
+      file_size: file.size,
+      uploaded_by_name: currentUserInfo.name || '작업자'
+    }]);
+
+    if (metadataError) {
+      console.error('자료 정보 저장 오류:', metadataError);
+      await supabaseClient.storage.from('maintenance-materials').remove([storagePath]);
+      uploadButton.disabled = false;
+      setMaterialsStatus('자료 정보를 저장하지 못해 업로드를 취소했습니다.', 'error');
+      return;
+    }
+
+    titleInput.value = '';
+    descriptionInput.value = '';
+    fileInput.value = '';
+    uploadButton.disabled = false;
+    await loadMaterials();
+    setMaterialsStatus('자료를 업로드했습니다.', 'success');
+  });
+
   window.switchMajor = function(major) {
     selectedMajor = major;
     measurePoints = [];
@@ -1369,14 +1766,15 @@
     clearAllMeasureVisuals();
 
     if (selectedMajor === '기력') {
-      ['할일', '2호기', '3호기', '연료펌프룸', '암모니아탱크', '관리이력', '로직관리'].forEach(key => {
-        const idMap = { '할일': 'sub-steam-todo', '2호기': 'sub-steam-2', '3호기': 'sub-steam-3', '연료펌프룸': 'sub-steam-fuel', '암모니아탱크': 'sub-steam-am', '관리이력': 'sub-steam-hist', '로직관리': 'sub-steam-logic' };
+      ['할일', '자료실', '2호기', '3호기', '연료펌프룸', '암모니아탱크', '관리이력', '로직관리'].forEach(key => {
+        const idMap = { '할일': 'sub-steam-todo', '자료실': 'sub-steam-materials', '2호기': 'sub-steam-2', '3호기': 'sub-steam-3', '연료펌프룸': 'sub-steam-fuel', '암모니아탱크': 'sub-steam-am', '관리이력': 'sub-steam-hist', '로직관리': 'sub-steam-logic' };
         const el = document.getElementById(idMap[key]);
         if (el) el.classList.toggle('active', sub === key);
       });
       document.getElementById('section-selector-row').style.display = (sub === '2호기' || sub === '3호기') ? 'flex' : 'none';
     } else {
       document.getElementById('sub-engine-todo').classList.toggle('active', sub === '할일');
+      document.getElementById('sub-engine-materials').classList.toggle('active', sub === '자료실');
       document.getElementById('sub-engine-1').classList.toggle('active', sub === '1호기');
       document.getElementById('sub-engine-2').classList.toggle('active', sub === '2호기');
       document.getElementById('sub-engine-hist').classList.toggle('active', sub === '관리이력');
@@ -1390,6 +1788,7 @@
     const viewHist = document.getElementById('history-table-view');
     const viewLogic = document.getElementById('logic-management-view');
     const viewTodo = document.getElementById('todo-management-view');
+    const viewMaterials = document.getElementById('materials-management-view');
     const floorBar = document.getElementById('floor-bar');
 
     view3D.style.display = 'none';
@@ -1398,12 +1797,19 @@
     viewHist.style.display = 'none';
     viewLogic.style.display = 'none';
     viewTodo.style.display = 'none';
+    viewMaterials.style.display = 'none';
 
     if (sub === '할일') {
       floorBar.style.display = 'none';
       viewTodo.style.display = 'block';
       document.getElementById('todoManagementTitle').innerText = `☑ [${selectedMajor}발전] To Do List`;
       loadTodos();
+    } else if (sub === '자료실') {
+      floorBar.style.display = 'none';
+      viewMaterials.style.display = 'block';
+      document.getElementById('materialsManagementTitle').innerText = `📁 [${selectedMajor}발전] 자료실`;
+      document.getElementById('materialsSearchInput').value = '';
+      loadMaterials();
     } else if (sub === '관리이력') {
       floorBar.style.display = 'none';
       viewHist.style.display = 'block';
@@ -1491,6 +1897,8 @@
     const floorTag = document.getElementById('currentFloorTag');
     if (selectedSubTab === '할일') {
       floorTag.innerText = `${selectedMajor} 할 일`;
+    } else if (selectedSubTab === '자료실') {
+      floorTag.innerText = `${selectedMajor} 자료실`;
     } else if (selectedSubTab === '관리이력') {
       floorTag.innerText = `${selectedMajor} 관리이력`;
     } else if (selectedSubTab === '로직관리') {
@@ -2146,7 +2554,7 @@
     const savedName = localStorage.getItem('jeju_worker_name');
     const finalName = profile.name || savedName || name;
     isAdminMode = profile.role === 'admin';
-    currentUserInfo = { name: finalName, email, role: profile.role };
+    currentUserInfo = { id: user?.id || '', name: finalName, email, role: profile.role };
     const authOverlay = document.getElementById('auth-overlay');
     if (authOverlay) authOverlay.remove();
     document.getElementById('loginUserBadge').innerText = isAdminMode ? '👑 최고관리자' : `👤 ${finalName}`;
@@ -2167,6 +2575,7 @@
     document.getElementById('history-table-view').style.display = 'none';
     document.getElementById('logic-management-view').style.display = 'none';
     document.getElementById('todo-management-view').style.display = 'none';
+    document.getElementById('materials-management-view').style.display = 'none';
     document.getElementById('floor-bar').style.display = 'flex';
 
     renderFloorBar();
