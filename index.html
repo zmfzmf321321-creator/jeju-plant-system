@@ -43,6 +43,8 @@
     .auth-btn:active { background: #0096c7; }
     .auth-btn-passkey { background: #334155; color: #f8fafc; border: 1px solid #64748b; }
     .auth-btn-passkey:active { background: #475569; }
+    .auth-btn-admin { background: #1e3a8a; color: #dbeafe; border: 1px solid #3b82f6; margin-top: 8px; }
+    .auth-btn-admin:active { background: #1d4ed8; }
     .auth-divider { display: flex; align-items: center; margin: 16px 0; color: #64748b; font-size: 12px; }
     .auth-divider::before, .auth-divider::after { content: ''; flex: 1; border-bottom: 1px solid #334155; }
     .auth-divider span { padding: 0 10px; }
@@ -427,8 +429,9 @@
     <input type="text" id="loginEmail" class="auth-input" placeholder="사번(이메일: 12345@jeju.com)">
     <input type="password" id="loginPassword" class="auth-input" placeholder="비밀번호">
     <button class="auth-btn" id="btnMemberLogin" type="button">팀원 로그인</button>
+    <button class="auth-btn auth-btn-admin" id="btnAdminLogin" type="button">👑 최고관리자 로그인</button>
     <div class="auth-divider"><span>또는</span></div>
-    <button class="auth-btn auth-btn-passkey" id="btnPasskeyLogin" type="button">🔐 지문등록·로그인</button>
+    <button class="auth-btn auth-btn-passkey" id="btnPasskeyLogin" type="button">🔐 내 아이디 지문등록·로그인</button>
     <div id="loginMsg" class="auth-status-error"></div>
     <div class="auth-toggle-link" id="linkToRegister">신규 팀원 계정 신청</div>
   </div>
@@ -842,7 +845,8 @@
 
   let currentInstruments = [];
   let currentManuals = [];
-  let currentUserInfo = { name: '', email: '' };
+  let currentUserInfo = { name: '', email: '', role: 'member' };
+  let isAdminMode = false;
 
   let selectedMajor = '기력';
   let selectedSubTab = '2호기';
@@ -1884,13 +1888,31 @@
   document.getElementById('updateMainPhotoCam').addEventListener('change', (e) => handleUpdateMainPhoto(e.target.files[0]));
   document.getElementById('updateMainPhotoGallery').addEventListener('change', (e) => handleUpdateMainPhoto(e.target.files[0]));
 
-  async function unlock(name, email = 'user@jeju.com') {
+  async function getSignedInProfile(user) {
+    if (!user?.id) return { name: '', role: 'member' };
+    const { data, error } = await supabaseClient
+      .from('user_profiles')
+      .select('name, role')
+      .eq('id', user.id)
+      .maybeSingle();
+    if (error || !data) return { name: '', role: 'member' };
+    return { name: data.name || '', role: data.role === 'admin' ? 'admin' : 'member' };
+  }
+
+  async function unlock(name, email = 'user@jeju.com', knownUser = null) {
+    let user = knownUser;
+    if (!user) {
+      const { data } = await supabaseClient.auth.getUser();
+      user = data?.user || null;
+    }
+    const profile = await getSignedInProfile(user);
     const savedName = localStorage.getItem('jeju_worker_name');
-    const finalName = savedName || name;
-    currentUserInfo = { name: finalName, email };
+    const finalName = profile.name || savedName || name;
+    isAdminMode = profile.role === 'admin';
+    currentUserInfo = { name: finalName, email, role: profile.role };
     const authOverlay = document.getElementById('auth-overlay');
     if (authOverlay) authOverlay.remove();
-    document.getElementById('loginUserBadge').innerText = `👤 ${finalName}`;
+    document.getElementById('loginUserBadge').innerText = isAdminMode ? '👑 최고관리자' : `👤 ${finalName}`;
     selectedMajor = '기력';
     selectedSubTab = '2호기';
     selectedSection = '보일러';
@@ -1946,7 +1968,38 @@
     }
     const namePart = email.split('@')[0];
     localStorage.setItem('jeju_worker_name', namePart);
+    localStorage.setItem('jeju_login_email', email);
     unlock(namePart, email);
+  });
+
+  document.getElementById('btnAdminLogin').addEventListener('click', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value.trim();
+    const pass = document.getElementById('loginPassword').value.trim();
+    const msgEl = document.getElementById('loginMsg');
+    msgEl.style.display = 'none';
+    if (!email || !pass) {
+      msgEl.innerText = '⚠️ 최고관리자 아이디와 비밀번호를 모두 입력해 주세요.';
+      msgEl.style.display = 'block';
+      return;
+    }
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
+    if (error || !data?.user) {
+      msgEl.innerText = '❌ 최고관리자 로그인에 실패했습니다.';
+      msgEl.style.display = 'block';
+      return;
+    }
+    const profile = await getSignedInProfile(data.user);
+    if (profile.role !== 'admin') {
+      await supabaseClient.auth.signOut({ scope: 'local' });
+      msgEl.innerText = '❌ 최고관리자 권한이 없는 계정입니다.';
+      msgEl.style.display = 'block';
+      return;
+    }
+    const name = profile.name || email.split('@')[0];
+    localStorage.setItem('jeju_worker_name', name);
+    localStorage.setItem('jeju_login_email', email);
+    unlock(name, email, data.user);
   });
 
   function getPasskeyErrorMessage(error, action) {
@@ -1980,7 +2033,7 @@
       const { data: passwordData, error: passwordError } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
       if (passwordError || !passwordData?.user) {
         button.disabled = false;
-        button.innerText = '🔐 지문등록·로그인';
+        button.innerText = '🔐 내 아이디 지문등록·로그인';
         msgEl.innerText = '❌ 사번(이메일) 또는 비밀번호가 올바르지 않습니다.';
         msgEl.style.display = 'block';
         return;
@@ -1989,26 +2042,34 @@
       button.innerText = '지문 등록 중...';
       const { data: registerData, error: registerError } = await supabaseClient.auth.registerPasskey();
       button.disabled = false;
-      button.innerText = '🔐 지문등록·로그인';
+      button.innerText = '🔐 내 아이디 지문등록·로그인';
 
       if (registerError && registerError.code !== 'webauthn_credential_exists') {
         alert(`지문등록은 완료되지 않았지만 비밀번호 로그인은 완료되었습니다.\n${getPasskeyErrorMessage(registerError, '지문등록')}`);
       } else {
         const deviceName = registerData?.friendly_name ? ` (${registerData.friendly_name})` : '';
-        alert(`✅ 지문 키가 등록되었습니다${deviceName}. 다음부터 입력 없이 이 버튼을 누르면 로그인됩니다.`);
+        alert(`✅ 지문 키가 등록되었습니다${deviceName}. 다음부터 아이디만 입력하고 이 버튼을 누르면 로그인됩니다.`);
       }
 
       const signedInEmail = passwordData.user.email || email;
       const name = signedInEmail.split('@')[0];
       localStorage.setItem('jeju_worker_name', name);
-      unlock(name, signedInEmail);
+      localStorage.setItem('jeju_login_email', signedInEmail);
+      unlock(name, signedInEmail, passwordData.user);
+      return;
+    }
+
+    if (!email) {
+      button.disabled = false;
+      msgEl.innerText = '⚠️ 본인 아이디(이메일)를 먼저 입력해 주세요.';
+      msgEl.style.display = 'block';
       return;
     }
 
     button.innerText = '지문 확인 중...';
     const { data: passkeyData, error: passkeyError } = await supabaseClient.auth.signInWithPasskey();
     button.disabled = false;
-    button.innerText = '🔐 지문등록·로그인';
+    button.innerText = '🔐 내 아이디 지문등록·로그인';
 
     if (passkeyError || !passkeyData?.user) {
       msgEl.innerText = passkeyError?.code === 'passkey_disabled'
@@ -2018,10 +2079,17 @@
       return;
     }
 
-    const signedInEmail = passkeyData.user.email || 'user@jeju.com';
+    const signedInEmail = passkeyData.user.email || '';
+    if (!signedInEmail || signedInEmail.toLowerCase() !== email.toLowerCase()) {
+      await supabaseClient.auth.signOut({ scope: 'local' });
+      msgEl.innerText = '❌ 입력한 아이디와 선택한 패스키 계정이 다릅니다. 본인 아이디의 패스키를 선택해 주세요.';
+      msgEl.style.display = 'block';
+      return;
+    }
     const name = signedInEmail.split('@')[0];
     localStorage.setItem('jeju_worker_name', name);
-    unlock(name, signedInEmail);
+    localStorage.setItem('jeju_login_email', signedInEmail);
+    unlock(name, signedInEmail, passkeyData.user);
   });
 
   document.getElementById('btnRegisterPasskey').addEventListener('click', async (e) => {
@@ -2107,6 +2175,12 @@
   function updateMeasureHudPrompt() {
     if (!isMeasureMode) { measureHud.style.display = 'none'; return; }
     measureHud.style.display = 'block';
+    if (isAdminMode) {
+      measureHud.innerHTML = selectedFloor === 'ALL'
+        ? `📍 <b>[최고관리자 모드]</b> 3D 모델 표면을 누르면 <b>좌표가 자동 복사</b>됩니다.`
+        : `📍 <b>[최고관리자 모드]</b> 도면을 누르면 <b>2D 좌표가 자동 복사</b>됩니다.`;
+      return;
+    }
     const count = measurePoints.length;
     if (count === 0) {
       measureHud.innerHTML = selectedFloor === 'ALL'
@@ -2157,7 +2231,7 @@
     clearAllMeasureVisuals();
     if (isMeasureMode) {
       btnMeasure.classList.add('active');
-      btnMeasure.innerText = '📐 계측 ON';
+      btnMeasure.innerText = isAdminMode ? '📐 좌표 ON' : '📐 계측 ON';
       updateMeasureHudPrompt();
     } else {
       btnMeasure.classList.remove('active');
@@ -2183,6 +2257,21 @@
     const rect = viewer.getBoundingClientRect();
     const hit = viewer.positionAndNormalFromPoint(event.clientX - rect.left, event.clientY - rect.top);
     if (hit) {
+      if (isAdminMode) {
+        const posStr = `${hit.position.x.toFixed(2)} ${hit.position.y.toFixed(2)} ${hit.position.z.toFixed(2)}`;
+        let marker = viewer.querySelector('#temp-measure-marker');
+        if (!marker) {
+          marker = document.createElement('button');
+          marker.id = 'temp-measure-marker';
+          marker.slot = 'hotspot-measure-point';
+          viewer.appendChild(marker);
+        }
+        marker.dataset.position = `${hit.position.x} ${hit.position.y} ${hit.position.z}`;
+        measureHud.style.display = 'block';
+        measureHud.innerHTML = `📍 3D 좌표: <b style="color:#38bdf8;">${posStr}</b> (복사됨)`;
+        navigator.clipboard.writeText(posStr).catch(() => {});
+        return;
+      }
       if (measurePoints.length >= 10) {
         measurePoints = [];
         clearAllMeasureVisuals();
@@ -2358,6 +2447,20 @@
     const curX = Math.round(Math.max(0, Math.min(1400, clickX)));
     const curY = Math.round(Math.max(0, Math.min(1000, clickY)));
     if (isMeasureMode) {
+      if (isAdminMode) {
+        let marker = board.querySelector('#temp-measure-marker-2d');
+        if (!marker) {
+          marker = document.createElement('div');
+          marker.id = 'temp-measure-marker-2d';
+          board.appendChild(marker);
+        }
+        marker.style.left = `${curX}px`;
+        marker.style.top = `${curY}px`;
+        measureHud.style.display = 'block';
+        measureHud.innerHTML = `📍 2D 도면 좌표: <b style="color:#38bdf8;">X:${curX}, Y:${curY}</b> (복사됨)`;
+        navigator.clipboard.writeText(`X:${curX} Y:${curY}`).catch(() => {});
+        return;
+      }
       if (measurePoints.length >= 10) {
         measurePoints = [];
         clearAllMeasureVisuals();
@@ -2870,12 +2973,14 @@
 
   localStorage.removeItem('jeju_admin_bio_auth');
   sessionStorage.removeItem('jeju_admin_auth');
+  const rememberedLoginEmail = localStorage.getItem('jeju_login_email');
+  if (rememberedLoginEmail) document.getElementById('loginEmail').value = rememberedLoginEmail;
 
   supabaseClient.auth.getUser().then(({ data, error }) => {
     if (error || !data.user) return;
     const email = data.user.email || 'user@jeju.com';
     const savedName = localStorage.getItem('jeju_worker_name') || email.split('@')[0];
-    unlock(savedName, email);
+    unlock(savedName, email, data.user);
   });
 </script>
 </body>
