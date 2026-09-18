@@ -1971,61 +1971,54 @@
       return;
     }
 
-    button.disabled = true;
-    button.innerText = '등록된 지문 키 확인 중...';
-    const { data: passkeyData, error: passkeyError } = await supabaseClient.auth.signInWithPasskey();
-
-    if (!passkeyError && passkeyData?.user) {
-      button.disabled = false;
-      button.innerText = '🔐 지문등록·로그인';
-      const email = passkeyData.user.email || 'user@jeju.com';
-      const name = email.split('@')[0];
-      localStorage.setItem('jeju_worker_name', name);
-      unlock(name, email);
-      return;
-    }
-
-    if (passkeyError?.code === 'passkey_disabled') {
-      button.disabled = false;
-      button.innerText = '🔐 지문등록·로그인';
-      msgEl.innerText = `❌ ${getPasskeyErrorMessage(passkeyError, '지문·화면잠금 로그인')}`;
-      msgEl.style.display = 'block';
-      return;
-    }
-
     const email = document.getElementById('loginEmail').value.trim();
     const pass = document.getElementById('loginPassword').value.trim();
-    if (!email || !pass) {
+    button.disabled = true;
+
+    if (email && pass) {
+      button.innerText = '본인 확인 중...';
+      const { data: passwordData, error: passwordError } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
+      if (passwordError || !passwordData?.user) {
+        button.disabled = false;
+        button.innerText = '🔐 지문등록·로그인';
+        msgEl.innerText = '❌ 사번(이메일) 또는 비밀번호가 올바르지 않습니다.';
+        msgEl.style.display = 'block';
+        return;
+      }
+
+      button.innerText = '지문 등록 중...';
+      const { data: registerData, error: registerError } = await supabaseClient.auth.registerPasskey();
       button.disabled = false;
       button.innerText = '🔐 지문등록·로그인';
-      msgEl.innerText = '처음 지문을 등록할 때만 사번(이메일)과 비밀번호를 입력한 뒤 이 버튼을 눌러주세요.';
-      msgEl.style.display = 'block';
+
+      if (registerError && registerError.code !== 'webauthn_credential_exists') {
+        alert(`지문등록은 완료되지 않았지만 비밀번호 로그인은 완료되었습니다.\n${getPasskeyErrorMessage(registerError, '지문등록')}`);
+      } else {
+        const deviceName = registerData?.friendly_name ? ` (${registerData.friendly_name})` : '';
+        alert(`✅ 지문 키가 등록되었습니다${deviceName}. 다음부터 입력 없이 이 버튼을 누르면 로그인됩니다.`);
+      }
+
+      const signedInEmail = passwordData.user.email || email;
+      const name = signedInEmail.split('@')[0];
+      localStorage.setItem('jeju_worker_name', name);
+      unlock(name, signedInEmail);
       return;
     }
 
-    button.innerText = '최초 본인 확인 중...';
-    const { data: passwordData, error: passwordError } = await supabaseClient.auth.signInWithPassword({ email, password: pass });
-    if (passwordError || !passwordData?.user) {
-      button.disabled = false;
-      button.innerText = '🔐 지문등록·로그인';
-      msgEl.innerText = '❌ 사번(이메일) 또는 비밀번호가 올바르지 않습니다.';
-      msgEl.style.display = 'block';
-      return;
-    }
-
-    button.innerText = '지문 등록 중...';
-    const { data: registerData, error: registerError } = await supabaseClient.auth.registerPasskey();
+    button.innerText = '지문 확인 중...';
+    const { data: passkeyData, error: passkeyError } = await supabaseClient.auth.signInWithPasskey();
     button.disabled = false;
     button.innerText = '🔐 지문등록·로그인';
 
-    if (registerError && registerError.code !== 'webauthn_credential_exists') {
-      alert(`지문등록은 완료되지 않았지만 비밀번호 로그인은 완료되었습니다.\n${getPasskeyErrorMessage(registerError, '지문등록')}`);
-    } else {
-      const deviceName = registerData?.friendly_name ? ` (${registerData.friendly_name})` : '';
-      alert(`✅ 지문 키가 등록되었습니다${deviceName}. 다음부터 이 버튼을 누르면 바로 로그인됩니다.`);
+    if (passkeyError || !passkeyData?.user) {
+      msgEl.innerText = passkeyError?.code === 'passkey_disabled'
+        ? `❌ ${getPasskeyErrorMessage(passkeyError, '지문·화면잠금 로그인')}`
+        : '등록된 지문 키가 없습니다. 처음 한 번만 사번(이메일)과 비밀번호를 입력한 뒤 다시 눌러주세요.';
+      msgEl.style.display = 'block';
+      return;
     }
 
-    const signedInEmail = passwordData.user.email || email;
+    const signedInEmail = passkeyData.user.email || 'user@jeju.com';
     const name = signedInEmail.split('@')[0];
     localStorage.setItem('jeju_worker_name', name);
     unlock(name, signedInEmail);
