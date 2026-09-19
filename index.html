@@ -526,6 +526,20 @@
     .ai-msg { padding: 8px 12px; border-radius: 8px; font-size: 13px; line-height: 1.4; max-width: 88%; word-break: break-word; }
     .ai-msg-bot { background: #e0e7ff; color: #312e81; align-self: flex-start; }
     .ai-msg-user { background: #0284c7; color: #fff; align-self: flex-end; }
+    .ai-answer-text { white-space: pre-wrap; }
+    .ai-flow-title { margin: 8px 0 6px; color: #4338ca; font-size: 11px; font-weight: 800; letter-spacing: .04em; }
+    .ai-flowchart {
+      display: flex; align-items: center; gap: 7px; width: min(100%, 680px); overflow-x: auto;
+      padding: 9px; margin: 6px 0; background: rgba(255, 255, 255, .72); border: 1px solid #c7d2fe;
+      border-radius: 10px; scrollbar-width: thin;
+    }
+    .ai-flow-step {
+      flex: 0 0 auto; min-width: 118px; max-width: 180px; padding: 9px 11px; text-align: center;
+      background: #fff; border: 1px solid #818cf8; border-radius: 8px; color: #312e81;
+      font-weight: 700; line-height: 1.35; box-shadow: 0 2px 7px rgba(49, 46, 129, .08);
+    }
+    .ai-flow-arrow { flex: 0 0 auto; color: #4f46e5; font-size: 18px; font-weight: 900; }
+    .ai-flow-arrow::before { content: "→"; }
     .ai-input-wrap { display: flex; gap: 6px; }
     .ai-input-wrap input { flex: 1; padding: 9px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; outline: none; }
     .btn-ai-send { background: #6366f1; color: #fff; border: none; padding: 0 14px; border-radius: 6px; font-weight: bold; }
@@ -722,6 +736,11 @@
       .history-search-bar { width: 132px; }
       #floor-bar { padding: 7px 8px; }
       .floor-btn { height: 40px; }
+      .ai-msg { max-width: 94%; }
+      .ai-flowchart { flex-direction: column; align-items: stretch; overflow-x: visible; }
+      .ai-flow-step { width: 100%; max-width: none; box-sizing: border-box; }
+      .ai-flow-arrow { align-self: center; line-height: 1; }
+      .ai-flow-arrow::before { content: "↓"; }
     }
   </style>
 </head>
@@ -2328,8 +2347,8 @@
 
       const lastMsg = document.querySelector('#aiChatBox .ai-msg-bot:last-child');
       if (!error && data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-        const reply = data.candidates[0].content.parts[0].text;
-        if (lastMsg && lastMsg.innerText.includes('⏳')) lastMsg.innerText = reply;
+        const reply = cleanAiReplyText(data.candidates[0].content.parts[0].text);
+        if (lastMsg && lastMsg.innerText.includes('⏳')) renderAiReply(lastMsg, reply);
         else appendAiMsg('bot', reply);
         currentChatMessages.push(
           { role: 'user', text: userPrompt },
@@ -2711,11 +2730,78 @@
     setTimeout(() => { if (!isMeasureMode && hud) hud.style.display = 'none'; }, 3500);
   }
 
+  function cleanAiReplyText(text) {
+    let cleaned = String(text || '').trim();
+    const filler = /^(?:(?:네|예)[,.!]?\s*|(?:좋은 질문(?:입니다|이에요)|알겠습니다|물론입니다|도와드리겠습니다)[.!]?\s*|문의하신 (?:내용은|질문은)\s*)+/;
+    cleaned = cleaned.replace(filler, '').trim();
+    return cleaned || '답변을 생성하지 못했습니다. 질문을 다시 입력해 주세요.';
+  }
+
+  function appendAiText(container, text) {
+    const value = String(text || '').trim();
+    if (!value) return;
+    const block = document.createElement('div');
+    block.className = 'ai-answer-text';
+    block.textContent = value;
+    container.appendChild(block);
+  }
+
+  function appendAiFlow(container, flowText) {
+    const steps = String(flowText || '')
+      .split(/\r?\n|\s*(?:--+>|→|➡️?|➜)\s*/)
+      .map(step => step.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, '').trim())
+      .filter(Boolean)
+      .slice(0, 8);
+    if (steps.length < 2) {
+      appendAiText(container, flowText);
+      return;
+    }
+
+    const title = document.createElement('div');
+    title.className = 'ai-flow-title';
+    title.textContent = '작업 순서';
+    container.appendChild(title);
+
+    const flow = document.createElement('div');
+    flow.className = 'ai-flowchart';
+    flow.setAttribute('role', 'list');
+    flow.setAttribute('aria-label', '작업 순서 흐름도');
+    steps.forEach((step, index) => {
+      if (index > 0) {
+        const arrow = document.createElement('span');
+        arrow.className = 'ai-flow-arrow';
+        arrow.setAttribute('aria-hidden', 'true');
+        flow.appendChild(arrow);
+      }
+      const stepBox = document.createElement('div');
+      stepBox.className = 'ai-flow-step';
+      stepBox.setAttribute('role', 'listitem');
+      stepBox.textContent = step;
+      flow.appendChild(stepBox);
+    });
+    container.appendChild(flow);
+  }
+
+  function renderAiReply(container, text) {
+    const cleaned = cleanAiReplyText(text);
+    container.replaceChildren();
+    const pattern = /\[FLOW\]([\s\S]*?)\[\/FLOW\]/gi;
+    let cursor = 0;
+    let match;
+    while ((match = pattern.exec(cleaned)) !== null) {
+      appendAiText(container, cleaned.slice(cursor, match.index));
+      appendAiFlow(container, match[1]);
+      cursor = pattern.lastIndex;
+    }
+    appendAiText(container, cleaned.slice(cursor));
+  }
+
   function appendAiMsg(role, text) {
     const box = document.getElementById('aiChatBox');
     const div = document.createElement('div');
     div.className = `ai-msg ${role === 'user' ? 'ai-msg-user' : 'ai-msg-bot'}`;
-    div.innerText = text;
+    if (role === 'user') div.textContent = text;
+    else renderAiReply(div, text);
     box.appendChild(div);
     box.scrollTop = box.scrollHeight;
   }
