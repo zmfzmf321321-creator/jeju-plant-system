@@ -986,7 +986,7 @@
   
   <div id="aiChatView">
     <div class="ai-chat-box" id="aiChatBox">
-      <div class="ai-msg ai-msg-bot">안녕하세요! 발전제어설비 AI 어시스턴트입니다. 현장 데이터 및 교정 성적서를 기반으로 답변합니다.</div>
+      <div class="ai-msg ai-msg-bot">안녕하세요! 발전제어설비 AI 어시스턴트입니다. 현장 자료를 우선 확인하고, 이 대화 안에서는 앞 질문의 맥락을 이어서 답변합니다.</div>
     </div>
     <div class="ai-input-wrap">
       <input type="text" id="aiUserInput" placeholder="질문을 입력하세요..." autocomplete="off" readonly onfocus="this.removeAttribute('readonly');">
@@ -1230,6 +1230,10 @@
   let isMeasureMode = false;
   let measurePoints = [];
   let currentChatSessionId = 'session_' + Date.now();
+  let currentChatMessages = [];
+  let isAiRequestPending = false;
+  let calibrationCache = [];
+  let calibrationCacheLoadedAt = 0;
 
   let pendingInstPhotoFile = null;
   let pendingInitHistPhotoFile = null;
@@ -2135,8 +2139,9 @@
 
   window.startNewChat = function() {
     currentChatSessionId = 'session_' + Date.now();
+    currentChatMessages = [];
     const chatBox = document.getElementById('aiChatBox');
-    chatBox.innerHTML = `<div class="ai-msg ai-msg-bot">새로운 대화가 시작되었습니다. 무엇을 도와드릴까요?</div>`;
+    chatBox.innerHTML = `<div class="ai-msg ai-msg-bot">새로운 대화가 시작되었습니다. 앞 대화와 분리해 새로 답변합니다. 무엇을 도와드릴까요?</div>`;
   };
 
   window.switchAiTab = async function(tab) {
@@ -2190,73 +2195,135 @@
   document.getElementById('btnOpenGemini').addEventListener('click', async () => {
     document.getElementById('gemini-modal').style.display = 'block';
     switchAiTab('chat');
-    await fetchManuals();
+    await Promise.all([fetchManuals(), fetchMaterialMetadata()]);
   });
 
-  async function callGemini(userPrompt, extraContext = '', targetPhotos = []) {
-    appendAiMsg('user', userPrompt);
-    appendAiMsg('bot', '⏳ 설비 데이터 및 교정 성적서 종합 분석 중...');
-    let photosToSend = [...targetPhotos];
-    let dynamicContext = extraContext;
+  async function fetchMaterialMetadata() {
+    const { data, error } = await supabaseClient
+      .from('maintenance_materials')
+      .select('title, description, material_type, original_file_name, major_category')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (!error) currentMaterials = data || [];
+  }
 
-    let calibContext = '';
-    try {
-      const { data: calibList, error: calibErr } = await supabaseClient
-        .from('Instrumnet_calibration')
-        .select('*')
-        .limit(250);
+  function normalizeAiSearchText(value) {
+    return String(value || '')
+      .toLowerCase()
+      .replace(/[^0-9a-z가-힣_-]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
 
-      if (!calibErr && calibList && calibList.length > 0) {
-        const promptLower = userPrompt.toLowerCase();
-        const matchedCalib = calibList.filter(c => {
-          const tag = String(c["Tag No"] || c["tag_no"] || '').toLowerCase();
-          const name = String(c["기기명"] || c["name"] || '').toLowerCase();
-          const maker = String(c["제작사"] || '').toLowerCase();
-          const model = String(c["모델명"] || c["TYPE"] || '').toLowerCase();
-          const loc = String(c["설치위치"] || '').toLowerCase();
-          return tag.includes(promptLower) || name.includes(promptLower) || promptLower.includes(tag) || 
-                 maker.includes(promptLower) || model.includes(promptLower) || loc.includes(promptLower);
+  function getAiSearchTerms(text) {
+    const stopWords = new Set(['그거', '그것', '이거', '저거', '어떻게', '무엇', '뭐가', '왜', '설명', '알려줘', '확인', '질문', '대한', '관련']);
+    return [...new Set(normalizeAiSearchText(text).split(' '))]
+      .filter(term => term.length >= 2 && !stopWords.has(term))
+      .slice(0, 30);
+  }
+
+  function rankAiRecords(records, searchText, fieldGetter, limit = 8) {
+    const normalizedQuery = normalizeAiSearchText(searchText);
+    const terms = getAiSearchTerms(searchText);
+    if (!normalizedQuery || terms.length === 0) return [];
+
+    return (records || []).map(record => {
+      const fields = fieldGetter(record)
+        .map(normalizeAiSearchText)
+        .filter(field => field.length >= 2);
+      let score = 0;
+      fields.forEach(field => {
+        if (field.length >= 3 && normalizedQuery.includes(field)) score += 12;
+        terms.forEach(term => {
+          if (field === term) score += 8;
+          else if (field.includes(term) || term.includes(field)) score += 3;
         });
+      });
+      return { record, score };
+    })
+      .filter(item => item.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit)
+      .map(item => item.record);
+  }
 
-        const targetList = matchedCalib.length > 0 ? matchedCalib : calibList.slice(0, 50);
-        calibContext = "📋 [교정 성적서 및 설비 10개 핵심 제원 데이터]:\n" + targetList.map(c => 
+  async function getCalibrationRecords() {
+    const cacheAge = Date.now() - calibrationCacheLoadedAt;
+    if (calibrationCache.length > 0 && cacheAge < 5 * 60 * 1000) return calibrationCache;
+    const { data, error } = await supabaseClient
+      .from('Instrumnet_calibration')
+      .select('*')
+      .limit(500);
+    if (error) throw error;
+    calibrationCache = data || [];
+    calibrationCacheLoadedAt = Date.now();
+    return calibrationCache;
+  }
+
+  function buildChatHistoryForApi() {
+    return currentChatMessages.slice(-12).map(message => ({
+      role: message.role,
+      text: String(message.text || '').slice(0, 2500)
+    }));
+  }
+
+  async function callGemini(userPrompt, extraContext = '', targetPhotos = []) {
+    if (isAiRequestPending) return;
+    isAiRequestPending = true;
+    const sendButton = document.getElementById('btnSendAi');
+    sendButton.disabled = true;
+    appendAiMsg('user', userPrompt);
+    appendAiMsg('bot', '⏳ 앞 대화와 관련 설비 자료를 함께 확인 중...');
+    let photosToSend = [...targetPhotos];
+    const contextSections = [];
+    if (extraContext) contextSections.push(extraContext);
+
+    const recentUserQuestions = currentChatMessages
+      .filter(message => message.role === 'user')
+      .slice(-3)
+      .map(message => message.text);
+    const searchText = [userPrompt, ...recentUserQuestions].join(' ');
+
+    contextSections.push(`📍 [현재 화면 범위]\n발전구분: ${selectedMajor} | 메뉴: ${selectedSubTab} | 구역: ${selectedSection} | 층: ${selectedFloor}`);
+
+    try {
+      const calibList = await getCalibrationRecords();
+      const matchedCalib = rankAiRecords(calibList, searchText, c => [
+        c["Tag No"], c["기기명"], c["TYPE"], c["설치위치"], c["제작사"], c["모델명"]
+      ]);
+      if (matchedCalib.length > 0) {
+        contextSections.push("📋 [질문과 관련된 교정 성적서]:\n" + matchedCalib.map(c =>
           `- [Tag: ${c["Tag No"] || '-'}] 기기명: ${c["기기명"] || '-'} | TYPE: ${c["TYPE"] || '-'} | 설치위치: ${c["설치위치"] || '-'} | 제작사: ${c["제작사"] || '-'} | 모델명: ${c["모델명"] || '-'} | 측정범위(RANGE): ${c["RANGE"] || '-'} | 점검일자: ${c["점검일자"] || '-'} | 점검자/감독자: ${c["점검자"] || '-'} / ${c["감독자"] || '-'}`
-        ).join('\n');
+        ).join('\n'));
       }
     } catch (e) {
       console.warn("교정 데이터 조회 건너뜀:", e);
     }
 
-    if (!dynamicContext) {
-      const promptLower = userPrompt.toLowerCase();
-      const matchedInsts = currentInstruments.filter(inst => {
-        const tag = (inst.tag_no || '').toLowerCase();
-        const name = (inst.name || '').toLowerCase();
-        return tag.includes(promptLower) || name.includes(promptLower) || promptLower.includes(tag);
-      });
-
-      if (matchedInsts.length > 0) {
-        dynamicContext = "🔍 [도면 등록 계측기 정보]:\n" + matchedInsts.map(i =>
-          `- Tag: ${i.tag_no}, 기기명: ${i.name}, 위치: ${i.major_category} ${i.unit} ${i.floor}, 모델: ${i.model}, 범위: ${i.signal_range}`
-        ).join('\n');
-      }
+    const matchedInsts = rankAiRecords(currentInstruments, searchText, inst => [
+      inst.tag_no, inst.name, inst.model, inst.signal_range, inst.floor, inst.unit, inst.major_category
+    ]);
+    if (matchedInsts.length > 0) {
+      contextSections.push("🔍 [질문과 관련된 등록 계측기]:\n" + matchedInsts.map(i =>
+        `- Tag: ${i.tag_no || '-'}, 기기명: ${i.name || '-'}, 위치: ${i.major_category || '-'} ${i.unit || '-'} ${i.floor || '-'}, 모델: ${i.model || '-'}, 범위: ${i.signal_range || '-'}`
+      ).join('\n'));
     }
 
-    let chatHistoryContext = '';
-    const chatMsgs = Array.from(document.querySelectorAll('#aiChatBox .ai-msg'));
-    const previousMsgs = chatMsgs.slice(0, -2).slice(-6);
-    if (previousMsgs.length > 0) {
-      chatHistoryContext = "💬 [직전 대화 내역 (연속 질의 맥락 파악용)]:\n" + previousMsgs.map(el => {
-        const role = el.classList.contains('ai-msg-user') ? '사용자' : 'AI 어시스턴트';
-        return `${role}: ${el.innerText}`;
-      }).join('\n');
+    const matchedMaterials = rankAiRecords(currentMaterials, searchText, material => [
+      material.title, material.description, material.material_type, material.original_file_name, material.major_category
+    ], 5);
+    if (matchedMaterials.length > 0) {
+      contextSections.push("📁 [질문과 관련된 자료실 항목]:\n" + matchedMaterials.map(material =>
+        `- ${material.title || material.original_file_name || '-'} | 구분: ${material.material_type || '-'} | 설명: ${material.description || '-'} | 파일명: ${material.original_file_name || '-'}`
+      ).join('\n'));
     }
 
-    const enrichedContext = [chatHistoryContext, calibContext, dynamicContext].filter(Boolean).join('\n\n');
+    const enrichedContext = contextSections.filter(Boolean).join('\n\n').slice(0, 16000);
+    const history = buildChatHistoryForApi();
 
     try {
       const { data, error } = await supabaseClient.functions.invoke('gemini-chat', {
-        body: { prompt: userPrompt, extraContext: enrichedContext, photosToSend, mode: 'chat' }
+        body: { prompt: userPrompt, history, extraContext: enrichedContext, photosToSend, mode: 'chat' }
       });
 
       const lastMsg = document.querySelector('#aiChatBox .ai-msg-bot:last-child');
@@ -2264,6 +2331,11 @@
         const reply = data.candidates[0].content.parts[0].text;
         if (lastMsg && lastMsg.innerText.includes('⏳')) lastMsg.innerText = reply;
         else appendAiMsg('bot', reply);
+        currentChatMessages.push(
+          { role: 'user', text: userPrompt },
+          { role: 'model', text: reply }
+        );
+        currentChatMessages = currentChatMessages.slice(-12);
 
         const workerName = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자';
         await supabaseClient.from('ai_chat_history').insert([{
@@ -2280,6 +2352,9 @@
     } catch (err) {
       const lastMsg = document.querySelector('#aiChatBox .ai-msg-bot:last-child');
       if (lastMsg && lastMsg.innerText.includes('⏳')) lastMsg.innerText = `❌ 통신 실패: ${err.message}`;
+    } finally {
+      isAiRequestPending = false;
+      sendButton.disabled = false;
     }
   }
 
@@ -2648,13 +2723,13 @@
   document.getElementById('btnSendAi').addEventListener('click', () => {
     const input = document.getElementById('aiUserInput');
     const p = input.value.trim();
-    if (!p) return;
+    if (!p || isAiRequestPending) return;
     input.value = '';
     callGemini(p);
   });
 
-  document.getElementById('aiUserInput').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') document.getElementById('btnSendAi').click();
+  document.getElementById('aiUserInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.isComposing) document.getElementById('btnSendAi').click();
   });
 
   function previewImageFile(file, previewElementId) {
