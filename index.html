@@ -207,6 +207,79 @@
       .logic-form-field.logic-wide { grid-column: auto; }
     }
 
+    #tms-management-view {
+      display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0;
+      background: #080d1a; z-index: 50; overflow-y: auto; padding: 16px;
+    }
+    .tms-panel {
+      max-width: 960px; margin: 0 auto; background: #111a33; border: 1px solid #334155;
+      border-radius: 14px; padding: 20px; box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+    }
+    .tms-title { color: #38bdf8; font-size: 18px; font-weight: 800; margin-bottom: 6px; }
+    .tms-desc { color: #94a3b8; font-size: 12px; line-height: 1.5; margin-bottom: 16px; }
+    .tms-form {
+      display: grid; grid-template-columns: minmax(170px, .8fr) minmax(220px, 1.2fr); gap: 10px;
+      padding: 14px; border: 1px solid #334155; border-radius: 10px; background: #0f172a;
+    }
+    .tms-field { display: flex; flex-direction: column; gap: 5px; }
+    .tms-field.wide { grid-column: 1 / -1; }
+    .tms-field label { color: #cbd5e1; font-size: 11px; font-weight: 700; }
+    .tms-input {
+      width: 100%; padding: 10px 11px; background: #080d1a; border: 1px solid #475569;
+      border-radius: 7px; color: #f8fafc; font-size: 13px; outline: none;
+    }
+    .tms-input:focus { border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56,189,248,0.12); }
+    textarea.tms-input { min-height: 88px; resize: vertical; line-height: 1.45; }
+    .tms-form-actions { display: flex; align-items: center; gap: 8px; grid-column: 1 / -1; flex-wrap: wrap; }
+    .tms-save-btn, .tms-cancel-btn {
+      padding: 10px 18px; border-radius: 7px; color: #fff; font-size: 13px; font-weight: 800; cursor: pointer;
+    }
+    .tms-save-btn { background: #0284c7; border: 1px solid #38bdf8; }
+    .tms-cancel-btn { display: none; background: #334155; border: 1px solid #64748b; }
+    .tms-save-btn:disabled, .tms-cancel-btn:disabled { opacity: .6; cursor: wait; }
+    .tms-status { min-height: 18px; color: #94a3b8; font-size: 12px; line-height: 1.4; }
+    .tms-status.error { color: #fca5a5; }
+    .tms-status.success { color: #6ee7b7; }
+    .tms-list-header {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      margin-top: 20px; padding-top: 16px; border-top: 1px solid #334155;
+    }
+    .tms-list-title { color: #e2e8f0; font-size: 14px; font-weight: 800; }
+    .tms-count { color: #7dd3fc; font-size: 11px; font-weight: 700; }
+    .tms-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+    .tms-item {
+      display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center;
+      padding: 13px; background: #0f172a; border: 1px solid #334155; border-radius: 9px;
+    }
+    .tms-item-main { min-width: 0; }
+    .tms-item-heading { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .tms-tag {
+      display: inline-block; padding: 3px 7px; background: #075985; border-radius: 5px;
+      color: #e0f2fe; font-size: 11px; font-weight: 800; word-break: break-all;
+    }
+    .tms-equipment-name { color: #f8fafc; font-size: 14px; font-weight: 700; word-break: break-word; }
+    .tms-history { color: #cbd5e1; font-size: 12px; line-height: 1.5; margin-top: 8px; white-space: pre-wrap; word-break: break-word; }
+    .tms-history.empty { color: #64748b; }
+    .tms-meta { color: #64748b; font-size: 10px; margin-top: 7px; }
+    .tms-item-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+    .tms-action-btn {
+      padding: 7px 10px; border: 1px solid #475569; border-radius: 6px; background: #1e293b;
+      color: #e2e8f0; font-size: 11px; font-weight: 700; cursor: pointer;
+    }
+    .tms-action-btn.delete { border-color: #7f1d1d; background: #450a0a; color: #fecaca; }
+    .tms-empty {
+      padding: 28px 12px; text-align: center; color: #64748b; font-size: 13px;
+      border: 1px dashed #334155; border-radius: 9px;
+    }
+    @media (max-width: 600px) {
+      #tms-management-view { padding: 10px; }
+      .tms-panel { padding: 14px; }
+      .tms-form { grid-template-columns: 1fr; }
+      .tms-field.wide, .tms-form-actions { grid-column: auto; }
+      .tms-item { grid-template-columns: 1fr; }
+      .tms-item-actions { justify-content: flex-start; }
+    }
+
     #todo-management-view {
       display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0;
       background: #080d1a; z-index: 50; overflow-y: auto; padding: 16px;
@@ -658,15 +731,15 @@
     }
     .floor-btn.active { background: #0a769e; border-color: var(--primary); color: #fff; }
 
-    #history-table-view, #logic-management-view, #todo-management-view, #materials-management-view {
+    #history-table-view, #logic-management-view, #tms-management-view, #todo-management-view, #materials-management-view {
       background: var(--app-bg); padding: 24px;
     }
-    .logic-management-panel, .todo-panel, .materials-panel {
+    .logic-management-panel, .tms-panel, .todo-panel, .materials-panel {
       background: transparent; border: 0; box-shadow: none; padding: 0; border-radius: 0;
     }
-    .logic-management-panel, .materials-panel { max-width: 1080px; }
+    .logic-management-panel, .tms-panel, .materials-panel { max-width: 1080px; }
     .todo-panel { max-width: 760px; }
-    .logic-management-title, .todo-title, .materials-title, .history-table-title {
+    .logic-management-title, .tms-title, .todo-title, .materials-title, .history-table-title {
       color: var(--text); font-size: 19px; letter-spacing: -.35px;
     }
     .logic-management-desc, .todo-desc, .materials-desc { color: var(--muted); }
@@ -674,7 +747,7 @@
       background: var(--surface-soft); border-color: var(--line); border-radius: 12px;
     }
     .todo-add-form { padding: 10px; }
-    .logic-input, .materials-input, .todo-input, .materials-search, .history-search-bar {
+    .logic-input, .tms-input, .materials-input, .todo-input, .materials-search, .history-search-bar {
       background: #07101f; border-color: var(--line-strong); color: var(--text); border-radius: 8px;
     }
     .todo-item, .material-item { background: var(--surface); border-color: var(--line); border-radius: 11px; }
@@ -729,9 +802,9 @@
       .major-tab-btn { height: 28px; }
       .sub-tab-btn { height: 28px; padding: 0 9px; }
       .sec-tab-btn { height: 25px; }
-      #history-table-view, #logic-management-view, #todo-management-view, #materials-management-view { padding: 14px 10px; }
-      .logic-management-panel, .todo-panel, .materials-panel { padding: 0; }
-      .logic-management-title, .todo-title, .materials-title, .history-table-title { font-size: 17px; }
+      #history-table-view, #logic-management-view, #tms-management-view, #todo-management-view, #materials-management-view { padding: 14px 10px; }
+      .logic-management-panel, .tms-panel, .todo-panel, .materials-panel { padding: 0; }
+      .logic-management-title, .tms-title, .todo-title, .materials-title, .history-table-title { font-size: 17px; }
       .history-table-header { align-items: flex-start; gap: 9px; }
       .history-search-bar { width: 132px; }
       #floor-bar { padding: 7px 8px; }
@@ -798,6 +871,7 @@
     <button class="sub-tab-btn" id="sub-steam-3" onclick="switchSubTab('3호기')">3호기</button>
     <button class="sub-tab-btn" id="sub-steam-fuel" onclick="switchSubTab('연료펌프룸')">⛽ 연료펌프룸</button>
     <button class="sub-tab-btn" id="sub-steam-am" onclick="switchSubTab('암모니아탱크')">🧪 암모니아 탱크</button>
+    <button class="sub-tab-btn nav-work" id="sub-steam-tms" onclick="switchSubTab('TMS(환경)')">🌿 TMS(환경)</button>
     <button class="sub-tab-btn nav-work" id="sub-steam-todo" onclick="switchSubTab('할일')">☑ 할 일</button>
     <button class="sub-tab-btn nav-work" id="sub-steam-hist" onclick="switchSubTab('관리이력')">📋 관리이력</button>
     <button class="sub-tab-btn nav-work" id="sub-steam-logic" onclick="switchSubTab('로직관리')">🧩 로직관리</button>
@@ -807,6 +881,7 @@
   <div class="selector-row" id="sub-tabs-engine" style="display: none;">
     <button class="sub-tab-btn active" id="sub-engine-1" onclick="switchSubTab('1호기')">1호기</button>
     <button class="sub-tab-btn" id="sub-engine-2" onclick="switchSubTab('2호기')">2호기</button>
+    <button class="sub-tab-btn nav-work" id="sub-engine-tms" onclick="switchSubTab('TMS(환경)')">🌿 TMS(환경)</button>
     <button class="sub-tab-btn nav-work" id="sub-engine-todo" onclick="switchSubTab('할일')">☑ 할 일</button>
     <button class="sub-tab-btn nav-work" id="sub-engine-hist" onclick="switchSubTab('관리이력')">📋 관리이력</button>
     <button class="sub-tab-btn nav-work" id="sub-engine-logic" onclick="switchSubTab('로직관리')">🧩 로직관리</button>
@@ -925,6 +1000,39 @@
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tms-management-view">
+    <div class="tms-panel">
+      <div class="tms-title" id="tmsManagementTitle">🌿 [기력발전] TMS(환경)</div>
+      <div class="tms-desc">도면과 층 구분 없이 환경 계측설비의 기본정보와 정비이력을 관리합니다.</div>
+      <form class="tms-form" id="tmsEquipmentForm">
+        <div class="tms-field">
+          <label for="tmsTagName">Tag-name</label>
+          <input id="tmsTagName" class="tms-input" type="text" maxlength="200" placeholder="예: TMS-AI-001" autocomplete="off">
+        </div>
+        <div class="tms-field">
+          <label for="tmsEquipmentName">기기명</label>
+          <input id="tmsEquipmentName" class="tms-input" type="text" maxlength="300" placeholder="예: 굴뚝 먼지 측정기" autocomplete="off">
+        </div>
+        <div class="tms-field wide">
+          <label for="tmsMaintenanceHistory">정비이력</label>
+          <textarea id="tmsMaintenanceHistory" class="tms-input" maxlength="10000" placeholder="점검일자, 점검내용, 조치사항 등을 입력하세요."></textarea>
+        </div>
+        <div class="tms-form-actions">
+          <button id="btnSaveTmsEquipment" class="tms-save-btn" type="submit">TMS 설비 추가</button>
+          <button id="btnCancelTmsEdit" class="tms-cancel-btn" type="button">수정 취소</button>
+          <span id="tmsManagementStatus" class="tms-status" role="status" aria-live="polite"></span>
+        </div>
+      </form>
+      <div class="tms-list-header">
+        <div class="tms-list-title">등록된 TMS 설비</div>
+        <div class="tms-count" id="tmsEquipmentCount">총 0대</div>
+      </div>
+      <div id="tmsEquipmentList" class="tms-list">
+        <div class="tms-empty">TMS(환경) 탭을 열면 목록을 불러옵니다.</div>
       </div>
     </div>
   </div>
@@ -1235,6 +1343,7 @@
   let currentInstruments = [];
   let currentManuals = [];
   let currentMaterials = [];
+  let currentTmsEquipment = [];
   let currentUserInfo = { id: '', name: '', email: '', role: 'member' };
   let isAdminMode = false;
 
@@ -1253,6 +1362,7 @@
   let isAiRequestPending = false;
   let calibrationCache = [];
   let calibrationCacheLoadedAt = 0;
+  let editingTmsId = null;
 
   let pendingInstPhotoFile = null;
   let pendingInitHistPhotoFile = null;
@@ -1510,6 +1620,193 @@
     document.getElementById('logicChangeReason').value = '';
     await loadLogicRecords();
     setLogicStatus('로직 수정이력을 등록했습니다.', 'success');
+  });
+
+  function setTmsStatus(message, type = '') {
+    const status = document.getElementById('tmsManagementStatus');
+    status.textContent = message;
+    status.className = `tms-status${type ? ` ${type}` : ''}`;
+  }
+
+  function resetTmsForm() {
+    editingTmsId = null;
+    document.getElementById('tmsEquipmentForm').reset();
+    document.getElementById('btnSaveTmsEquipment').textContent = 'TMS 설비 추가';
+    document.getElementById('btnCancelTmsEdit').style.display = 'none';
+  }
+
+  function renderTmsEquipment() {
+    const list = document.getElementById('tmsEquipmentList');
+    const count = document.getElementById('tmsEquipmentCount');
+    list.replaceChildren();
+    count.textContent = `총 ${currentTmsEquipment.length}대`;
+
+    if (!currentTmsEquipment.length) {
+      const empty = document.createElement('div');
+      empty.className = 'tms-empty';
+      empty.textContent = `[${selectedMajor}발전]에 등록된 TMS 설비가 없습니다.`;
+      list.appendChild(empty);
+      return;
+    }
+
+    currentTmsEquipment.forEach(record => {
+      const item = document.createElement('div');
+      item.className = 'tms-item';
+
+      const main = document.createElement('div');
+      main.className = 'tms-item-main';
+      const heading = document.createElement('div');
+      heading.className = 'tms-item-heading';
+      const tag = document.createElement('span');
+      tag.className = 'tms-tag';
+      tag.textContent = record.tag_name;
+      const name = document.createElement('span');
+      name.className = 'tms-equipment-name';
+      name.textContent = record.equipment_name;
+      heading.append(tag, name);
+
+      const history = document.createElement('div');
+      history.className = `tms-history${record.maintenance_history ? '' : ' empty'}`;
+      history.textContent = record.maintenance_history || '등록된 정비이력이 없습니다.';
+      const meta = document.createElement('div');
+      meta.className = 'tms-meta';
+      meta.textContent = `최근 수정 ${formatTodoDate(record.updated_at || record.created_at)}`;
+      main.append(heading, history, meta);
+
+      const actions = document.createElement('div');
+      actions.className = 'tms-item-actions';
+      const editButton = document.createElement('button');
+      editButton.type = 'button';
+      editButton.className = 'tms-action-btn';
+      editButton.textContent = '수정';
+      editButton.addEventListener('click', () => startTmsEdit(record));
+      const deleteButton = document.createElement('button');
+      deleteButton.type = 'button';
+      deleteButton.className = 'tms-action-btn delete';
+      deleteButton.textContent = '삭제';
+      deleteButton.addEventListener('click', () => deleteTmsEquipment(record, deleteButton));
+      actions.append(editButton, deleteButton);
+
+      item.append(main, actions);
+      list.appendChild(item);
+    });
+  }
+
+  async function loadTmsEquipment() {
+    setTmsStatus('TMS 설비 목록을 불러오는 중입니다.');
+    const { data: authData } = await supabaseClient.auth.getSession();
+    if (!authData.session) {
+      currentTmsEquipment = [];
+      renderTmsEquipment();
+      setTmsStatus('팀원 계정으로 로그인해야 TMS 설비를 확인할 수 있습니다.', 'error');
+      return;
+    }
+
+    const { data, error } = await supabaseClient
+      .from('tms_equipment')
+      .select('id, major_category, tag_name, equipment_name, maintenance_history, created_at, updated_at')
+      .eq('major_category', selectedMajor)
+      .order('tag_name', { ascending: true });
+
+    if (error) {
+      console.error('TMS 설비 조회 오류:', error);
+      currentTmsEquipment = [];
+      renderTmsEquipment();
+      setTmsStatus('TMS 설비 목록을 불러오지 못했습니다.', 'error');
+      return;
+    }
+
+    currentTmsEquipment = data || [];
+    renderTmsEquipment();
+    setTmsStatus(`총 ${currentTmsEquipment.length}대의 TMS 설비를 불러왔습니다.`);
+  }
+
+  function startTmsEdit(record) {
+    editingTmsId = record.id;
+    document.getElementById('tmsTagName').value = record.tag_name || '';
+    document.getElementById('tmsEquipmentName').value = record.equipment_name || '';
+    document.getElementById('tmsMaintenanceHistory').value = record.maintenance_history || '';
+    document.getElementById('btnSaveTmsEquipment').textContent = '수정 저장';
+    document.getElementById('btnCancelTmsEdit').style.display = 'inline-block';
+    setTmsStatus(`[${record.tag_name}] 설비를 수정 중입니다.`);
+    document.getElementById('tmsTagName').focus();
+    document.getElementById('tms-management-view').scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  async function deleteTmsEquipment(record, button) {
+    if (!confirm(`[${record.tag_name}] ${record.equipment_name} 설비와 정비이력을 삭제할까요?`)) return;
+    button.disabled = true;
+    setTmsStatus('TMS 설비를 삭제하는 중입니다.');
+    const { data, error } = await supabaseClient
+      .from('tms_equipment')
+      .delete()
+      .eq('id', record.id)
+      .select('id');
+
+    if (error || !data?.length) {
+      console.error('TMS 설비 삭제 오류:', error);
+      button.disabled = false;
+      setTmsStatus('TMS 설비를 삭제하지 못했습니다.', 'error');
+      return;
+    }
+
+    if (editingTmsId === record.id) resetTmsForm();
+    await loadTmsEquipment();
+    setTmsStatus('TMS 설비를 삭제했습니다.', 'success');
+  }
+
+  document.getElementById('btnCancelTmsEdit').addEventListener('click', () => {
+    resetTmsForm();
+    setTmsStatus('수정을 취소했습니다.');
+  });
+
+  document.getElementById('tmsEquipmentForm').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const tagName = document.getElementById('tmsTagName').value.trim();
+    const equipmentName = document.getElementById('tmsEquipmentName').value.trim();
+    const maintenanceHistory = document.getElementById('tmsMaintenanceHistory').value.trim();
+    const saveButton = document.getElementById('btnSaveTmsEquipment');
+
+    if (!tagName || !equipmentName) {
+      setTmsStatus('Tag-name과 기기명을 입력해 주세요.', 'error');
+      return;
+    }
+
+    const { data: authData } = await supabaseClient.auth.getUser();
+    const user = authData?.user;
+    if (!user) {
+      setTmsStatus('팀원 계정으로 로그인해야 저장할 수 있습니다.', 'error');
+      return;
+    }
+
+    saveButton.disabled = true;
+    setTmsStatus(editingTmsId ? 'TMS 설비를 수정하는 중입니다.' : 'TMS 설비를 추가하는 중입니다.');
+    const values = {
+      major_category: selectedMajor,
+      tag_name: tagName,
+      equipment_name: equipmentName,
+      maintenance_history: maintenanceHistory,
+      updated_by: user.id,
+      updated_at: new Date().toISOString()
+    };
+
+    const query = editingTmsId
+      ? supabaseClient.from('tms_equipment').update(values).eq('id', editingTmsId)
+      : supabaseClient.from('tms_equipment').insert([values]);
+    const { data, error } = await query.select('id');
+    saveButton.disabled = false;
+
+    if (error || !data?.length) {
+      console.error('TMS 설비 저장 오류:', error);
+      const duplicate = error?.code === '23505';
+      setTmsStatus(duplicate ? '같은 발전구분에 동일한 Tag-name이 이미 있습니다.' : 'TMS 설비를 저장하지 못했습니다.', 'error');
+      return;
+    }
+
+    const wasEditing = Boolean(editingTmsId);
+    resetTmsForm();
+    await loadTmsEquipment();
+    setTmsStatus(wasEditing ? 'TMS 설비를 수정했습니다.' : 'TMS 설비를 추가했습니다.', 'success');
   });
 
   function setTodoStatus(message, type = '') {
@@ -1969,8 +2266,8 @@
     clearAllMeasureVisuals();
 
     if (selectedMajor === '기력') {
-      ['할일', '자료실', '2호기', '3호기', '연료펌프룸', '암모니아탱크', '관리이력', '로직관리'].forEach(key => {
-        const idMap = { '할일': 'sub-steam-todo', '자료실': 'sub-steam-materials', '2호기': 'sub-steam-2', '3호기': 'sub-steam-3', '연료펌프룸': 'sub-steam-fuel', '암모니아탱크': 'sub-steam-am', '관리이력': 'sub-steam-hist', '로직관리': 'sub-steam-logic' };
+      ['할일', '자료실', 'TMS(환경)', '2호기', '3호기', '연료펌프룸', '암모니아탱크', '관리이력', '로직관리'].forEach(key => {
+        const idMap = { '할일': 'sub-steam-todo', '자료실': 'sub-steam-materials', 'TMS(환경)': 'sub-steam-tms', '2호기': 'sub-steam-2', '3호기': 'sub-steam-3', '연료펌프룸': 'sub-steam-fuel', '암모니아탱크': 'sub-steam-am', '관리이력': 'sub-steam-hist', '로직관리': 'sub-steam-logic' };
         const el = document.getElementById(idMap[key]);
         if (el) el.classList.toggle('active', sub === key);
       });
@@ -1978,6 +2275,7 @@
     } else {
       document.getElementById('sub-engine-todo').classList.toggle('active', sub === '할일');
       document.getElementById('sub-engine-materials').classList.toggle('active', sub === '자료실');
+      document.getElementById('sub-engine-tms').classList.toggle('active', sub === 'TMS(환경)');
       document.getElementById('sub-engine-1').classList.toggle('active', sub === '1호기');
       document.getElementById('sub-engine-2').classList.toggle('active', sub === '2호기');
       document.getElementById('sub-engine-hist').classList.toggle('active', sub === '관리이력');
@@ -1990,6 +2288,7 @@
     const viewEmpty = document.getElementById('empty-engine-view');
     const viewHist = document.getElementById('history-table-view');
     const viewLogic = document.getElementById('logic-management-view');
+    const viewTms = document.getElementById('tms-management-view');
     const viewTodo = document.getElementById('todo-management-view');
     const viewMaterials = document.getElementById('materials-management-view');
     const floorBar = document.getElementById('floor-bar');
@@ -1999,6 +2298,7 @@
     viewEmpty.style.display = 'none';
     viewHist.style.display = 'none';
     viewLogic.style.display = 'none';
+    viewTms.style.display = 'none';
     viewTodo.style.display = 'none';
     viewMaterials.style.display = 'none';
 
@@ -2023,6 +2323,12 @@
       viewLogic.style.display = 'block';
       document.getElementById('logicManagementTitle').innerText = `🧩 [${selectedMajor}발전] 로직관리`;
       loadLogicRecords();
+    } else if (sub === 'TMS(환경)') {
+      floorBar.style.display = 'none';
+      viewTms.style.display = 'block';
+      document.getElementById('tmsManagementTitle').innerText = `🌿 [${selectedMajor}발전] TMS(환경)`;
+      resetTmsForm();
+      loadTmsEquipment();
     } else if (sub === '연료펌프룸') {
       floorBar.style.display = 'flex';
       renderFloorBar();
@@ -2106,6 +2412,8 @@
       floorTag.innerText = `${selectedMajor} 관리이력`;
     } else if (selectedSubTab === '로직관리') {
       floorTag.innerText = `${selectedMajor} 로직관리`;
+    } else if (selectedSubTab === 'TMS(환경)') {
+      floorTag.innerText = `${selectedMajor} TMS(환경)`;
     } else if (selectedSubTab === '연료펌프룸' || selectedSubTab === '암모니아탱크') {
       floorTag.innerText = `기력 ${selectedSubTab}`;
     } else if (selectedMajor === '기력') {
@@ -2915,6 +3223,7 @@
     document.getElementById('empty-engine-view').style.display = 'none';
     document.getElementById('history-table-view').style.display = 'none';
     document.getElementById('logic-management-view').style.display = 'none';
+    document.getElementById('tms-management-view').style.display = 'none';
     document.getElementById('todo-management-view').style.display = 'none';
     document.getElementById('materials-management-view').style.display = 'none';
     document.getElementById('floor-bar').style.display = 'flex';
