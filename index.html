@@ -157,6 +157,12 @@
     .badge-category { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; white-space: nowrap; }
     .badge-steam { background: #0284c7; color: #fff; }
     .badge-engine { background: #d97706; color: #fff; }
+    .history-source { color: #94a3b8; font-size: 10px; margin-top: 3px; }
+    .history-action-btn {
+      border: 1px solid #0ea5e9; background: rgba(14, 165, 233, .12); color: #7dd3fc;
+      border-radius: 5px; padding: 5px 8px; font-size: 11px; font-weight: 700; white-space: nowrap; cursor: pointer;
+    }
+    .history-action-btn:hover { background: rgba(14, 165, 233, .25); }
 
     #logic-management-view {
       display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0;
@@ -937,7 +943,7 @@
   <div id="history-table-view">
     <div class="history-table-header">
       <div class="history-table-title" id="historyTableTitle">📋 [기력발전] 통합 점검 및 관리이력</div>
-      <input type="text" id="tableFilterInput" class="history-search-bar" placeholder="이력 검색..." oninput="renderHistoryTable()">
+      <input type="text" id="tableFilterInput" class="history-search-bar" placeholder="전체 정보 검색..." oninput="renderHistoryTable()">
     </div>
     <div style="overflow-x: auto;">
       <table class="custom-history-table">
@@ -948,7 +954,8 @@
             <th>Tag No</th>
             <th>기기명</th>
             <th>작업자</th>
-            <th>점검 내용</th>
+            <th>등록 내용</th>
+            <th>관리</th>
           </tr>
         </thead>
         <tbody id="historyTableBody"></tbody>
@@ -1136,9 +1143,9 @@
 
 <!-- 검색 모달 -->
 <div id="search-modal">
-  <h3>🔍 계측기 검색 및 바로가기</h3>
-  <input type="text" id="searchInput" class="search-input-box" placeholder="Tag·기기명·한글/영문 유사어 검색">
-  <div class="search-help">띄어쓰기·대소문자·기호·철자 차이를 보정합니다. 예: Soot Blower ↔ 슈트 블로어</div>
+  <h3>🔍 전체 등록정보 검색 및 바로가기</h3>
+  <input type="text" id="searchInput" class="search-input-box" placeholder="Tag·기기명·정비내용·작업자·자료·할 일 검색">
+  <div class="search-help">모든 등록 항목을 찾으며 띄어쓰기·대소문자·기호·철자 차이도 보정합니다. 예: Soot Blower ↔ 슈트 블로어</div>
   <div class="search-results-list" id="searchResultsList">
     <div style="color: #94a3b8; font-size: 12px; text-align: center; padding: 20px;">검색어를 입력하세요.</div>
   </div>
@@ -1324,7 +1331,7 @@
   </div>
   <div class="btn-wrap">
     <button class="btn-save" id="btnSaveHist">이력 저장</button>
-    <button class="btn-cancel" onclick="document.getElementById('history-modal').style.display='none'">취소</button>
+    <button class="btn-cancel" onclick="closeHistoryEditor()">취소</button>
   </div>
 </div>
 
@@ -1365,6 +1372,12 @@
   let calibrationCache = [];
   let calibrationCacheLoadedAt = 0;
   let editingTmsId = null;
+  let unifiedData = { tms: [], logic: [], materials: [], todos: [], calibrations: [] };
+  let unifiedDataLoadedAt = 0;
+  let unifiedDataLoadingPromise = null;
+  let historyEditOpenedFromTable = false;
+  let instrumentEditOpenedFromHistory = false;
+  let calibrationEditOpenedFromHistory = false;
 
   let pendingInstPhotoFile = null;
   let pendingInitHistPhotoFile = null;
@@ -1620,6 +1633,7 @@
     document.getElementById('logicEquipmentName').value = '';
     document.getElementById('logicChangeContent').value = '';
     document.getElementById('logicChangeReason').value = '';
+    invalidateUnifiedData();
     await loadLogicRecords();
     setLogicStatus('로직 수정이력을 등록했습니다.', 'success');
   });
@@ -1753,6 +1767,7 @@
     }
 
     if (editingTmsId === record.id) resetTmsForm();
+    invalidateUnifiedData();
     await loadTmsEquipment();
     setTmsStatus('TMS 설비를 삭제했습니다.', 'success');
   }
@@ -1807,6 +1822,7 @@
 
     const wasEditing = Boolean(editingTmsId);
     resetTmsForm();
+    invalidateUnifiedData();
     await loadTmsEquipment();
     setTmsStatus(wasEditing ? 'TMS 설비를 수정했습니다.' : 'TMS 설비를 추가했습니다.', 'success');
   });
@@ -1894,6 +1910,7 @@
           return;
         }
 
+        invalidateUnifiedData();
         await loadTodos();
         setTodoStatus(willComplete ? '완료 항목에 취소선을 표시했습니다.' : '다시 할 일로 되돌렸습니다.', 'success');
       });
@@ -1967,6 +1984,7 @@
     }
 
     input.value = '';
+    invalidateUnifiedData();
     await loadTodos();
     setTodoStatus('할 일을 추가했습니다.', 'success');
     input.focus();
@@ -2147,6 +2165,7 @@
       return;
     }
 
+    invalidateUnifiedData();
     await loadMaterials();
     setMaterialsStatus('자료를 삭제했습니다.', 'success');
   }
@@ -2240,6 +2259,7 @@
     descriptionInput.value = '';
     fileInput.value = '';
     uploadButton.disabled = false;
+    invalidateUnifiedData();
     await loadMaterials();
     setMaterialsStatus('자료를 업로드했습니다.', 'success');
   });
@@ -2426,37 +2446,189 @@
     }
   }
 
-  window.renderHistoryTable = function() {
-    const tbody = document.getElementById('historyTableBody');
-    const filterText = (document.getElementById('tableFilterInput').value || '').trim().toLowerCase();
-    tbody.innerHTML = '';
-    let allLogs = [];
-    currentInstruments.forEach(inst => {
-      let dbMajor = inst.major_category;
-      if (!dbMajor) dbMajor = (typeof inst.unit === 'string' && inst.unit.includes('내연')) ? '내연' : '기력';
-      if (dbMajor !== selectedMajor) return;
-      (inst.history_logs || []).forEach(log => {
-        allLogs.push({
-          category: `${dbMajor} ${inst.unit || ''}`.trim(),
-          date: log.date || '-',
-          tag_no: inst.tag_no || '-',
-          name: inst.name || '-',
-          author: log.author || '-',
-          content: log.content || '-',
-          photo: log.photo || null
-        });
+  function invalidateUnifiedData() {
+    unifiedDataLoadedAt = 0;
+    calibrationCacheLoadedAt = 0;
+  }
+
+  async function loadUnifiedData(force = false) {
+    const cacheIsFresh = Date.now() - unifiedDataLoadedAt < 60 * 1000;
+    if (!force && cacheIsFresh) return unifiedData;
+    if (unifiedDataLoadingPromise) return unifiedDataLoadingPromise;
+
+    const readTable = async (label, query) => {
+      const { data, error } = await query;
+      if (error) {
+        console.error(`${label} 통합조회 오류:`, error);
+        return [];
+      }
+      return data || [];
+    };
+
+    unifiedDataLoadingPromise = Promise.all([
+      readTable('TMS', supabaseClient.from('tms_equipment').select('id, major_category, tag_name, equipment_name, maintenance_history, created_at, updated_at').limit(1000)),
+      readTable('로직', supabaseClient.from('logic_change_logs').select('id, major_category, equipment_name, change_content, change_reason, change_date, created_at').limit(1000)),
+      readTable('자료', supabaseClient.from('maintenance_materials').select('id, major_category, title, description, material_type, original_file_name, uploaded_by_name, created_at').limit(1000)),
+      readTable('할 일', supabaseClient.from('maintenance_todos').select('id, major_category, task_text, created_by_name, created_at, completed_at').limit(1000)),
+      getCalibrationRecords().catch(error => {
+        console.error('교정 통합조회 오류:', error);
+        return [];
+      })
+    ]).then(([tms, logic, materials, todos, calibrations]) => {
+      unifiedData = { tms, logic, materials, todos, calibrations };
+      unifiedDataLoadedAt = Date.now();
+      return unifiedData;
+    }).finally(() => {
+      unifiedDataLoadingPromise = null;
+    });
+    return unifiedDataLoadingPromise;
+  }
+
+  function unifiedDate(value) {
+    if (!value) return '-';
+    const text = String(value);
+    return text.includes('T') ? text.slice(0, 10) : text;
+  }
+
+  function instrumentMajor(item) {
+    return item.major_category || ((item.unit || '').includes('내연') ? '내연' : '기력');
+  }
+
+  function buildUnifiedHistoryRows() {
+    const rows = [];
+    const instrumentByTag = new Map(currentInstruments.map(item => [String(item.tag_no || '').trim().toLowerCase(), item]));
+
+    currentInstruments.forEach(item => {
+      const major = instrumentMajor(item);
+      rows.push({
+        source: '설비정보', major, date: unifiedDate(item.updated_at || item.created_at), tag: item.tag_no || '-',
+        name: item.name || '-', author: '-',
+        content: [`모델 ${item.model || '-'}`, `범위 ${item.signal_range || '-'}`, `위치 ${item.unit || '-'} ${item.floor || '-'}`].join(' · '),
+        sortDate: item.updated_at || item.created_at || '', action: 'instrument', instrumentId: item.id
+      });
+      (item.history_logs || []).forEach((log, historyIndex) => rows.push({
+        source: '점검·정비', major, date: unifiedDate(log.date), tag: item.tag_no || '-', name: item.name || '-',
+        author: log.author || '-', content: log.content || '-', photo: log.photo || null,
+        sortDate: log.date || '', action: 'maintenance', instrumentId: item.id, historyIndex
+      }));
+    });
+
+    unifiedData.calibrations.forEach(record => {
+      const tag = record['Tag No'] || '-';
+      const instrument = instrumentByTag.get(String(tag).trim().toLowerCase());
+      const location = record['설치위치'] || '';
+      const major = instrument ? instrumentMajor(instrument) : (location.includes('내연') ? '내연' : '기력');
+      rows.push({
+        source: '교정정보', major, date: unifiedDate(record['점검일자']), tag, name: record['기기명'] || instrument?.name || '-',
+        author: [record['점검자'], record['감독자']].filter(Boolean).join(' / ') || '-',
+        content: [`TYPE ${record.TYPE || '-'}`, `RANGE ${record.RANGE || '-'}`, `제작사 ${record['제작사'] || '-'}`, `모델 ${record['모델명'] || '-'}`, `위치 ${location || '-'}`].join(' · '),
+        sortDate: record['점검일자'] || '', action: instrument ? 'calibration' : 'none', instrumentId: instrument?.id
       });
     });
-    allLogs.sort((a, b) => (b.date > a.date ? 1 : -1));
-    if (filterText) allLogs = allLogs.filter(i => i.category.toLowerCase().includes(filterText) || i.date.toLowerCase().includes(filterText) || i.tag_no.toLowerCase().includes(filterText) || i.name.toLowerCase().includes(filterText) || i.author.toLowerCase().includes(filterText) || i.content.toLowerCase().includes(filterText));
-    if (allLogs.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px; color: #64748b;">등록된 점검 이력이 없습니다.</td></tr>`;
+
+    unifiedData.tms.forEach(record => rows.push({
+      source: 'TMS', major: record.major_category || '기력', date: unifiedDate(record.updated_at || record.created_at),
+      tag: record.tag_name || '-', name: record.equipment_name || '-', author: '-',
+      content: record.maintenance_history || '등록된 정비이력 없음', sortDate: record.updated_at || record.created_at || '',
+      action: 'tms', record
+    }));
+    unifiedData.logic.forEach(record => rows.push({
+      source: '로직', major: record.major_category || '기력', date: unifiedDate(record.change_date || record.created_at),
+      tag: '-', name: record.equipment_name || '-', author: '-',
+      content: `수정내용 ${record.change_content || '-'} · 수정사유 ${record.change_reason || '-'}`,
+      sortDate: record.change_date || record.created_at || '', action: 'logic'
+    }));
+    unifiedData.materials.forEach(record => rows.push({
+      source: '자료', major: record.major_category || '기력', date: unifiedDate(record.created_at), tag: '-',
+      name: record.title || '-', author: record.uploaded_by_name || '-',
+      content: [record.description, record.material_type, record.original_file_name].filter(Boolean).join(' · ') || '-',
+      sortDate: record.created_at || '', action: 'materials'
+    }));
+    unifiedData.todos.forEach(record => rows.push({
+      source: '할 일', major: record.major_category || '기력', date: unifiedDate(record.completed_at || record.created_at),
+      tag: '-', name: record.task_text || '-', author: record.created_by_name || '-',
+      content: record.completed_at ? `완료 · ${unifiedDate(record.completed_at)}` : '진행 중',
+      sortDate: record.completed_at || record.created_at || '', action: 'todo'
+    }));
+    return rows.sort((a, b) => String(b.sortDate).localeCompare(String(a.sortDate)));
+  }
+
+  window.openUnifiedHistoryRecord = function(rowIndex) {
+    const row = window.currentUnifiedHistoryRows?.[rowIndex];
+    if (!row) return;
+    if (row.action === 'maintenance') {
+      activeTargetId = row.instrumentId;
+      openEditHistory(row.historyIndex, true);
+    } else if (row.action === 'instrument') {
+      activeTargetId = row.instrumentId;
+      openEditInstModal(true);
+    } else if (row.action === 'calibration') {
+      activeTargetId = row.instrumentId;
+      openCalibEditModal(true);
+    } else if (row.action === 'tms') {
+      switchMajor(row.major);
+      switchSubTab('TMS(환경)');
+      startTmsEdit(row.record);
+    } else {
+      const tabMap = { logic: '로직관리', materials: '자료실', todo: '할일' };
+      if (tabMap[row.action]) {
+        switchMajor(row.major);
+        switchSubTab(tabMap[row.action]);
+      }
+    }
+  };
+
+  window.renderHistoryTable = async function() {
+    const tbody = document.getElementById('historyTableBody');
+    const filterText = (document.getElementById('tableFilterInput').value || '').trim().toLowerCase();
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#64748b;">통합 관리이력을 불러오는 중입니다.</td></tr>';
+    await loadUnifiedData();
+    let rows = buildUnifiedHistoryRows().filter(row => row.major === selectedMajor);
+    if (filterText) {
+      rows = rows.filter(row => [row.source, row.major, row.date, row.tag, row.name, row.author, row.content]
+        .some(value => String(value || '').toLowerCase().includes(filterText)));
+    }
+    window.currentUnifiedHistoryRows = rows;
+    tbody.replaceChildren();
+    if (rows.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 24px; color: #64748b;">조건에 맞는 등록 정보가 없습니다.</td></tr>`;
       return;
     }
-    allLogs.forEach(log => {
+    rows.forEach((row, rowIndex) => {
       const tr = document.createElement('tr');
-      const isEngine = log.category.includes('내연');
-      tr.innerHTML = `<td><span class="badge-category ${isEngine ? 'badge-engine' : 'badge-steam'}">${log.category}</span></td><td style="white-space: nowrap;">${log.date}</td><td style="font-weight: bold; color: #38bdf8; white-space: nowrap;">${log.tag_no}</td><td style="white-space: nowrap;">${log.name}</td><td style="white-space: nowrap;">${log.author}</td><td><div>${log.content}</div>${log.photo ? `<img src="${log.photo}" class="hist-img" style="max-height: 45px; border-radius: 4px; margin-top: 4px; display: block;" onclick="openImageLightbox('${log.photo}')">` : ''}</td>`;
+      const values = [row.source, row.date, row.tag, row.name, row.author, row.content];
+      values.forEach((value, index) => {
+        const td = document.createElement('td');
+        if (index === 0) {
+          const badge = document.createElement('span');
+          badge.className = `badge-category ${row.major === '내연' ? 'badge-engine' : 'badge-steam'}`;
+          badge.textContent = row.source;
+          const major = document.createElement('div');
+          major.className = 'history-source';
+          major.textContent = `${row.major}발전`;
+          td.append(badge, major);
+        } else {
+          td.textContent = value || '-';
+          if ([1, 2, 3, 4].includes(index)) td.style.whiteSpace = 'nowrap';
+          if (index === 2) {
+            td.style.fontWeight = 'bold';
+            td.style.color = '#38bdf8';
+          }
+        }
+        tr.appendChild(td);
+      });
+      const actionCell = document.createElement('td');
+      if (row.action !== 'none') {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'history-action-btn';
+        button.textContent = ['maintenance', 'instrument', 'calibration', 'tms'].includes(row.action) ? '수정' : '열기';
+        button.addEventListener('click', () => openUnifiedHistoryRecord(rowIndex));
+        actionCell.appendChild(button);
+      } else {
+        actionCell.textContent = '-';
+      }
+      tr.appendChild(actionCell);
       tbody.appendChild(tr);
     });
   };
@@ -2845,9 +3017,10 @@
     }
   };
 
-  window.openEditInstModal = function() {
+  window.openEditInstModal = function(openedFromHistory = false) {
     const target = currentInstruments.find(i => i.id === activeTargetId);
     if (!target) return;
+    instrumentEditOpenedFromHistory = openedFromHistory;
     document.getElementById('editTagNo').value = target.tag_no || '';
     document.getElementById('editName').value = target.name || '';
     document.getElementById('editFloor').value = target.floor || '6층';
@@ -2867,9 +3040,10 @@
     document.getElementById('edit-inst-modal').style.display = 'block';
   };
 
-  window.openCalibEditModal = async function() {
+  window.openCalibEditModal = async function(openedFromHistory = false) {
     const target = currentInstruments.find(i => i.id === activeTargetId);
     if (!target) return;
+    calibrationEditOpenedFromHistory = openedFromHistory;
 
     const hud = document.getElementById('measure-info-hud');
     if (hud) {
@@ -2937,15 +3111,18 @@
     }
 
     if (!updateRes.error) {
+      invalidateUnifiedData();
       const target = currentInstruments.find(i => i.id === activeTargetId);
       if (target) {
         target.signal_range = payload["RANGE"];
         target.model = payload["모델명"];
         await supabaseClient.from('instruments').update({ signal_range: payload["RANGE"], model: payload["모델명"] }).eq('id', target.id);
-        showDetail(target);
+        if (!calibrationEditOpenedFromHistory) showDetail(target);
       }
 
       document.getElementById('edit-calib-modal').style.display = 'none';
+      calibrationEditOpenedFromHistory = false;
+      if (selectedSubTab === '관리이력') renderHistoryTable();
       alert('✅ [교정 성적서] 10개 항목이 성공적으로 수정·저장되었습니다!');
     } else {
       alert('❌ 교정 성적서 저장 실패:\n' + updateRes.error.message);
@@ -2991,8 +3168,10 @@
     const { error } = await supabaseClient.from('instruments').update(updateFields).eq('id', target.id);
     if (!error) {
       Object.assign(target, updateFields);
+      invalidateUnifiedData();
       document.getElementById('edit-inst-modal').style.display = 'none';
-      showDetail(target);
+      if (!instrumentEditOpenedFromHistory) showDetail(target);
+      instrumentEditOpenedFromHistory = false;
       renderFloorPins();
       render3DHotspots();
       if (selectedSubTab === '관리이력') renderHistoryTable();
@@ -3041,6 +3220,7 @@
         const { error } = await supabaseClient.from('instruments').update(updateFields).eq('id', target.id);
         if (!error) {
           Object.assign(target, updateFields);
+          invalidateUnifiedData();
           closeOcrEditModal();
           showDetail(target);
           renderFloorPins();
@@ -3975,6 +4155,7 @@
     }
     if (!error) {
       document.getElementById('modal').style.display = 'none';
+      invalidateUnifiedData();
       alert(`✅ [${selectedMajor} ${selectedSubTab}] ${selectedFloor}에 등록되었습니다!`);
       fetchInstruments();
     } else {
@@ -4187,6 +4368,7 @@
     renderHistoryListModal(item);
     document.getElementById('btnAddHistBtn').onclick = () => {
       editingHistoryIndex = null;
+      historyEditOpenedFromTable = false;
       document.getElementById('info-modal').style.display = 'none';
       document.getElementById('histModalTitle').innerText = '📋 새 점검/정비 이력 추가';
       document.getElementById('histTargetTag').innerText = `[${item.tag_no}] ${item.name}`;
@@ -4230,11 +4412,21 @@
     `).join('');
   }
 
-  window.openEditHistory = function(idx) {
+  window.closeHistoryEditor = function() {
+    document.getElementById('history-modal').style.display = 'none';
+    if (!historyEditOpenedFromTable) {
+      const target = currentInstruments.find(i => i.id === activeTargetId);
+      if (target) showDetail(target);
+    }
+    historyEditOpenedFromTable = false;
+  };
+
+  window.openEditHistory = function(idx, openedFromTable = false) {
     const target = currentInstruments.find(i => i.id === activeTargetId);
     if (!target || !target.history_logs[idx]) return;
     const h = target.history_logs[idx];
     editingHistoryIndex = idx;
+    historyEditOpenedFromTable = openedFromTable;
     document.getElementById('info-modal').style.display = 'none';
     document.getElementById('histModalTitle').innerText = '✏️ 점검/정비 이력 수정';
     document.getElementById('histTargetTag').innerText = `[${target.tag_no}] ${target.name}`;
@@ -4257,6 +4449,7 @@
     target.history_logs.splice(idx, 1);
     const { error } = await supabaseClient.from('instruments').update({ history_logs: target.history_logs }).eq('id', activeTargetId);
     if (!error) {
+      invalidateUnifiedData();
       renderHistoryListModal(target);
       alert('✅ 삭제 완료');
       if (selectedSubTab === '관리이력') renderHistoryTable();
@@ -4292,12 +4485,17 @@
     else logs.unshift(entryData);
     const { error } = await supabaseClient.from('instruments').update({ history_logs: logs }).eq('id', activeTargetId);
     if (!error) {
+      const returnToHistoryTable = historyEditOpenedFromTable;
       target.history_logs = logs;
       document.getElementById('history-modal').style.display = 'none';
-      renderHistoryListModal(target);
-      document.getElementById('info-modal').style.display = 'block';
+      invalidateUnifiedData();
+      if (!returnToHistoryTable) {
+        renderHistoryListModal(target);
+        document.getElementById('info-modal').style.display = 'block';
+      }
       alert(editingHistoryIndex !== null ? '✅ 수정 완료' : '✅ 등록 완료');
       editingHistoryIndex = null;
+      historyEditOpenedFromTable = false;
       if (selectedSubTab === '관리이력') renderHistoryTable();
     }
   });
@@ -4306,10 +4504,12 @@
   const searchInput = document.getElementById('searchInput');
   const searchResultsList = document.getElementById('searchResultsList');
 
-  document.getElementById('btnOpenSearch').addEventListener('click', () => {
+  document.getElementById('btnOpenSearch').addEventListener('click', async () => {
     searchInput.value = '';
-    renderSearchResults('');
     searchModal.style.display = 'block';
+    searchResultsList.innerHTML = '<div style="color:#94a3b8;font-size:12px;text-align:center;padding:20px;">전체 등록 정보를 불러오는 중입니다.</div>';
+    await loadUnifiedData();
+    renderSearchResults('');
     setTimeout(() => searchInput.focus(), 100);
   });
 
@@ -4325,17 +4525,16 @@
       return;
     }
 
-    const ranked = currentInstruments
-      .map(item => ({
-        item,
+    const ranked = buildUnifiedHistoryRows()
+      .map(row => ({
+        row,
         score: scoreEquipmentSearch([
-          item.tag_no, item.name, item.model, item.signal_range,
-          item.major_category, item.unit, item.floor
+          row.source, row.major, row.date, row.tag, row.name, row.author, row.content
         ], query)
       }))
       .filter(result => result.score > 0)
-      .sort((a, b) => b.score - a.score || String(a.item.tag_no || '').localeCompare(String(b.item.tag_no || ''), 'ko'))
-      .slice(0, 30);
+      .sort((a, b) => b.score - a.score || String(a.row.tag || '').localeCompare(String(b.row.tag || ''), 'ko'))
+      .slice(0, 50);
 
     if (!ranked.length) {
       const empty = document.createElement('div');
@@ -4345,34 +4544,53 @@
       return;
     }
 
-    ranked.forEach(({ item }) => {
+    ranked.forEach(({ row }) => {
       const result = document.createElement('div');
       result.className = 'search-result-item';
       result.tabIndex = 0;
       result.setAttribute('role', 'button');
-      result.addEventListener('click', () => jumpToInstrument(item.id));
+      result.addEventListener('click', () => openUnifiedSearchResult(row));
       result.addEventListener('keydown', event => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault();
-          jumpToInstrument(item.id);
+          openUnifiedSearchResult(row);
         }
       });
 
       const content = document.createElement('div');
       const main = document.createElement('div');
       main.className = 'search-item-main';
-      main.textContent = `[${item.tag_no || '-'}] ${item.name || '-'}`;
+      main.textContent = `${row.source} · ${row.tag !== '-' ? `[${row.tag}] ` : ''}${row.name || '-'}`;
       const sub = document.createElement('div');
       sub.className = 'search-item-sub';
-      sub.textContent = `모델: ${item.model || '-'} | 범위: ${item.signal_range || '-'}`;
+      const summary = String(row.content || '-');
+      sub.textContent = `${row.author !== '-' ? `${row.author} · ` : ''}${summary.length > 150 ? `${summary.slice(0, 150)}…` : summary}`;
       content.append(main, sub);
 
       const badge = document.createElement('div');
       badge.className = 'search-item-badge';
-      badge.textContent = `${item.major_category || '기력'} ${item.unit || '2호기'} ${item.floor || ''}`.trim();
+      badge.textContent = `${row.major} · ${row.date}`;
       result.append(content, badge);
       searchResultsList.appendChild(result);
     });
+  }
+
+  function openUnifiedSearchResult(row) {
+    searchModal.style.display = 'none';
+    if (row.instrumentId) {
+      jumpToInstrument(row.instrumentId);
+      return;
+    }
+    if (row.action === 'tms') {
+      switchMajor(row.major);
+      switchSubTab('TMS(환경)');
+      startTmsEdit(row.record);
+      return;
+    }
+    switchMajor(row.major);
+    switchSubTab('관리이력');
+    document.getElementById('tableFilterInput').value = row.tag !== '-' ? row.tag : row.name;
+    renderHistoryTable();
   }
 
   window.jumpToInstrument = function(instId) {
