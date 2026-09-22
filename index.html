@@ -142,6 +142,18 @@
       display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
       border-bottom: 1px solid #334155; padding-bottom: 8px;
     }
+    .history-filter-panel {
+      background: #111a33; border: 1px solid #334155; border-radius: 10px;
+      padding: 10px; margin-bottom: 12px; display: grid; gap: 8px;
+    }
+    .history-filter-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .history-filter-label { color: #94a3b8; font-size: 11px; font-weight: 700; min-width: 58px; }
+    .history-filter-btn {
+      border: 1px solid #334155; background: #0f172a; color: #cbd5e1; border-radius: 999px;
+      padding: 5px 9px; font-size: 11px; font-weight: 700; cursor: pointer;
+    }
+    .history-filter-btn.active { border-color: #38bdf8; background: #0369a1; color: #fff; }
+    .history-filter-count { color: #64748b; font-size: 10px; margin-left: 2px; }
     .history-table-title { font-size: 15px; font-weight: bold; color: #38bdf8; }
     .history-search-bar {
       padding: 6px 10px; background: #111a33; border: 1px solid #334155; border-radius: 6px;
@@ -536,9 +548,9 @@
     }
     .form-group { margin-bottom: 10px; }
     .form-group label { display: block; font-size: 12px; font-weight: bold; margin-bottom: 4px; color: #334155; }
-    .form-group input, .form-group textarea {
+    .form-group input, .form-group textarea, .form-group select {
       width: 100%; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px;
-      font-size: 13px; font-family: inherit; color: #111;
+      font-size: 13px; font-family: inherit; color: #111; background: #fff;
     }
     .photo-btn-group { display: flex; gap: 6px; }
     .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; flex: 1; }
@@ -945,6 +957,29 @@
       <div class="history-table-title" id="historyTableTitle">📋 [기력발전] 통합 점검 및 관리이력</div>
       <input type="text" id="tableFilterInput" class="history-search-bar" placeholder="전체 정보 검색..." oninput="renderHistoryTable()">
     </div>
+    <div class="history-filter-panel">
+      <div class="history-filter-row" id="historySourceFilters">
+        <span class="history-filter-label">데이터 종류</span>
+        <button type="button" class="history-filter-btn active" data-history-source="전체" onclick="setHistorySourceFilter('전체')">전체</button>
+        <button type="button" class="history-filter-btn" data-history-source="설비 기본자료" onclick="setHistorySourceFilter('설비 기본자료')">설비 기본자료</button>
+        <button type="button" class="history-filter-btn" data-history-source="점검·정비" onclick="setHistorySourceFilter('점검·정비')">점검·정비</button>
+        <button type="button" class="history-filter-btn" data-history-source="교정정보" onclick="setHistorySourceFilter('교정정보')">교정</button>
+        <button type="button" class="history-filter-btn" data-history-source="TMS" onclick="setHistorySourceFilter('TMS')">TMS</button>
+        <button type="button" class="history-filter-btn" data-history-source="로직" onclick="setHistorySourceFilter('로직')">로직</button>
+        <button type="button" class="history-filter-btn" data-history-source="자료" onclick="setHistorySourceFilter('자료')">자료실</button>
+        <button type="button" class="history-filter-btn" data-history-source="할 일" onclick="setHistorySourceFilter('할 일')">할 일</button>
+      </div>
+      <div class="history-filter-row" id="historyZoneFilters">
+        <span class="history-filter-label">설비 구역</span>
+        <button type="button" class="history-filter-btn active" data-history-zone="전체" onclick="setHistoryZoneFilter('전체')">전체</button>
+        <button type="button" class="history-filter-btn" data-history-zone="보일러" onclick="setHistoryZoneFilter('보일러')">보일러</button>
+        <button type="button" class="history-filter-btn" data-history-zone="탈질" onclick="setHistoryZoneFilter('탈질')">탈질</button>
+        <button type="button" class="history-filter-btn" data-history-zone="연료펌프룸" onclick="setHistoryZoneFilter('연료펌프룸')">연료펌프룸</button>
+        <button type="button" class="history-filter-btn" data-history-zone="암모니아탱크" onclick="setHistoryZoneFilter('암모니아탱크')">암모니아탱크</button>
+        <button type="button" class="history-filter-btn" data-history-zone="내연" onclick="setHistoryZoneFilter('내연')">내연</button>
+        <button type="button" class="history-filter-btn" data-history-zone="공통" onclick="setHistoryZoneFilter('공통')">공통자료</button>
+      </div>
+    </div>
     <div style="overflow-x: auto;">
       <table class="custom-history-table">
         <thead>
@@ -1259,6 +1294,8 @@
   </div>
   <div class="form-group"><label>Tag No.</label><input type="text" id="editTagNo"></div>
   <div class="form-group"><label>기기명</label><input type="text" id="editName"></div>
+  <div class="form-group"><label>발전 구분</label><select id="editMajor"><option value="기력">기력</option><option value="내연">내연</option></select></div>
+  <div class="form-group"><label>설비 구역</label><select id="editUnit"></select></div>
   <div class="form-group"><label>도면 층 (예: 6층, 1층, IDF)</label><input type="text" id="editFloor"></div>
   <div class="form-group"><label>모델명</label><input type="text" id="editModel"></div>
   <div class="form-group"><label>측정범위 / 신호</label><input type="text" id="editRange"></div>
@@ -1378,6 +1415,8 @@
   let historyEditOpenedFromTable = false;
   let instrumentEditOpenedFromHistory = false;
   let calibrationEditOpenedFromHistory = false;
+  let selectedHistorySource = '전체';
+  let selectedHistoryZone = '전체';
 
   let pendingInstPhotoFile = null;
   let pendingInitHistPhotoFile = null;
@@ -2338,7 +2377,11 @@
     } else if (sub === '관리이력') {
       floorBar.style.display = 'none';
       viewHist.style.display = 'block';
-      document.getElementById('historyTableTitle').innerText = `📋 [${selectedMajor}발전] 전체 점검 및 관리이력`;
+      selectedHistorySource = '전체';
+      selectedHistoryZone = '전체';
+      document.getElementById('tableFilterInput').value = '';
+      updateHistoryFilterButtons();
+      document.getElementById('historyTableTitle').innerText = `📋 [${selectedMajor}발전] 데이터별 통합 관리이력`;
       renderHistoryTable();
     } else if (sub === '로직관리') {
       floorBar.style.display = 'none';
@@ -2494,20 +2537,61 @@
     return item.major_category || ((item.unit || '').includes('내연') ? '내연' : '기력');
   }
 
+  function historyZoneForInstrument(item) {
+    const major = instrumentMajor(item);
+    const unit = String(item.unit || '');
+    if (major === '내연') return '내연';
+    if (unit.includes('탈질')) return '탈질';
+    if (unit.includes('연료펌프')) return '연료펌프룸';
+    if (unit.includes('암모니아')) return '암모니아탱크';
+    return '보일러';
+  }
+
+  function historyZoneFromLocation(location, major = '기력') {
+    const text = String(location || '');
+    if (major === '내연' || text.includes('내연')) return '내연';
+    if (text.includes('탈질')) return '탈질';
+    if (text.includes('연료펌프')) return '연료펌프룸';
+    if (text.includes('암모니아')) return '암모니아탱크';
+    return text ? '보일러' : '공통';
+  }
+
+  function updateHistoryFilterButtons() {
+    document.querySelectorAll('[data-history-source]').forEach(button => {
+      button.classList.toggle('active', button.dataset.historySource === selectedHistorySource);
+    });
+    document.querySelectorAll('[data-history-zone]').forEach(button => {
+      button.classList.toggle('active', button.dataset.historyZone === selectedHistoryZone);
+    });
+  }
+
+  window.setHistorySourceFilter = function(source) {
+    selectedHistorySource = source;
+    updateHistoryFilterButtons();
+    renderHistoryTable();
+  };
+
+  window.setHistoryZoneFilter = function(zone) {
+    selectedHistoryZone = zone;
+    updateHistoryFilterButtons();
+    renderHistoryTable();
+  };
+
   function buildUnifiedHistoryRows() {
     const rows = [];
     const instrumentByTag = new Map(currentInstruments.map(item => [String(item.tag_no || '').trim().toLowerCase(), item]));
 
     currentInstruments.forEach(item => {
       const major = instrumentMajor(item);
+      const zone = historyZoneForInstrument(item);
       rows.push({
-        source: '설비정보', major, date: unifiedDate(item.updated_at || item.created_at), tag: item.tag_no || '-',
+        source: '설비 기본자료', major, zone, date: unifiedDate(item.updated_at || item.created_at), tag: item.tag_no || '-',
         name: item.name || '-', author: '-',
         content: [`모델 ${item.model || '-'}`, `범위 ${item.signal_range || '-'}`, `위치 ${item.unit || '-'} ${item.floor || '-'}`].join(' · '),
         sortDate: item.updated_at || item.created_at || '', action: 'instrument', instrumentId: item.id
       });
       (item.history_logs || []).forEach((log, historyIndex) => rows.push({
-        source: '점검·정비', major, date: unifiedDate(log.date), tag: item.tag_no || '-', name: item.name || '-',
+        source: '점검·정비', major, zone, date: unifiedDate(log.date), tag: item.tag_no || '-', name: item.name || '-',
         author: log.author || '-', content: log.content || '-', photo: log.photo || null,
         sortDate: log.date || '', action: 'maintenance', instrumentId: item.id, historyIndex
       }));
@@ -2518,8 +2602,9 @@
       const instrument = instrumentByTag.get(String(tag).trim().toLowerCase());
       const location = record['설치위치'] || '';
       const major = instrument ? instrumentMajor(instrument) : (location.includes('내연') ? '내연' : '기력');
+      const zone = instrument ? historyZoneForInstrument(instrument) : historyZoneFromLocation(location, major);
       rows.push({
-        source: '교정정보', major, date: unifiedDate(record['점검일자']), tag, name: record['기기명'] || instrument?.name || '-',
+        source: '교정정보', major, zone, date: unifiedDate(record['점검일자']), tag, name: record['기기명'] || instrument?.name || '-',
         author: [record['점검자'], record['감독자']].filter(Boolean).join(' / ') || '-',
         content: [`TYPE ${record.TYPE || '-'}`, `RANGE ${record.RANGE || '-'}`, `제작사 ${record['제작사'] || '-'}`, `모델 ${record['모델명'] || '-'}`, `위치 ${location || '-'}`].join(' · '),
         sortDate: record['점검일자'] || '', action: instrument ? 'calibration' : 'none', instrumentId: instrument?.id
@@ -2527,25 +2612,25 @@
     });
 
     unifiedData.tms.forEach(record => rows.push({
-      source: 'TMS', major: record.major_category || '기력', date: unifiedDate(record.updated_at || record.created_at),
+      source: 'TMS', major: record.major_category || '기력', zone: '공통', date: unifiedDate(record.updated_at || record.created_at),
       tag: record.tag_name || '-', name: record.equipment_name || '-', author: '-',
       content: record.maintenance_history || '등록된 정비이력 없음', sortDate: record.updated_at || record.created_at || '',
       action: 'tms', record
     }));
     unifiedData.logic.forEach(record => rows.push({
-      source: '로직', major: record.major_category || '기력', date: unifiedDate(record.change_date || record.created_at),
+      source: '로직', major: record.major_category || '기력', zone: '공통', date: unifiedDate(record.change_date || record.created_at),
       tag: '-', name: record.equipment_name || '-', author: '-',
       content: `수정내용 ${record.change_content || '-'} · 수정사유 ${record.change_reason || '-'}`,
       sortDate: record.change_date || record.created_at || '', action: 'logic'
     }));
     unifiedData.materials.forEach(record => rows.push({
-      source: '자료', major: record.major_category || '기력', date: unifiedDate(record.created_at), tag: '-',
+      source: '자료', major: record.major_category || '기력', zone: '공통', date: unifiedDate(record.created_at), tag: '-',
       name: record.title || '-', author: record.uploaded_by_name || '-',
       content: [record.description, record.material_type, record.original_file_name].filter(Boolean).join(' · ') || '-',
       sortDate: record.created_at || '', action: 'materials'
     }));
     unifiedData.todos.forEach(record => rows.push({
-      source: '할 일', major: record.major_category || '기력', date: unifiedDate(record.completed_at || record.created_at),
+      source: '할 일', major: record.major_category || '기력', zone: '공통', date: unifiedDate(record.completed_at || record.created_at),
       tag: '-', name: record.task_text || '-', author: record.created_by_name || '-',
       content: record.completed_at ? `완료 · ${unifiedDate(record.completed_at)}` : '진행 중',
       sortDate: record.completed_at || record.created_at || '', action: 'todo'
@@ -2584,10 +2669,15 @@
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#64748b;">통합 관리이력을 불러오는 중입니다.</td></tr>';
     await loadUnifiedData();
     let rows = buildUnifiedHistoryRows().filter(row => row.major === selectedMajor);
+    if (selectedHistorySource !== '전체') rows = rows.filter(row => row.source === selectedHistorySource);
+    if (selectedHistoryZone !== '전체') rows = rows.filter(row => row.zone === selectedHistoryZone);
     if (filterText) {
-      rows = rows.filter(row => [row.source, row.major, row.date, row.tag, row.name, row.author, row.content]
+      rows = rows.filter(row => [row.source, row.major, row.zone, row.date, row.tag, row.name, row.author, row.content]
         .some(value => String(value || '').toLowerCase().includes(filterText)));
     }
+    const sourceLabel = selectedHistorySource === '전체' ? '전체 데이터' : selectedHistorySource;
+    const zoneLabel = selectedHistoryZone === '전체' ? '전체 구역' : selectedHistoryZone;
+    document.getElementById('historyTableTitle').innerText = `📋 [${selectedMajor}발전] ${sourceLabel} · ${zoneLabel} (${rows.length}건)`;
     window.currentUnifiedHistoryRows = rows;
     tbody.replaceChildren();
     if (rows.length === 0) {
@@ -2605,7 +2695,7 @@
           badge.textContent = row.source;
           const major = document.createElement('div');
           major.className = 'history-source';
-          major.textContent = `${row.major}발전`;
+          major.textContent = `${row.major}발전 · ${row.zone || '공통'}`;
           td.append(badge, major);
         } else {
           td.textContent = value || '-';
@@ -3017,12 +3107,44 @@
     }
   };
 
+  function populateEditUnitOptions(major, selectedUnit = '') {
+    const select = document.getElementById('editUnit');
+    const options = major === '내연'
+      ? [
+          ['1호기', '1호기'],
+          ['2호기', '2호기']
+        ]
+      : [
+          ['2호기', '2호기 보일러'],
+          ['3호기', '3호기 보일러'],
+          ['2호기_탈질', '2호기 탈질'],
+          ['3호기_탈질', '3호기 탈질'],
+          ['연료펌프룸', '연료펌프룸'],
+          ['암모니아탱크', '암모니아탱크']
+        ];
+    select.replaceChildren();
+    options.forEach(([value, label]) => {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = label;
+      select.appendChild(option);
+    });
+    if (options.some(([value]) => value === selectedUnit)) select.value = selectedUnit;
+  }
+
+  document.getElementById('editMajor').addEventListener('change', event => {
+    populateEditUnitOptions(event.target.value);
+  });
+
   window.openEditInstModal = function(openedFromHistory = false) {
     const target = currentInstruments.find(i => i.id === activeTargetId);
     if (!target) return;
     instrumentEditOpenedFromHistory = openedFromHistory;
+    const targetMajor = instrumentMajor(target);
     document.getElementById('editTagNo').value = target.tag_no || '';
     document.getElementById('editName').value = target.name || '';
+    document.getElementById('editMajor').value = targetMajor;
+    populateEditUnitOptions(targetMajor, target.unit || '');
     document.getElementById('editFloor').value = target.floor || '6층';
     document.getElementById('editModel').value = target.model || '';
     document.getElementById('editRange').value = target.signal_range || '';
@@ -3143,6 +3265,8 @@
     if (!target) return;
     const newTag = document.getElementById('editTagNo').value.trim();
     const newName = document.getElementById('editName').value.trim();
+    const newMajor = document.getElementById('editMajor').value;
+    const newUnit = document.getElementById('editUnit').value;
     const newFloor = normalizeFloor(document.getElementById('editFloor').value.trim());
     const newModel = document.getElementById('editModel').value.trim();
     const newRange = document.getElementById('editRange').value.trim();
@@ -3159,6 +3283,8 @@
     const updateFields = {
       tag_no: newTag,
       name: newName,
+      major_category: newMajor,
+      unit: newUnit,
       floor: newFloor,
       model: newModel,
       signal_range: newRange,
@@ -4529,7 +4655,7 @@
       .map(row => ({
         row,
         score: scoreEquipmentSearch([
-          row.source, row.major, row.date, row.tag, row.name, row.author, row.content
+          row.source, row.major, row.zone, row.date, row.tag, row.name, row.author, row.content
         ], query)
       }))
       .filter(result => result.score > 0)
