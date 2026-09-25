@@ -2702,13 +2702,19 @@
       const src = selectedModelSource();
       if (viewer.getAttribute('src') !== src) viewer.setAttribute('src', src);
       if (selectedMajor === '내연') {
-        viewer.setAttribute('orientation', '0deg 0deg 0deg');
-        viewer.setAttribute('camera-orbit', '35deg 68deg 72m');
+        viewer.setAttribute('orientation', '-90deg 0deg 0deg');
+        viewer.setAttribute('camera-orbit', '0deg 68deg 72m');
+        viewer.setAttribute('touch-action', 'none');
+        viewer.setAttribute('min-camera-orbit', 'auto 0deg auto');
+        viewer.setAttribute('max-camera-orbit', 'auto 180deg auto');
         viewer.setAttribute('shadow-intensity', '0.35');
         viewer.setAttribute('exposure', '0.85');
       } else {
         viewer.setAttribute('orientation', '90deg 270deg 210deg');
         viewer.setAttribute('camera-orbit', '0deg 75deg 380m');
+        viewer.setAttribute('touch-action', 'none');
+        viewer.setAttribute('min-camera-orbit', 'auto 0deg auto');
+        viewer.setAttribute('max-camera-orbit', 'auto 180deg auto');
         viewer.setAttribute('shadow-intensity', '1.5');
         viewer.setAttribute('exposure', '1.0');
       }
