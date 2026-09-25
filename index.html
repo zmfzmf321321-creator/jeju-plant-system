@@ -2695,7 +2695,9 @@
 
   function selectedModelSource() {
     if (selectedMajor === '내연') {
-      return selectedSubTab === '2호기' ? './assets/engine/engine_unit2.glb' : './assets/engine/engine_unit1.glb';
+      return selectedSubTab === '2호기'
+        ? './assets/engine/engine_unit2_yup_v7.glb'
+        : './assets/engine/engine_unit1_yup_v7.glb';
     }
     return './boiler.glb';
   }
@@ -2731,7 +2733,8 @@
       const src = selectedModelSource();
       if (viewer.getAttribute('src') !== src) viewer.setAttribute('src', src);
       if (selectedMajor === '내연') {
-        viewer.setAttribute('orientation', '90deg 270deg 210deg');
+        // v7 GLB는 Y축이 높이인 glTF 표준 좌표로 제작되어 별도 축 보정이 필요 없다.
+        viewer.setAttribute('orientation', '0deg 0deg 0deg');
         viewer.setAttribute('camera-orbit', '0deg 75deg 380m');
         viewer.setAttribute('touch-action', 'none');
         viewer.setAttribute('min-camera-orbit', 'auto 0deg auto');
