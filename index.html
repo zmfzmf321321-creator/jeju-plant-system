@@ -1644,7 +1644,29 @@
     '7층':     { c1: { x: 132, y: 242 }, c4: { x: 569,  y: 855 } }
   };
 
-  /* 💡 층수 명칭 완벽 정규화 함수 (어떤 형태로 입력되어 있어도 시스템 표준으로 변환) */
+    '7층':     { c1: { x: 132, y: 242 }, c4: { x: 569,  y: 855 } }
+  };
+
+  // 내연 도면 실측 기준: 좌상단 1코너 → 우하단 4코너
+  const engineFloorCorners2D = {
+    '지하층': { c1: { x: 504, y: 165 }, c4: { x: 842,  y: 840 } },
+    '1층':   { c1: { x: 445, y: 158 }, c4: { x: 892,  y: 836 } },
+    '2층':   { c1: { x: 447, y: 152 }, c4: { x: 916,  y: 828 } },
+    '3층':   { c1: { x: 574, y: 187 }, c4: { x: 1003, y: 831 } }
+  };
+
+  // 내연 GLB의 실제 높이축은 Z축이다. 각 층 핀은 해당 바닥면보다 살짝 위에 표시한다.
+  const engineFloor3DHeights = {
+    '지하층': 0.50,
+    '1층': 8.20,
+    '2층': 13.20,
+    '3층': 18.20
+  };
+
+  const engineModelCorners3D = {
+    c1: { x: 0.50, y: 27.00 },    c4: { x: 39.50, y: -27.00 }
+  };
+    /* 💡 층수 명칭 완벽 정규화 함수 (어떤 형태로 입력되어 있어도 시스템 표준으로 변환) */
   function normalizeFloor(floorStr) {
     if (!floorStr) return '6층';
     let s = String(floorStr).trim();
@@ -1690,10 +1712,16 @@
   });
   document.getElementById('histPhotoPreview').addEventListener('click', (e) => {
     if (e.target.src) openImageLightbox(e.target.src);
-  });
-
-  function get3DCoordFrom2D(floor, cx, cy) {
-    const validFloor = normalizeFloor(floor);
+  });  function get3DCoordFrom2D(floor, cx, cy, major = selectedMajor) {    const validFloor = normalizeFloor(floor);
+    if (major === '내연') {
+      const bounds = engineFloorCorners2D[validFloor] || engineFloorCorners2D['1층'];
+      const u = (cx - bounds.c1.x) / (bounds.c4.x - bounds.c1.x || 1);
+      const v = (cy - bounds.c1.y) / (bounds.c4.y - bounds.c1.y || 1);
+      const x3d = engineModelCorners3D.c1.x + u * (engineModelCorners3D.c4.x - engineModelCorners3D.c1.x);
+      const y3d = engineModelCorners3D.c1.y + v * (engineModelCorners3D.c4.y - engineModelCorners3D.c1.y);
+      const z3d = engineFloor3DHeights[validFloor] ?? engineFloor3DHeights['1층'];
+      return { x3d, y3d, z3d };
+    }
     const h = floor3DHeights[validFloor] !== undefined ? floor3DHeights[validFloor] : 26;
     const bounds = floorCorners2D[validFloor] || floorCorners2D['1층'];
     const u = (cx - bounds.c1.x) / (bounds.c4.x - bounds.c1.x || 1);
@@ -5103,8 +5131,11 @@
     currentInstruments.forEach(item => {
       if (instrumentMajor(item) !== selectedMajor) return;
       if (item.unit !== selectedSubTab) return;
-      let pos = item.model_position;
-      if (!pos || pos === '0 0 0') {
+      let pos = item.model_position;      // 내연은 도면 좌표와 층 EL을 항상 기준으로 삼아 과거의 잘못된 3D 좌표도 자동 보정한다.
+      if (selectedMajor === '내연') {
+        const p3d = get3DCoordFrom2D(item.floor, item.coord_x, item.coord_y, selectedMajor);
+        pos = `${p3d.x3d.toFixed(2)} ${p3d.y3d.toFixed(2)} ${p3d.z3d.toFixed(2)}`;
+      } else if (!pos || pos === '0 0 0') {
         const floorKey = normalizeFloor(item.floor);
         const h = floor3DHeights[floorKey] !== undefined ? floor3DHeights[floorKey] : 26;
         const bounds = floorCorners2D[floorKey] || floorCorners2D['1층'];
