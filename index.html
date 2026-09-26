@@ -835,7 +835,7 @@
       .ai-flow-arrow::before { content: "↓"; }
     }
 
-    /* 2026-09 기능 정돈: 기존 틀을 유지한 3D/도면 분리, 업무 메뉴, AI 점검 */
+    /* 2026-09 기능 정돈: 기존 틀을 유지한 3D/도면 분리, AI 점검 */
     :root { --floor-h: 0px; }
     #main-viewport { bottom: 0; }
     #floor-bar { display: none !important; }
@@ -915,17 +915,6 @@
       background: rgba(53,185,231,.12); color: #8bdef7; border: 1px solid rgba(53,185,231,.25);
       font-size: 11px; font-weight: 800;
     }
-    .work-menu { position: relative; flex: 0 0 auto; }
-    .work-menu summary { list-style: none; }
-    .work-menu summary::-webkit-details-marker { display: none; }
-    .work-menu-panel {
-      display: none; position: absolute; top: 35px; right: 0; z-index: 5200; min-width: 180px;
-      padding: 7px; border: 1px solid var(--line-strong); border-radius: 10px;
-      background: #0d1a2d; box-shadow: 0 16px 34px rgba(0,0,0,.45);
-    }
-    .work-menu[open] .work-menu-panel { display: grid; gap: 5px; }
-    .work-menu[open] > summary { border-color: var(--primary); color: #8bdef7; }
-    .work-menu-panel .sub-tab-btn { width: 100%; justify-content: flex-start; border-style: solid; }
     .nav-todo {
       border-color: #24b47e !important;
       background: rgba(36,180,126,.12) !important;
@@ -1015,9 +1004,6 @@
     @media (min-width: 900px) {
       .main-menu-row { flex-direction: column; overflow: visible; white-space: normal; }
       .main-menu-btn { width: 100%; justify-content: flex-start; height: 38px; }
-      .work-menu { width: 100%; }
-      .work-menu summary { width: 100%; }
-      .work-menu-panel { position: static; min-width: 0; margin-top: 6px; box-shadow: none; background: transparent; border-color: var(--line); }
       #view-mode-row { padding-top: 12px; margin-top: 3px; border-top: 1px solid var(--line); }
       .view-mode-btn { width: 100%; height: 38px; text-align: left; padding: 0 12px; }
     }
@@ -1074,7 +1060,7 @@
   <div class="header-btns">
     <span id="loginUserBadge" style="font-size:11px; color:#38bdf8; font-weight:bold; margin-right:4px; flex-shrink:0;"></span>
     <button class="btn-search-top" id="btnOpenSearch" title="계측기 검색">🔍 <span class="tool-label">검색</span></button>
-    <button class="btn-ai-top" id="btnOpenGemini" title="AI 분석">🤖 <span class="tool-label">AI 분석</span></button>
+    <button class="btn-ai-top" id="btnOpenGemini" title="AI 점검">🤖 <span class="tool-label">AI 점검</span></button>
     <button class="btn-measure" id="btnToggleMeasure" title="3D 거리 계측">📐 <span class="tool-label">계측</span></button>
     <button class="btn-passkey-reg" id="btnRegisterPasskey" title="이 기기에 패스키 등록">🔐 <span class="tool-label">지문등록</span></button>
     <button class="btn-logout" id="btnLogout" title="로그아웃">↪ <span class="tool-label">로그아웃</span></button>
@@ -1085,10 +1071,10 @@
   <div class="main-menu-row" id="main-menu-row">
     <button class="main-menu-btn active" id="main-menu-home" onclick="switchMainMenu('홈')">홈</button>
     <button class="main-menu-btn" id="main-menu-equipment" onclick="switchMainMenu('설비')">설비</button>
+    <button class="main-menu-btn" id="main-menu-ai" onclick="switchMainMenu('AI점검')">AI점검</button>
     <button class="main-menu-btn todo-main" id="main-menu-todo" onclick="switchMainMenu('할일')">✅ 할 일 <span class="todo-badge" id="todoBadge">0</span></button>
     <button class="main-menu-btn" id="main-menu-history" onclick="switchMainMenu('정비이력')">정비이력</button>
-    <button class="main-menu-btn" id="main-menu-materials" onclick="switchMainMenu('자재')">자재</button>
-    <button class="main-menu-btn" id="main-menu-support" onclick="switchMainMenu('업무지원')">업무지원</button>
+    <button class="main-menu-btn" id="main-menu-materials" onclick="switchMainMenu('자료실')">자료실</button>
   </div>
   <div class="nav-kicker" id="equipment-nav-kicker">발전 구분</div>
   <div class="selector-row" id="major-selector-row">
@@ -1104,14 +1090,6 @@
     <button class="sub-tab-btn nav-work" id="sub-steam-tms" onclick="switchSubTab('TMS(환경)')">🌿 TMS(환경)</button>
     <button class="sub-tab-btn nav-work" id="sub-steam-logic" onclick="switchSubTab('로직관리')">🧩 로직관리</button>
     <button class="sub-tab-btn nav-todo" id="sub-steam-todo" onclick="switchSubTab('할일')">☑ 할 일</button>
-    <details class="work-menu" id="work-menu-steam">
-      <summary class="sub-tab-btn nav-work">업무 메뉴 ▾</summary>
-      <div class="work-menu-panel">
-        <button class="sub-tab-btn nav-work" id="sub-steam-ai" onclick="switchSubTab('AI점검')">🤖 AI 점검</button>
-        <button class="sub-tab-btn nav-work" id="sub-steam-hist" onclick="switchSubTab('관리이력')">📋 관리이력</button>
-        <button class="sub-tab-btn nav-work" id="sub-steam-materials" onclick="switchSubTab('자료실')">📁 자료실</button>
-      </div>
-    </details>
   </div>
   
   <div class="selector-row" id="sub-tabs-engine" style="display: none;">
@@ -1120,14 +1098,6 @@
     <button class="sub-tab-btn nav-work" id="sub-engine-tms" onclick="switchSubTab('TMS(환경)')">🌿 TMS(환경)</button>
     <button class="sub-tab-btn nav-work" id="sub-engine-logic" onclick="switchSubTab('로직관리')">🧩 로직관리</button>
     <button class="sub-tab-btn nav-todo" id="sub-engine-todo" onclick="switchSubTab('할일')">☑ 할 일</button>
-    <details class="work-menu" id="work-menu-engine">
-      <summary class="sub-tab-btn nav-work">업무 메뉴 ▾</summary>
-      <div class="work-menu-panel">
-        <button class="sub-tab-btn nav-work" id="sub-engine-ai" onclick="switchSubTab('AI점검')">🤖 AI 점검</button>
-        <button class="sub-tab-btn nav-work" id="sub-engine-hist" onclick="switchSubTab('관리이력')">📋 관리이력</button>
-        <button class="sub-tab-btn nav-work" id="sub-engine-materials" onclick="switchSubTab('자료실')">📁 자료실</button>
-      </div>
-    </details>
   </div>
 
   <div class="selector-row" id="section-selector-row">
@@ -1455,7 +1425,7 @@
 </div>
 
 <div id="floor-bar"></div>
-<button type="button" class="ai-floating-btn" id="btnFloatingGemini" onclick="document.getElementById('btnOpenGemini').click()">✨ AI 정비도우미</button>
+<button type="button" class="ai-floating-btn" id="btnFloatingGemini" onclick="document.getElementById('btnOpenGemini').click()">✨ AI 점검</button>
 
 <!-- Gemini AI 어시스턴트 모달 -->
 <div id="gemini-modal">
@@ -2545,10 +2515,10 @@
     const map = {
       '홈': 'main-menu-home',
       '설비': 'main-menu-equipment',
+      'AI점검': 'main-menu-ai',
       '할일': 'main-menu-todo',
       '정비이력': 'main-menu-history',
-      '자재': 'main-menu-materials',
-      '업무지원': 'main-menu-support'
+      '자료실': 'main-menu-materials'
     };
     Object.entries(map).forEach(([key, id]) => {
       const el = document.getElementById(id);
@@ -2599,7 +2569,12 @@
 
     setEquipmentNavVisible(false);
 
-    if (menu === '할일') {
+    if (menu === 'AI점검') {
+      selectedSubTab = 'AI점검';
+      document.getElementById('ai-inspection-view').style.display = 'block';
+      document.getElementById('aiInspectionTitle').innerText = '🤖 AI 점검';
+      loadLatestInspection();
+    } else if (menu === '할일') {
       selectedSubTab = '할일';
       selectedTodoFilter = '전체';
       document.getElementById('todo-management-view').style.display = 'block';
@@ -2614,17 +2589,12 @@
       document.getElementById('tableFilterInput').value = '';
       updateHistoryFilterButtons();
       renderHistoryTable();
-    } else if (menu === '자재') {
+    } else if (menu === '자료실') {
       selectedSubTab = '자료실';
       document.getElementById('materials-management-view').style.display = 'block';
-      document.getElementById('materialsManagementTitle').innerText = '📦 자재 · 자료';
+      document.getElementById('materialsManagementTitle').innerText = '📁 자료실';
       document.getElementById('materialsSearchInput').value = '';
       loadMaterials();
-    } else if (menu === '업무지원') {
-      selectedSubTab = '로직관리';
-      document.getElementById('logic-management-view').style.display = 'block';
-      document.getElementById('logicManagementTitle').innerText = '📚 업무지원 · 로직관리';
-      loadLogicRecords();
     }
     updateFloorTitle();
   };
@@ -2934,10 +2904,6 @@
     if (selectedMajor === '내연' && ['1호기', '2호기'].includes(sub)) lastEquipmentUnit['내연'] = sub;
     measurePoints = [];
     clearAllMeasureVisuals();
-    const isWorkTab = ['AI점검', '자료실', '관리이력'].includes(sub);
-    const activeWorkMenu = document.getElementById(selectedMajor === '기력' ? 'work-menu-steam' : 'work-menu-engine');
-    if (activeWorkMenu) activeWorkMenu.open = isWorkTab;
-
     if (selectedMajor === '기력') {
       ['AI점검', '할일', '자료실', 'TMS(환경)', '2호기', '3호기', '연료펌프룸', '암모니아탱크', '관리이력', '로직관리'].forEach(key => {
         const idMap = { 'AI점검': 'sub-steam-ai', '할일': 'sub-steam-todo', '자료실': 'sub-steam-materials', 'TMS(환경)': 'sub-steam-tms', '2호기': 'sub-steam-2', '3호기': 'sub-steam-3', '연료펌프룸': 'sub-steam-fuel', '암모니아탱크': 'sub-steam-am', '관리이력': 'sub-steam-hist', '로직관리': 'sub-steam-logic' };
@@ -2946,13 +2912,16 @@
       });
       document.getElementById('section-selector-row').style.display = (sub === '2호기' || sub === '3호기') ? 'flex' : 'none';
     } else {
-      document.getElementById('sub-engine-ai').classList.toggle('active', sub === 'AI점검');
+      const engineAi = document.getElementById('sub-engine-ai');
+      const engineMaterials = document.getElementById('sub-engine-materials');
+      const engineHist = document.getElementById('sub-engine-hist');
+      if (engineAi) engineAi.classList.toggle('active', sub === 'AI점검');
       document.getElementById('sub-engine-todo').classList.toggle('active', sub === '할일');
-      document.getElementById('sub-engine-materials').classList.toggle('active', sub === '자료실');
+      if (engineMaterials) engineMaterials.classList.toggle('active', sub === '자료실');
       document.getElementById('sub-engine-tms').classList.toggle('active', sub === 'TMS(환경)');
       document.getElementById('sub-engine-1').classList.toggle('active', sub === '1호기');
       document.getElementById('sub-engine-2').classList.toggle('active', sub === '2호기');
-      document.getElementById('sub-engine-hist').classList.toggle('active', sub === '관리이력');
+      if (engineHist) engineHist.classList.toggle('active', sub === '관리이력');
       document.getElementById('sub-engine-logic').classList.toggle('active', sub === '로직관리');
       document.getElementById('section-selector-row').style.display = 'none';
     }
@@ -3170,14 +3139,14 @@
     const floorTag = document.getElementById('currentFloorTag');
     if (selectedMainMenu === '홈') {
       floorTag.innerText = '홈';
+    } else if (selectedMainMenu === 'AI점검') {
+      floorTag.innerText = 'AI 점검';
     } else if (selectedMainMenu === '할일') {
       floorTag.innerText = '통합 할 일';
     } else if (selectedMainMenu === '정비이력') {
       floorTag.innerText = '통합 정비이력';
-    } else if (selectedMainMenu === '자재') {
-      floorTag.innerText = '자재 · 자료';
-    } else if (selectedMainMenu === '업무지원') {
-      floorTag.innerText = '업무지원';
+    } else if (selectedMainMenu === '자료실') {
+      floorTag.innerText = '자료실';
     } else if (selectedSubTab === '할일') {
       floorTag.innerText = `${selectedMajor} 할 일`;
     } else if (selectedSubTab === '자료실') {
@@ -3516,9 +3485,7 @@
   }
 
   document.getElementById('btnOpenGemini').addEventListener('click', async () => {
-    document.getElementById('gemini-modal').style.display = 'block';
-    switchAiTab('chat');
-    await Promise.all([fetchManuals(), fetchMaterialMetadata()]);
+    switchMainMenu('AI점검');
   });
 
   async function fetchMaterialMetadata() {
