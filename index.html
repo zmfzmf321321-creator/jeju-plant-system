@@ -848,7 +848,14 @@
       background: #0d1a2d; box-shadow: 0 16px 34px rgba(0,0,0,.45);
     }
     .work-menu[open] .work-menu-panel { display: grid; gap: 5px; }
+    .work-menu[open] > summary { border-color: var(--primary); color: #8bdef7; }
     .work-menu-panel .sub-tab-btn { width: 100%; justify-content: flex-start; border-style: solid; }
+    .nav-todo {
+      border-color: #24b47e !important;
+      background: rgba(36,180,126,.12) !important;
+      color: #9ff0cc !important;
+    }
+    .nav-todo.active { background: #167c5b !important; color: #fff !important; }
     #view-mode-row { display: none; }
     .view-mode-btn {
       flex-shrink: 0; height: 27px; padding: 0 13px; border: 1px solid var(--line);
@@ -1004,7 +1011,7 @@
     <button class="sub-tab-btn" id="sub-steam-am" onclick="switchSubTab('암모니아탱크')">🧪 암모니아 탱크</button>
     <button class="sub-tab-btn nav-work" id="sub-steam-tms" onclick="switchSubTab('TMS(환경)')">🌿 TMS(환경)</button>
     <button class="sub-tab-btn nav-work" id="sub-steam-logic" onclick="switchSubTab('로직관리')">🧩 로직관리</button>
-    <button class="sub-tab-btn nav-work" id="sub-steam-todo" onclick="switchSubTab('할일')">☑ 할 일</button>
+    <button class="sub-tab-btn nav-todo" id="sub-steam-todo" onclick="switchSubTab('할일')">☑ 할 일</button>
     <details class="work-menu" id="work-menu-steam">
       <summary class="sub-tab-btn nav-work">업무 메뉴 ▾</summary>
       <div class="work-menu-panel">
@@ -1018,14 +1025,14 @@
   <div class="selector-row" id="sub-tabs-engine" style="display: none;">
     <button class="sub-tab-btn active" id="sub-engine-1" onclick="switchSubTab('1호기')">1호기</button>
     <button class="sub-tab-btn" id="sub-engine-2" onclick="switchSubTab('2호기')">2호기</button>
+    <button class="sub-tab-btn nav-work" id="sub-engine-tms" onclick="switchSubTab('TMS(환경)')">🌿 TMS(환경)</button>
+    <button class="sub-tab-btn nav-work" id="sub-engine-logic" onclick="switchSubTab('로직관리')">🧩 로직관리</button>
+    <button class="sub-tab-btn nav-todo" id="sub-engine-todo" onclick="switchSubTab('할일')">☑ 할 일</button>
     <details class="work-menu" id="work-menu-engine">
       <summary class="sub-tab-btn nav-work">업무 메뉴 ▾</summary>
       <div class="work-menu-panel">
         <button class="sub-tab-btn nav-work" id="sub-engine-ai" onclick="switchSubTab('AI점검')">🤖 AI 점검</button>
-        <button class="sub-tab-btn nav-work" id="sub-engine-tms" onclick="switchSubTab('TMS(환경)')">🌿 TMS(환경)</button>
-        <button class="sub-tab-btn nav-work" id="sub-engine-todo" onclick="switchSubTab('할일')">☑ 할 일</button>
         <button class="sub-tab-btn nav-work" id="sub-engine-hist" onclick="switchSubTab('관리이력')">📋 관리이력</button>
-        <button class="sub-tab-btn nav-work" id="sub-engine-logic" onclick="switchSubTab('로직관리')">🧩 로직관리</button>
         <button class="sub-tab-btn nav-work" id="sub-engine-materials" onclick="switchSubTab('자료실')">📁 자료실</button>
       </div>
     </details>
@@ -2578,7 +2585,7 @@
     if (selectedMajor === '내연' && ['1호기', '2호기'].includes(sub)) lastEquipmentUnit['내연'] = sub;
     measurePoints = [];
     clearAllMeasureVisuals();
-    const isWorkTab = ['AI점검', '할일', '자료실', 'TMS(환경)', '관리이력', '로직관리'].includes(sub);
+    const isWorkTab = ['AI점검', '자료실', '관리이력'].includes(sub);
     const activeWorkMenu = document.getElementById(selectedMajor === '기력' ? 'work-menu-steam' : 'work-menu-engine');
     if (activeWorkMenu) activeWorkMenu.open = isWorkTab;
 
