@@ -1106,6 +1106,7 @@
     <button class="view-mode-btn active" id="view-mode-3d" onclick="switchViewMode('3d')">🧊 3D</button>
     <button class="view-mode-btn" id="view-mode-floor" onclick="switchViewMode('floor')">🗺️ 층별 도면</button>
   </div>
+</div>
 
 <div id="measure-info-hud">📐 모델 위 모서리를 터치하면 좌표가 자동 측정됩니다.</div>
 
@@ -2945,7 +2946,7 @@
     viewTodo.style.display = 'none';
     viewMaterials.style.display = 'none';
     viewAiInspection.style.display = 'none';
-    viewModeRow.style.display = 'none';
+    if (viewModeRow) viewModeRow.style.display = 'none';
 
     if (sub === 'AI점검') {
       floorBar.style.display = 'none';
@@ -2984,21 +2985,21 @@
       resetTmsForm();
       loadTmsEquipment();
     } else if (sub === '연료펌프룸') {
-      viewModeRow.style.display = 'flex';
+      if (viewModeRow) viewModeRow.style.display = 'flex';
       renderFloorBar();
       selectedViewMode = 'floor';
       switchViewMode('floor');
     } else if (sub === '암모니아탱크') {
-      viewModeRow.style.display = 'flex';
+      if (viewModeRow) viewModeRow.style.display = 'flex';
       renderFloorBar();
       selectedViewMode = 'floor';
       switchViewMode('floor');
     } else if (selectedMajor === '기력') {
-      viewModeRow.style.display = 'flex';
+      if (viewModeRow) viewModeRow.style.display = 'flex';
       selectedViewMode = '3d';
       switchSection(selectedSection || '보일러');
     } else {
-      viewModeRow.style.display = 'flex';
+      if (viewModeRow) viewModeRow.style.display = 'flex';
       selectedViewMode = '3d';
       switchViewMode('3d');
     }
