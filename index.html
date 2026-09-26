@@ -665,7 +665,7 @@
       --primary-deep: #087ca8;
       --success: #24b47e;
       --header-h: 60px;
-      --nav-h: 116px;
+      --nav-h: 156px;
       --floor-h: 62px;
     }
     html, body { background: var(--app-bg); color: var(--text); }
@@ -807,7 +807,7 @@
     }
 
     @media (max-width: 600px) {
-      :root { --header-h: 56px; --nav-h: 148px; --floor-h: 0px; }
+      :root { --header-h: 56px; --nav-h: 160px; --floor-h: 0px; }
       #header { padding: 0 9px; gap: 7px; }
       .brand { gap: 6px; font-size: 12px; }
       .brand-name { max-width: 72px; overflow: hidden; text-overflow: ellipsis; }
@@ -839,6 +839,82 @@
     :root { --floor-h: 0px; }
     #main-viewport { bottom: 0; }
     #floor-bar { display: none !important; }
+    .main-menu-row {
+      display: flex; gap: 6px; width: 100%; overflow-x: auto; scrollbar-width: none;
+      -webkit-overflow-scrolling: touch; white-space: nowrap;
+    }
+    .main-menu-row::-webkit-scrollbar { display: none; }
+    .main-menu-btn {
+      flex: 0 0 auto; height: 32px; padding: 0 12px; border-radius: 9px;
+      border: 1px solid var(--line); background: var(--surface-raised); color: #aebed2;
+      font-size: 12px; font-weight: 800; cursor: pointer; display: inline-flex;
+      align-items: center; justify-content: center; gap: 6px;
+    }
+    .main-menu-btn:hover { border-color: var(--line-strong); color: #fff; background: #182842; }
+    .main-menu-btn.active {
+      background: #0a769e; border-color: #35b9e7; color: #fff;
+      box-shadow: 0 4px 14px rgba(8,124,168,.28);
+    }
+    .main-menu-btn.todo-main { border-color: rgba(36,180,126,.55); color: #b7f4d9; }
+    .todo-badge {
+      display: none; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
+      background: #24b47e; color: #052e22; font-size: 11px; line-height: 18px;
+      font-weight: 900; text-align: center;
+    }
+    #home-dashboard-view {
+      display: none; width: 100%; height: 100%; position: absolute; inset: 0;
+      background: var(--app-bg); overflow-y: auto; padding: 24px;
+    }
+    .home-shell { max-width: 1080px; margin: 0 auto; display: grid; gap: 16px; }
+    .home-title { color: var(--text); font-size: 22px; font-weight: 900; letter-spacing: -.4px; }
+    .home-desc { color: var(--muted); font-size: 13px; line-height: 1.5; margin-top: 6px; }
+    .home-card {
+      background: var(--surface-soft); border: 1px solid var(--line); border-radius: 12px;
+      padding: 14px; box-shadow: 0 12px 32px rgba(0,0,0,.18);
+    }
+    .home-card-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .home-card-title { color: var(--text); font-weight: 900; font-size: 16px; }
+    .home-link-btn {
+      border: 0; background: transparent; color: #8bdef7; font-weight: 800; cursor: pointer;
+      font-size: 12px; padding: 4px 0;
+    }
+    .home-todo-list { display: grid; gap: 7px; }
+    .home-todo-item {
+      display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 8px;
+      min-height: 38px; padding: 8px 10px; border: 1px solid var(--line);
+      border-radius: 10px; background: rgba(7,16,31,.62); color: var(--text);
+    }
+    .home-todo-item.done .home-todo-text { text-decoration: line-through; color: #7b8ea6; }
+    .home-todo-check { color: #8bdef7; font-weight: 900; }
+    .home-todo-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; }
+    .home-todo-category {
+      border-radius: 999px; background: rgba(53,185,231,.12); color: #8bdef7;
+      border: 1px solid rgba(53,185,231,.25); padding: 3px 7px; font-size: 11px;
+      font-weight: 800;
+    }
+    .home-empty { color: var(--muted); padding: 10px; border: 1px dashed var(--line); border-radius: 10px; }
+    .home-quick-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .home-action-btn {
+      height: 34px; border: 1px solid var(--line-strong); border-radius: 9px;
+      background: #0a769e; color: #fff; font-weight: 800; padding: 0 12px; cursor: pointer;
+    }
+    .ai-floating-btn {
+      position: fixed; right: 18px; bottom: 18px; z-index: 6100; min-height: 42px;
+      padding: 0 15px; border-radius: 999px; border: 1px solid rgba(129,140,248,.55);
+      background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; font-weight: 900;
+      box-shadow: 0 14px 32px rgba(0,0,0,.38); cursor: pointer;
+    }
+    .todo-filter-row { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0 4px; }
+    .todo-filter-btn {
+      height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line);
+      background: transparent; color: #9fb0c6; font-size: 12px; font-weight: 800; cursor: pointer;
+    }
+    .todo-filter-btn.active { background: rgba(36,180,126,.15); border-color: #24b47e; color: #b7f4d9; }
+    .todo-category-chip {
+      display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 999px;
+      background: rgba(53,185,231,.12); color: #8bdef7; border: 1px solid rgba(53,185,231,.25);
+      font-size: 11px; font-weight: 800;
+    }
     .work-menu { position: relative; flex: 0 0 auto; }
     .work-menu summary { list-style: none; }
     .work-menu summary::-webkit-details-marker { display: none; }
@@ -855,6 +931,7 @@
       background: rgba(36,180,126,.12) !important;
       color: #9ff0cc !important;
     }
+    #sub-steam-todo, #sub-engine-todo { display: none !important; }
     .nav-todo.active { background: #167c5b !important; color: #fff !important; }
     #view-mode-row { display: none; }
     .view-mode-btn {
@@ -936,6 +1013,8 @@
     .todo-edit-btn { flex: 0 0 auto; border: 1px solid var(--line-strong); border-radius: 7px; padding: 6px 9px; background: var(--surface-raised); color: #cbd5e1; font-size: 11px; font-weight: 700; }
 
     @media (min-width: 900px) {
+      .main-menu-row { flex-direction: column; overflow: visible; white-space: normal; }
+      .main-menu-btn { width: 100%; justify-content: flex-start; height: 38px; }
       .work-menu { width: 100%; }
       .work-menu summary { width: 100%; }
       .work-menu-panel { position: static; min-width: 0; margin-top: 6px; box-shadow: none; background: transparent; border-color: var(--line); }
@@ -952,6 +1031,11 @@
       .ai-inspection-grid { grid-template-columns: 1fr; }
       .inspection-fields { grid-template-columns: 1fr 1fr; }
       #ai-inspection-view { padding: 14px 10px; }
+      #home-dashboard-view { padding: 14px 10px; }
+      .home-title { font-size: 19px; }
+      .home-todo-item { grid-template-columns: 20px 1fr; }
+      .home-todo-category { grid-column: 2; justify-self: start; }
+      .ai-floating-btn { right: 12px; bottom: 12px; min-height: 38px; padding: 0 12px; font-size: 12px; }
     }
   </style>
 </head>
@@ -998,8 +1082,16 @@
 </div>
 
 <div id="unit-selector-bar">
-  <div class="nav-kicker">발전 구분</div>
-  <div class="selector-row">
+  <div class="main-menu-row" id="main-menu-row">
+    <button class="main-menu-btn active" id="main-menu-home" onclick="switchMainMenu('홈')">홈</button>
+    <button class="main-menu-btn" id="main-menu-equipment" onclick="switchMainMenu('설비')">설비</button>
+    <button class="main-menu-btn todo-main" id="main-menu-todo" onclick="switchMainMenu('할일')">✅ 할 일 <span class="todo-badge" id="todoBadge">0</span></button>
+    <button class="main-menu-btn" id="main-menu-history" onclick="switchMainMenu('정비이력')">정비이력</button>
+    <button class="main-menu-btn" id="main-menu-materials" onclick="switchMainMenu('자재')">자재</button>
+    <button class="main-menu-btn" id="main-menu-support" onclick="switchMainMenu('업무지원')">업무지원</button>
+  </div>
+  <div class="nav-kicker" id="equipment-nav-kicker">발전 구분</div>
+  <div class="selector-row" id="major-selector-row">
     <button class="major-tab-btn active" id="btn-major-steam" onclick="switchMajor('기력')">⚡ 기력 발전</button>
     <button class="major-tab-btn" id="btn-major-engine" onclick="switchMajor('내연')">🔥 내연 발전</button>
   </div>
@@ -1052,6 +1144,28 @@
 <div id="measure-info-hud">📐 모델 위 모서리를 터치하면 좌표가 자동 측정됩니다.</div>
 
 <div id="main-viewport">
+  <div id="home-dashboard-view">
+    <div class="home-shell">
+      <section class="home-hero">
+        <div class="home-title">제주 발전 계측관리</div>
+        <div class="home-desc">오늘 확인할 일과 설비·정비이력·자료를 한 곳에서 이어서 관리합니다.</div>
+      </section>
+      <section class="home-card">
+        <div class="home-card-head">
+          <div class="home-card-title">오늘 할 일</div>
+          <button type="button" class="home-link-btn" onclick="switchMainMenu('할일')">전체보기 &gt;</button>
+        </div>
+        <div class="home-todo-list" id="homeTodoList">
+          <div class="home-empty">로그인 후 할 일을 불러옵니다.</div>
+        </div>
+        <div class="home-quick-actions">
+          <button type="button" class="home-action-btn" onclick="switchMainMenu('할일')">+ 할 일 추가</button>
+          <button type="button" class="home-action-btn" onclick="switchMainMenu('설비')">설비 보기</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
   <div id="overall-3d-view">
     <model-viewer id="boilerViewer" src="./boiler.glb"
       interaction-prompt="none"
@@ -1235,6 +1349,13 @@
     <div class="todo-panel">
       <div class="todo-title" id="todoManagementTitle">☑ [기력발전] To Do List</div>
       <div class="todo-desc">완료한 항목을 체크하면 취소선이 표시됩니다. 체크를 풀면 다시 할 일로 돌아옵니다.</div>
+      <div class="todo-filter-row" id="todoFilterRow">
+        <button type="button" class="todo-filter-btn active" data-todo-filter="전체" onclick="setTodoFilter('전체')">전체</button>
+        <button type="button" class="todo-filter-btn" data-todo-filter="기력" onclick="setTodoFilter('기력')">기력</button>
+        <button type="button" class="todo-filter-btn" data-todo-filter="내연" onclick="setTodoFilter('내연')">내연</button>
+        <button type="button" class="todo-filter-btn" data-todo-filter="환경" onclick="setTodoFilter('환경')">환경</button>
+        <button type="button" class="todo-filter-btn" data-todo-filter="기타" onclick="setTodoFilter('기타')">기타</button>
+      </div>
       <form class="todo-add-form" id="todoAddForm">
         <input id="todoTaskInput" class="todo-input" type="text" maxlength="300" placeholder="할 일을 입력하세요" autocomplete="off">
         <button id="btnAddTodo" class="todo-add-btn" type="submit">추가</button>
@@ -1334,6 +1455,7 @@
 </div>
 
 <div id="floor-bar"></div>
+<button type="button" class="ai-floating-btn" id="btnFloatingGemini" onclick="document.getElementById('btnOpenGemini').click()">✨ AI 정비도우미</button>
 
 <!-- Gemini AI 어시스턴트 모달 -->
 <div id="gemini-modal">
@@ -1590,6 +1712,9 @@
   let selectedSection = '보일러';
   let selectedFloor = 'ALL';
   let selectedViewMode = '3d';
+  let selectedMainMenu = '홈';
+  let selectedTodoFilter = '전체';
+  let currentTodoRecords = [];
   const lastEquipmentUnit = { '기력': '2호기', '내연': '1호기' };
   let activeTargetId = null;
   let activeCalibRecord = null;
@@ -2110,19 +2235,114 @@
     }).format(date);
   }
 
-  function renderTodos(records) {
-    const list = document.getElementById('todoList');
-    list.replaceChildren();
+  function todoCategory(record = {}) {
+    const raw = String(record.major_category || '').trim();
+    if (raw.includes('내연')) return '내연';
+    if (raw.includes('환경') || raw.includes('TMS')) return '환경';
+    if (raw.includes('기력')) return '기력';
+    return raw || '기타';
+  }
 
-    if (!records.length) {
+  function todoMatchesFilter(record) {
+    if (selectedTodoFilter === '전체') return true;
+    return todoCategory(record) === selectedTodoFilter;
+  }
+
+  function updateTodoFilterButtons() {
+    document.querySelectorAll('.todo-filter-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.todoFilter === selectedTodoFilter);
+    });
+  }
+
+  window.setTodoFilter = function(filter) {
+    selectedTodoFilter = filter;
+    updateTodoFilterButtons();
+    renderTodos(currentTodoRecords);
+  };
+
+  function updateTodoBadge(records = currentTodoRecords) {
+    const badge = document.getElementById('todoBadge');
+    if (!badge) return;
+    const remaining = records.filter(record => !record.completed_at).length;
+    badge.textContent = String(remaining);
+    badge.style.display = remaining > 0 ? 'inline-block' : 'none';
+  }
+
+  function renderHomeTodos(records = currentTodoRecords) {
+    const list = document.getElementById('homeTodoList');
+    if (!list) return;
+    list.replaceChildren();
+    const preview = [...records].sort((a, b) => {
+      const completedOrder = Number(Boolean(a.completed_at)) - Number(Boolean(b.completed_at));
+      if (completedOrder !== 0) return completedOrder;
+      return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+    }).slice(0, 5);
+
+    if (!preview.length) {
       const empty = document.createElement('div');
-      empty.className = 'todo-empty';
-      empty.textContent = `[${selectedMajor}발전]에 등록된 할 일이 없습니다.`;
+      empty.className = 'home-empty';
+      empty.textContent = '등록된 할 일이 없습니다. + 할 일 추가에서 첫 항목을 만들 수 있습니다.';
       list.appendChild(empty);
       return;
     }
 
-    records.forEach(record => {
+    preview.forEach(record => {
+      const item = document.createElement('div');
+      const isCompleted = Boolean(record.completed_at);
+      item.className = `home-todo-item${isCompleted ? ' done' : ''}`;
+      const check = document.createElement('div');
+      check.className = 'home-todo-check';
+      check.textContent = isCompleted ? '☑' : '☐';
+      const text = document.createElement('div');
+      text.className = 'home-todo-text';
+      text.textContent = record.task_text || '할 일';
+      const category = document.createElement('div');
+      category.className = 'home-todo-category';
+      category.textContent = todoCategory(record);
+      item.append(check, text, category);
+      item.addEventListener('click', () => switchMainMenu('할일'));
+      list.appendChild(item);
+    });
+  }
+
+  async function loadTodoOverview() {
+    const { data: authData } = await supabaseClient.auth.getSession();
+    if (!authData.session) {
+      currentTodoRecords = [];
+      updateTodoBadge([]);
+      renderHomeTodos([]);
+      return [];
+    }
+    const { data, error } = await supabaseClient
+      .from('maintenance_todos')
+      .select('id, major_category, task_text, created_by_name, created_at, completed_at')
+      .order('created_at', { ascending: true });
+    if (error) {
+      console.error('할 일 요약 조회 오류:', error);
+      return currentTodoRecords;
+    }
+    currentTodoRecords = data || [];
+    updateTodoBadge(currentTodoRecords);
+    renderHomeTodos(currentTodoRecords);
+    return currentTodoRecords;
+  }
+
+  function renderTodos(records) {
+    const list = document.getElementById('todoList');
+    list.replaceChildren();
+    const filteredRecords = records.filter(todoMatchesFilter);
+
+    if (!filteredRecords.length) {
+      const empty = document.createElement('div');
+      empty.className = 'todo-empty';
+      empty.textContent = selectedTodoFilter === '전체'
+        ? '등록된 할 일이 없습니다.'
+        : `[${selectedTodoFilter}] 분류에 등록된 할 일이 없습니다.`;
+      list.appendChild(empty);
+      return;
+    }
+
+    filteredRecords.forEach(record => {
       const item = document.createElement('div');
       const isCompleted = Boolean(record.completed_at);
       item.className = `todo-item${isCompleted ? ' completed' : ''}`;
@@ -2142,7 +2362,12 @@
       meta.className = 'todo-meta';
       const creator = record.created_by_name || '작업자';
       const date = formatTodoDate(record.created_at);
-      meta.textContent = [creator, date, isCompleted ? '완료' : ''].filter(Boolean).join(' · ');
+      const category = document.createElement('span');
+      category.className = 'todo-category-chip';
+      category.textContent = todoCategory(record);
+      const metaText = document.createElement('span');
+      metaText.textContent = [creator, date, isCompleted ? '완료' : ''].filter(Boolean).join(' · ');
+      meta.append(category, document.createTextNode(' '), metaText);
       content.append(task, meta);
       const editButton = document.createElement('button');
       editButton.type = 'button';
@@ -2171,6 +2396,7 @@
         }
         invalidateUnifiedData();
         await loadTodos();
+        await loadTodoOverview();
         setTodoStatus('할 일을 수정했습니다.', 'success');
       });
       item.append(checkbox, content, editButton);
@@ -2209,6 +2435,7 @@
 
         invalidateUnifiedData();
         await loadTodos();
+        await loadTodoOverview();
         setTodoStatus(willComplete ? '완료 항목에 취소선을 표시했습니다.' : '다시 할 일로 되돌렸습니다.', 'success');
       });
     });
@@ -2225,8 +2452,7 @@
 
     const { data, error } = await supabaseClient
       .from('maintenance_todos')
-      .select('id, task_text, created_by_name, created_at, completed_at')
-      .eq('major_category', selectedMajor)
+      .select('id, major_category, task_text, created_by_name, created_at, completed_at')
       .order('created_at', { ascending: true });
 
     if (error) {
@@ -2237,14 +2463,19 @@
     }
 
     const records = data || [];
+    currentTodoRecords = records;
     records.sort((a, b) => {
       const completedOrder = Number(Boolean(a.completed_at)) - Number(Boolean(b.completed_at));
       if (completedOrder !== 0) return completedOrder;
       return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
     });
+    updateTodoFilterButtons();
     renderTodos(records);
     const remainingCount = records.filter(record => !record.completed_at).length;
-    setTodoStatus(`남은 할 일 ${remainingCount}개 · 완료 ${records.length - remainingCount}개`);
+    const filteredCount = records.filter(todoMatchesFilter).length;
+    updateTodoBadge(records);
+    renderHomeTodos(records);
+    setTodoStatus(`전체 남은 할 일 ${remainingCount}개 · 현재 필터 ${filteredCount}개`);
   }
 
   document.getElementById('todoAddForm').addEventListener('submit', async (event) => {
@@ -2267,8 +2498,11 @@
 
     addButton.disabled = true;
     setTodoStatus('할 일을 추가하는 중입니다.');
+    const categoryForInsert = ['기력', '내연', '환경', '기타'].includes(selectedTodoFilter)
+      ? selectedTodoFilter
+      : selectedMajor;
     const { error } = await supabaseClient.from('maintenance_todos').insert([{
-      major_category: selectedMajor,
+      major_category: categoryForInsert,
       task_text: taskText,
       created_by_name: currentUserInfo.name || '작업자'
     }]);
@@ -2283,9 +2517,117 @@
     input.value = '';
     invalidateUnifiedData();
     await loadTodos();
+    await loadTodoOverview();
     setTodoStatus('할 일을 추가했습니다.', 'success');
     input.focus();
   });
+
+  function allPrimaryViews() {
+    return [
+      'home-dashboard-view',
+      'overall-3d-view',
+      'floor-room-view',
+      'empty-engine-view',
+      'history-table-view',
+      'logic-management-view',
+      'tms-management-view',
+      'todo-management-view',
+      'materials-management-view',
+      'ai-inspection-view'
+    ].map(id => document.getElementById(id)).filter(Boolean);
+  }
+
+  function hidePrimaryViews() {
+    allPrimaryViews().forEach(view => { view.style.display = 'none'; });
+  }
+
+  function setMainMenuActive(menu) {
+    const map = {
+      '홈': 'main-menu-home',
+      '설비': 'main-menu-equipment',
+      '할일': 'main-menu-todo',
+      '정비이력': 'main-menu-history',
+      '자재': 'main-menu-materials',
+      '업무지원': 'main-menu-support'
+    };
+    Object.entries(map).forEach(([key, id]) => {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle('active', key === menu);
+    });
+  }
+
+  function setEquipmentNavVisible(visible) {
+    const kicker = document.getElementById('equipment-nav-kicker');
+    const majorRow = document.getElementById('major-selector-row');
+    const steamRow = document.getElementById('sub-tabs-steam');
+    const engineRow = document.getElementById('sub-tabs-engine');
+    const sectionRow = document.getElementById('section-selector-row');
+    const viewModeRow = document.getElementById('view-mode-row');
+    if (kicker) kicker.style.display = visible ? '' : 'none';
+    if (majorRow) majorRow.style.display = visible ? 'flex' : 'none';
+    if (!visible) {
+      if (steamRow) steamRow.style.display = 'none';
+      if (engineRow) engineRow.style.display = 'none';
+      if (sectionRow) sectionRow.style.display = 'none';
+      if (viewModeRow) viewModeRow.style.display = 'none';
+      return;
+    }
+    if (steamRow) steamRow.style.display = selectedMajor === '기력' ? 'flex' : 'none';
+    if (engineRow) engineRow.style.display = selectedMajor === '내연' ? 'flex' : 'none';
+  }
+
+  window.switchMainMenu = function(menu) {
+    selectedMainMenu = menu;
+    setMainMenuActive(menu);
+    measurePoints = [];
+    clearAllMeasureVisuals();
+    hidePrimaryViews();
+
+    if (menu === '홈') {
+      setEquipmentNavVisible(false);
+      document.getElementById('home-dashboard-view').style.display = 'block';
+      loadTodoOverview();
+      updateFloorTitle();
+      return;
+    }
+
+    if (menu === '설비') {
+      setEquipmentNavVisible(true);
+      switchSubTab(lastEquipmentUnit[selectedMajor] || (selectedMajor === '내연' ? '1호기' : '2호기'));
+      return;
+    }
+
+    setEquipmentNavVisible(false);
+
+    if (menu === '할일') {
+      selectedSubTab = '할일';
+      selectedTodoFilter = '전체';
+      document.getElementById('todo-management-view').style.display = 'block';
+      document.getElementById('todoManagementTitle').innerText = '✅ 통합 할 일';
+      updateTodoFilterButtons();
+      loadTodos();
+    } else if (menu === '정비이력') {
+      selectedSubTab = '관리이력';
+      selectedHistorySource = '전체';
+      selectedHistoryZone = '전체';
+      document.getElementById('history-table-view').style.display = 'block';
+      document.getElementById('tableFilterInput').value = '';
+      updateHistoryFilterButtons();
+      renderHistoryTable();
+    } else if (menu === '자재') {
+      selectedSubTab = '자료실';
+      document.getElementById('materials-management-view').style.display = 'block';
+      document.getElementById('materialsManagementTitle').innerText = '📦 자재 · 자료';
+      document.getElementById('materialsSearchInput').value = '';
+      loadMaterials();
+    } else if (menu === '업무지원') {
+      selectedSubTab = '로직관리';
+      document.getElementById('logic-management-view').style.display = 'block';
+      document.getElementById('logicManagementTitle').innerText = '📚 업무지원 · 로직관리';
+      loadLogicRecords();
+    }
+    updateFloorTitle();
+  };
 
   function setMaterialsStatus(message, type = '') {
     const status = document.getElementById('materialsManagementStatus');
@@ -2562,6 +2904,9 @@
   });
 
   window.switchMajor = function(major) {
+    selectedMainMenu = '설비';
+    setMainMenuActive('설비');
+    setEquipmentNavVisible(true);
     selectedMajor = major;
     measurePoints = [];
     clearAllMeasureVisuals();
@@ -2580,6 +2925,10 @@
   };
 
   window.switchSubTab = function(sub) {
+    if (['2호기', '3호기', '1호기', '연료펌프룸', '암모니아탱크', 'TMS(환경)', '로직관리', 'AI점검', '자료실', '관리이력', '할일'].includes(sub)) {
+      selectedMainMenu = '설비';
+      setMainMenuActive('설비');
+    }
     selectedSubTab = sub;
     if (selectedMajor === '기력' && ['2호기', '3호기', '연료펌프룸', '암모니아탱크'].includes(sub)) lastEquipmentUnit['기력'] = sub;
     if (selectedMajor === '내연' && ['1호기', '2호기'].includes(sub)) lastEquipmentUnit['내연'] = sub;
@@ -2608,6 +2957,7 @@
       document.getElementById('section-selector-row').style.display = 'none';
     }
 
+    const viewHome = document.getElementById('home-dashboard-view');
     const view3D = document.getElementById('overall-3d-view');
     const viewFloor = document.getElementById('floor-room-view');
     const viewEmpty = document.getElementById('empty-engine-view');
@@ -2620,6 +2970,7 @@
     const floorBar = document.getElementById('floor-bar');
     const viewModeRow = document.getElementById('view-mode-row');
 
+    if (viewHome) viewHome.style.display = 'none';
     view3D.style.display = 'none';
     viewFloor.style.display = 'none';
     viewEmpty.style.display = 'none';
@@ -2817,7 +3168,17 @@
 
   function updateFloorTitle() {
     const floorTag = document.getElementById('currentFloorTag');
-    if (selectedSubTab === '할일') {
+    if (selectedMainMenu === '홈') {
+      floorTag.innerText = '홈';
+    } else if (selectedMainMenu === '할일') {
+      floorTag.innerText = '통합 할 일';
+    } else if (selectedMainMenu === '정비이력') {
+      floorTag.innerText = '통합 정비이력';
+    } else if (selectedMainMenu === '자재') {
+      floorTag.innerText = '자재 · 자료';
+    } else if (selectedMainMenu === '업무지원') {
+      floorTag.innerText = '업무지원';
+    } else if (selectedSubTab === '할일') {
       floorTag.innerText = `${selectedMajor} 할 일`;
     } else if (selectedSubTab === '자료실') {
       floorTag.innerText = `${selectedMajor} 자료실`;
@@ -3037,7 +3398,8 @@
     const filterText = (document.getElementById('tableFilterInput').value || '').trim().toLowerCase();
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#64748b;">통합 관리이력을 불러오는 중입니다.</td></tr>';
     await loadUnifiedData();
-    let rows = buildUnifiedHistoryRows().filter(row => row.major === selectedMajor);
+    let rows = buildUnifiedHistoryRows();
+    if (selectedMainMenu !== '정비이력') rows = rows.filter(row => row.major === selectedMajor);
     if (selectedHistorySource !== '전체') rows = rows.filter(row => row.source === selectedHistorySource);
     if (selectedHistoryZone !== '전체') rows = rows.filter(row => row.zone === selectedHistoryZone);
     if (filterText) {
@@ -3046,7 +3408,8 @@
     }
     const sourceLabel = selectedHistorySource === '전체' ? '전체 데이터' : selectedHistorySource;
     const zoneLabel = selectedHistoryZone === '전체' ? '전체 구역' : selectedHistoryZone;
-    document.getElementById('historyTableTitle').innerText = `📋 [${selectedMajor}발전] ${sourceLabel} · ${zoneLabel} (${rows.length}건)`;
+    const scopeLabel = selectedMainMenu === '정비이력' ? '전체 발전소' : `${selectedMajor}발전`;
+    document.getElementById('historyTableTitle').innerText = `📋 [${scopeLabel}] ${sourceLabel} · ${zoneLabel} (${rows.length}건)`;
     window.currentUnifiedHistoryRows = rows;
     tbody.replaceChildren();
     if (rows.length === 0) {
@@ -4280,6 +4643,7 @@
     document.getElementById('floor-bar').style.display = 'flex';
 
     switchSubTab('2호기');
+    switchMainMenu('홈');
     await fetchManuals();
     fetchInstruments();
   }
