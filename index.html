@@ -61,6 +61,7 @@
     <button class="main-menu-btn todo-main" id="main-menu-todo" onclick="switchMainMenu('할일')">✅ 할 일 <span class="todo-badge" id="todoBadge">0</span></button>
     <button class="main-menu-btn" id="main-menu-history" onclick="switchMainMenu('정비이력')">정비이력</button>
     <button class="main-menu-btn" id="main-menu-materials" onclick="switchMainMenu('자료실')">자료실</button>
+    <button class="main-menu-btn" id="main-menu-password" onclick="switchMainMenu('비밀번호')">비밀번호</button>
     <button class="main-menu-btn admin-only-menu" id="main-menu-approvals" onclick="switchMainMenu('권한승인')" style="display:none;">권한승인 <span class="todo-badge" id="approvalBadge">0</span></button>
   </div>
   <div class="nav-kicker" id="equipment-nav-kicker">발전 구분</div>
@@ -423,6 +424,23 @@
       <div id="approvalUserList" class="approval-list">
         <div class="approval-empty">최고관리자로 로그인하면 가입 신청 목록을 불러옵니다.</div>
       </div>
+    </div>
+  </div>
+
+  <div id="password-management-view">
+    <div class="approval-panel">
+      <div class="approval-title">비밀번호 변경</div>
+      <div class="approval-desc">임시비밀번호로 로그인한 뒤 새 비밀번호로 변경하세요.</div>
+      <form class="password-form" id="passwordChangeForm">
+        <label class="password-label" for="newPassword">새 비밀번호</label>
+        <input id="newPassword" class="password-input" type="password" minlength="6" autocomplete="new-password" placeholder="6자리 이상">
+        <label class="password-label" for="confirmPassword">새 비밀번호 확인</label>
+        <input id="confirmPassword" class="password-input" type="password" minlength="6" autocomplete="new-password" placeholder="한 번 더 입력">
+        <div class="approval-toolbar">
+          <button type="submit" class="approval-action-btn">비밀번호 변경</button>
+          <span id="passwordChangeStatus" class="approval-status" role="status" aria-live="polite"></span>
+        </div>
+      </form>
     </div>
   </div>
 </div>

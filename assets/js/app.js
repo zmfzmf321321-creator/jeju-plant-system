@@ -1022,6 +1022,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       'todo-management-view',
       'materials-management-view',
       'admin-approval-view',
+      'password-management-view',
       'ai-inspection-view'
     ].map(id => document.getElementById(id)).filter(Boolean);
   }
@@ -1038,6 +1039,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       '할일': 'main-menu-todo',
       '정비이력': 'main-menu-history',
       '자료실': 'main-menu-materials',
+      '비밀번호': 'main-menu-password',
       '권한승인': 'main-menu-approvals'
     };
     Object.entries(map).forEach(([key, id]) => {
@@ -1129,6 +1131,14 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       document.getElementById('materialsManagementTitle').innerText = '📁 자료실';
       document.getElementById('materialsSearchInput').value = '';
       loadMaterials();
+    } else if (menu === '비밀번호') {
+      selectedSubTab = '비밀번호';
+      document.getElementById('password-management-view').style.display = 'block';
+      const status = document.getElementById('passwordChangeStatus');
+      if (status) {
+        status.textContent = '';
+        status.className = 'approval-status';
+      }
     } else if (menu === '권한승인') {
       selectedSubTab = '권한승인';
       document.getElementById('admin-approval-view').style.display = 'block';
@@ -3614,6 +3624,50 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     document.getElementById('login-box').style.display = 'block';
     document.getElementById('loginEmail').value = email;
     document.getElementById('regPassword').value = '';
+  });
+
+  document.getElementById('passwordChangeForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const passwordInput = document.getElementById('newPassword');
+    const confirmInput = document.getElementById('confirmPassword');
+    const status = document.getElementById('passwordChangeStatus');
+    const newPassword = passwordInput.value.trim();
+    const confirmPassword = confirmInput.value.trim();
+
+    status.textContent = '';
+    status.className = 'approval-status';
+
+    if (newPassword.length < 6) {
+      status.textContent = '비밀번호는 6자리 이상으로 입력해 주세요.';
+      status.className = 'approval-status error';
+      passwordInput.focus();
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      status.textContent = '새 비밀번호와 확인값이 다릅니다.';
+      status.className = 'approval-status error';
+      confirmInput.focus();
+      return;
+    }
+
+    const submitButton = e.submitter;
+    if (submitButton) submitButton.disabled = true;
+    status.textContent = '비밀번호를 변경하는 중입니다.';
+
+    const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+    if (submitButton) submitButton.disabled = false;
+
+    if (error) {
+      console.error('비밀번호 변경 오류:', error);
+      status.textContent = '비밀번호를 변경하지 못했습니다. 다시 로그인 후 시도해 주세요.';
+      status.className = 'approval-status error';
+      return;
+    }
+
+    passwordInput.value = '';
+    confirmInput.value = '';
+    status.textContent = '비밀번호가 변경되었습니다. 다음 로그인부터 새 비밀번호를 사용하세요.';
+    status.className = 'approval-status success';
   });
 
   document.getElementById('btnLogout').addEventListener('click', async () => {
