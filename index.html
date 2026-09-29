@@ -61,6 +61,7 @@
     <button class="main-menu-btn todo-main" id="main-menu-todo" onclick="switchMainMenu('할일')">✅ 할 일 <span class="todo-badge" id="todoBadge">0</span></button>
     <button class="main-menu-btn" id="main-menu-history" onclick="switchMainMenu('정비이력')">정비이력</button>
     <button class="main-menu-btn" id="main-menu-materials" onclick="switchMainMenu('자료실')">자료실</button>
+    <button class="main-menu-btn admin-only-menu" id="main-menu-approvals" onclick="switchMainMenu('권한승인')" style="display:none;">권한승인 <span class="todo-badge" id="approvalBadge">0</span></button>
   </div>
   <div class="nav-kicker" id="equipment-nav-kicker">발전 구분</div>
   <div class="selector-row" id="major-selector-row">
@@ -407,6 +408,20 @@
       </div>
       <div id="materialsList" class="materials-list">
         <div class="materials-empty">자료실 탭을 열면 목록을 불러옵니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="admin-approval-view">
+    <div class="approval-panel">
+      <div class="approval-title">권한승인</div>
+      <div class="approval-desc">신규 가입 신청자는 최고관리자 승인 후 앱에 접속할 수 있습니다.</div>
+      <div class="approval-toolbar">
+        <button type="button" class="approval-refresh-btn" onclick="loadApprovalUsers()">새로고침</button>
+        <span id="approvalManagementStatus" class="approval-status" role="status" aria-live="polite"></span>
+      </div>
+      <div id="approvalUserList" class="approval-list">
+        <div class="approval-empty">최고관리자로 로그인하면 가입 신청 목록을 불러옵니다.</div>
       </div>
     </div>
   </div>
