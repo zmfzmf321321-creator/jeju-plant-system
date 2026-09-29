@@ -636,24 +636,44 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       meta.textContent = [
         record.email || '이메일 없음',
         record.role === 'admin' ? '최고관리자' : '팀원',
+        record.is_approved ? '현재 상태: 승인완료' : '현재 상태: 승인대기',
         formatTodoDate(record.created_at)
       ].filter(Boolean).join(' · ');
       body.append(title, meta);
 
+      const actionWrap = document.createElement('div');
+      actionWrap.className = 'approval-actions';
+      const badge = document.createElement('span');
+      badge.className = `approval-badge${record.is_approved ? '' : ' pending'}`;
+      badge.textContent = record.is_approved ? '승인완료' : '승인대기';
+      actionWrap.appendChild(badge);
+
+      const isCurrentUser = record.id && currentUserInfo.id === record.id;
       if (record.is_approved) {
-        const badge = document.createElement('span');
-        badge.className = 'approval-badge';
-        badge.textContent = '승인완료';
-        item.append(body, badge);
+        if (record.role !== 'admin') {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'approval-action-btn approval-revoke-btn';
+          button.textContent = '승인해제';
+          button.addEventListener('click', () => setUserApproval(record, false, button));
+          actionWrap.appendChild(button);
+        }
       } else {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'approval-action-btn';
         button.textContent = '승인';
-        button.addEventListener('click', () => approveUser(record.id, button));
-        item.append(body, button);
+        button.addEventListener('click', () => setUserApproval(record, true, button));
+        actionWrap.appendChild(button);
+      }
+      if (isCurrentUser) {
+        const self = document.createElement('span');
+        self.className = 'approval-meta';
+        self.textContent = '현재 로그인 계정';
+        actionWrap.appendChild(self);
       }
 
+      item.append(body, actionWrap);
       list.appendChild(item);
     });
     updateApprovalBadge(sorted);
@@ -705,28 +725,33 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     setApprovalStatus(`승인 대기 ${pending}명 · 전체 ${(data || []).length}명`, pending ? '' : 'success');
   };
 
-  async function approveUser(userId, button) {
+  async function setUserApproval(record, approved, button) {
+    const userId = record?.id;
     if (!isAdminMode || !userId) return;
+    if (!approved && record.role === 'admin') {
+      setApprovalStatus('최고관리자 계정은 승인해제할 수 없습니다.', 'error');
+      return;
+    }
     button.disabled = true;
-    button.textContent = '승인 중...';
-    setApprovalStatus('권한을 승인하는 중입니다.');
+    button.textContent = approved ? '승인 중...' : '해제 중...';
+    setApprovalStatus(approved ? '권한을 승인하는 중입니다.' : '권한을 승인해제하는 중입니다.');
 
     const { data, error } = await supabaseClient
-      .from('user_profiles')
-      .update({ is_approved: true })
-      .eq('id', userId)
-      .select('id');
+      .rpc('set_user_approval', {
+        p_target_user_id: userId,
+        p_approved: approved
+      });
 
     if (error || !data?.length) {
       console.error('권한승인 오류:', error);
       button.disabled = false;
-      button.textContent = '승인';
-      setApprovalStatus('승인하지 못했습니다. 잠시 후 다시 시도해 주세요.', 'error');
+      button.textContent = approved ? '승인' : '승인해제';
+      setApprovalStatus(approved ? '승인하지 못했습니다. 잠시 후 다시 시도해 주세요.' : '승인해제하지 못했습니다. 잠시 후 다시 시도해 주세요.', 'error');
       return;
     }
 
     await window.loadApprovalUsers();
-    setApprovalStatus('가입 신청을 승인했습니다.', 'success');
+    setApprovalStatus(approved ? '가입 신청을 승인했습니다.' : '승인을 해제했습니다.', 'success');
   }
 
   function renderHomeTodos(records = currentTodoRecords) {

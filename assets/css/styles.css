@@ -1015,6 +1015,7 @@
     }
     .approval-refresh-btn { border: 1px solid var(--line-strong); background: var(--surface-raised); color: #dbe8f7; }
     .approval-action-btn { border: 1px solid #24b47e; background: #167c5b; color: #fff; }
+    .approval-revoke-btn { border-color: #7f1d1d; background: #450a0a; color: #fecaca; }
     .approval-action-btn:disabled { opacity: .6; cursor: wait; }
     .approval-status { color: var(--muted); font-size: 12px; }
     .approval-status.error { color: #fca5a5; }
@@ -1026,6 +1027,7 @@
     }
     .approval-name { color: #eaf4ff; font-size: 14px; font-weight: 900; }
     .approval-meta { color: #8fa2bd; font-size: 11px; margin-top: 4px; line-height: 1.5; }
+    .approval-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
     .approval-badge {
       display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 999px;
       border: 1px solid rgba(53,185,231,.25); background: rgba(53,185,231,.12);
@@ -1053,6 +1055,7 @@
       #admin-approval-view { padding: 14px 10px; }
       .approval-panel { padding: 14px; }
       .approval-item { grid-template-columns: 1fr; align-items: stretch; }
+      .approval-actions { justify-content: flex-start; }
       .approval-action-btn { width: 100%; }
       #home-dashboard-view { padding: 14px 10px; }
       .home-title { font-size: 19px; }
