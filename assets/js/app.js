@@ -4658,4 +4658,8 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   supabaseClient.auth.getUser().then(async ({ data, error }) => {
     if (error || !data.user) return;
     const email = data.user.email || 'user@jeju.com';
-    const savedName = localStorage.getItem('jeju_worker_name')
+    const savedName = localStorage.getItem('jeju_worker_name') || email.split('@')[0];
+    const profile = await blockUnapprovedUser(data.user, savedName, email, document.getElementById('loginMsg'));
+    if (!profile) return;
+    unlock(savedName, email, data.user);
+  });
