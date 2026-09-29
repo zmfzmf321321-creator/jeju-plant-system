@@ -635,7 +635,11 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       console.error('할 일 요약 조회 오류:', error);
       return currentTodoRecords;
     }
-    currentTodoRecords = data || [];
+    const cachedProgress = new Map(currentTodoRecords.map(record => [record.id, record.progress_updates || []]));
+    currentTodoRecords = (data || []).map(record => ({
+      ...record,
+      progress_updates: cachedProgress.get(record.id) || []
+    }));
     updateTodoBadge(currentTodoRecords);
     renderHomeTodos(currentTodoRecords);
     return currentTodoRecords;
@@ -713,7 +717,90 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
         await loadTodoOverview();
         setTodoStatus('할 일을 수정했습니다.', 'success');
       });
-      item.append(checkbox, content, editButton);
+      const main = document.createElement('div');
+      main.className = 'todo-main';
+      main.append(content, editButton);
+
+      const progressPanel = document.createElement('div');
+      progressPanel.className = 'todo-progress';
+      const progressHeading = document.createElement('div');
+      progressHeading.className = 'todo-progress-heading';
+      progressHeading.textContent = '진행 기록';
+      const progressList = document.createElement('div');
+      progressList.className = 'todo-progress-list';
+      const progressUpdates = Array.isArray(record.progress_updates) ? record.progress_updates : [];
+      if (!progressUpdates.length) {
+        const emptyProgress = document.createElement('div');
+        emptyProgress.className = 'todo-progress-empty';
+        emptyProgress.textContent = '아직 진행 기록이 없습니다.';
+        progressList.appendChild(emptyProgress);
+      } else {
+        progressUpdates.forEach(update => {
+          const entry = document.createElement('div');
+          entry.className = 'todo-progress-entry';
+          const marker = document.createElement('span');
+          marker.className = 'todo-progress-marker';
+          const entryBody = document.createElement('div');
+          entryBody.className = 'todo-progress-entry-body';
+          const entryText = document.createElement('div');
+          entryText.className = 'todo-progress-text';
+          entryText.textContent = update.update_text || '';
+          const entryMeta = document.createElement('div');
+          entryMeta.className = 'todo-progress-meta';
+          entryMeta.textContent = `${formatTodoDate(update.created_at)} · ${update.created_by_name || '작업자'}`;
+          entryBody.append(entryText, entryMeta);
+          entry.append(marker, entryBody);
+          progressList.appendChild(entry);
+        });
+      }
+
+      const progressForm = document.createElement('form');
+      progressForm.className = 'todo-progress-form';
+      const progressInput = document.createElement('input');
+      progressInput.type = 'text';
+      progressInput.maxLength = 300;
+      progressInput.className = 'todo-progress-input';
+      progressInput.placeholder = '예: 견적서 요청 완료';
+      progressInput.setAttribute('aria-label', `${record.task_text} 진행 기록 추가`);
+      const progressAdd = document.createElement('button');
+      progressAdd.type = 'submit';
+      progressAdd.className = 'todo-progress-add';
+      progressAdd.textContent = '추가';
+      progressForm.append(progressInput, progressAdd);
+      progressForm.addEventListener('submit', async event => {
+        event.preventDefault();
+        const updateText = progressInput.value.trim();
+        if (!updateText) {
+          progressInput.focus();
+          return;
+        }
+        progressAdd.disabled = true;
+        setTodoStatus('진행 기록을 저장하는 중입니다.');
+        const { data: authData } = await supabaseClient.auth.getUser();
+        const user = authData?.user;
+        if (!user) {
+          progressAdd.disabled = false;
+          setTodoStatus('로그인 상태를 확인해 주세요.', 'error');
+          return;
+        }
+        const { error } = await supabaseClient.from('maintenance_todo_progress').insert({
+          todo_id: record.id,
+          update_text: updateText,
+          created_by_name: currentUserInfo.name || '작업자'
+        });
+        if (error) {
+          console.error('진행 기록 저장 오류:', error);
+          progressAdd.disabled = false;
+          setTodoStatus(`진행 기록을 저장하지 못했습니다: ${error.message}`, 'error');
+          return;
+        }
+        invalidateUnifiedData();
+        await loadTodos();
+        await loadTodoOverview();
+        setTodoStatus('진행 기록을 추가했습니다.', 'success');
+      });
+      progressPanel.append(progressHeading, progressList, progressForm);
+      item.append(checkbox, main, progressPanel);
       list.appendChild(item);
 
       checkbox.addEventListener('change', async () => {
@@ -777,6 +864,26 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     }
 
     const records = data || [];
+    let progressLoadError = null;
+    if (records.length) {
+      const todoIds = records.map(record => record.id);
+      const { data: progressRows, error: progressError } = await supabaseClient
+        .from('maintenance_todo_progress')
+        .select('id, todo_id, update_text, created_by_name, created_at')
+        .in('todo_id', todoIds)
+        .order('created_at', { ascending: true });
+      if (progressError) {
+        console.error('진행 기록 조회 오류:', progressError);
+        progressLoadError = progressError;
+      } else {
+        const progressByTodo = new Map();
+        (progressRows || []).forEach(update => {
+          if (!progressByTodo.has(update.todo_id)) progressByTodo.set(update.todo_id, []);
+          progressByTodo.get(update.todo_id).push(update);
+        });
+        records.forEach(record => { record.progress_updates = progressByTodo.get(record.id) || []; });
+      }
+    }
     currentTodoRecords = records;
     records.sort((a, b) => {
       const completedOrder = Number(Boolean(a.completed_at)) - Number(Boolean(b.completed_at));
@@ -789,7 +896,9 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     const filteredCount = records.filter(todoMatchesFilter).length;
     updateTodoBadge(records);
     renderHomeTodos(records);
-    setTodoStatus(`전체 남은 할 일 ${remainingCount}개 · 현재 필터 ${filteredCount}개`);
+    setTodoStatus(progressLoadError
+      ? `할 일 ${remainingCount}개 · 진행 기록 조회 실패: ${progressLoadError.message}`
+      : `전체 남은 할 일 ${remainingCount}개 · 현재 필터 ${filteredCount}개`, progressLoadError ? 'error' : '');
   }
 
   document.getElementById('todoAddForm').addEventListener('submit', async (event) => {
