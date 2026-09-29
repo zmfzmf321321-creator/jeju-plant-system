@@ -888,6 +888,16 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     }
     if (steamRow) steamRow.style.display = selectedMajor === '기력' ? 'flex' : 'none';
     if (engineRow) engineRow.style.display = selectedMajor === '내연' ? 'flex' : 'none';
+    syncSectionControls();
+  }
+
+  function syncSectionControls() {
+    const boilerBtn = document.getElementById('sec-boiler');
+    const amBtn = document.getElementById('sec-am');
+    if (!boilerBtn || !amBtn) return;
+    const showSectionButtons = selectedMajor === '기력' && (selectedSubTab === '2호기' || selectedSubTab === '3호기');
+    boilerBtn.style.display = showSectionButtons ? '' : 'none';
+    amBtn.style.display = showSectionButtons ? '' : 'none';
   }
 
   window.switchMainMenu = function(menu) {
@@ -1233,7 +1243,6 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     } else {
       document.getElementById('sub-tabs-steam').style.display = 'none';
       document.getElementById('sub-tabs-engine').style.display = 'flex';
-      document.getElementById('section-selector-row').style.display = 'none';
       switchSubTab('1호기');
     }
   };
@@ -1267,8 +1276,9 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       document.getElementById('sub-engine-2').classList.toggle('active', sub === '2호기');
       if (engineHist) engineHist.classList.toggle('active', sub === '관리이력');
       document.getElementById('sub-engine-logic').classList.toggle('active', sub === '로직관리');
-      document.getElementById('section-selector-row').style.display = 'none';
+      document.getElementById('section-selector-row').style.display = (sub === '1호기' || sub === '2호기') ? 'flex' : 'none';
     }
+    syncSectionControls();
 
     const viewHome = document.getElementById('home-dashboard-view');
     const view3D = document.getElementById('overall-3d-view');
@@ -3090,14 +3100,49 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   document.getElementById('updateMainPhotoGallery').addEventListener('change', (e) => handleUpdateMainPhoto(e.target.files[0]));
 
   async function getSignedInProfile(user) {
-    if (!user?.id) return { name: '', role: 'member' };
+    if (!user?.id) return { name: '', role: 'member', isApproved: false, exists: false };
     const { data, error } = await supabaseClient
       .from('user_profiles')
-      .select('name, role')
+      .select('name, role, is_approved')
       .eq('id', user.id)
       .maybeSingle();
-    if (error || !data) return { name: '', role: 'member' };
-    return { name: data.name || '', role: data.role === 'admin' ? 'admin' : 'member' };
+    if (error || !data) return { name: '', role: 'member', isApproved: false, exists: false };
+    return {
+      name: data.name || '',
+      role: data.role === 'admin' ? 'admin' : 'member',
+      isApproved: data.is_approved === true,
+      exists: true
+    };
+  }
+
+  async function ensurePendingProfile(user, name = '', email = '') {
+    if (!user?.id) return { name: '', role: 'member', isApproved: false, exists: false };
+    const existing = await getSignedInProfile(user);
+    if (existing.exists) return existing;
+    const fallbackName = name || email.split('@')[0] || '팀원';
+    const { error } = await supabaseClient.from('user_profiles').insert({
+      id: user.id,
+      email: email || user.email || '',
+      name: fallbackName,
+      role: 'member',
+      is_approved: false
+    });
+    if (error) {
+      console.warn('Failed to create pending user profile', error);
+      return { name: fallbackName, role: 'member', isApproved: false, exists: false };
+    }
+    return { name: fallbackName, role: 'member', isApproved: false, exists: true };
+  }
+
+  async function blockUnapprovedUser(user, name, email, msgEl = null) {
+    const profile = await ensurePendingProfile(user, name, email);
+    if (profile.isApproved) return profile;
+    await supabaseClient.auth.signOut({ scope: 'local' });
+    if (msgEl) {
+      msgEl.innerText = '⏳ 가입 신청은 완료됐지만 아직 최고관리자 승인이 필요합니다.';
+      msgEl.style.display = 'block';
+    }
+    return null;
   }
 
   async function unlock(name, email = 'user@jeju.com', knownUser = null) {
@@ -3107,6 +3152,15 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       user = data?.user || null;
     }
     const profile = await getSignedInProfile(user);
+    if (!profile.isApproved) {
+      await supabaseClient.auth.signOut({ scope: 'local' });
+      const msgEl = document.getElementById('loginMsg');
+      if (msgEl) {
+        msgEl.innerText = '⏳ 최고관리자 승인 후 이용할 수 있습니다.';
+        msgEl.style.display = 'block';
+      }
+      return;
+    }
     const savedName = localStorage.getItem('jeju_worker_name');
     const finalName = profile.name || savedName || name;
     isAdminMode = profile.role === 'admin';
@@ -3164,16 +3218,19 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       msgEl.style.display = 'block';
       return;
     }
-    const { error } = await supabaseClient.auth.signInWithPassword({ email: email, password: pass });
-    if (error) {
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email: email, password: pass });
+    if (error || !data?.user) {
       msgEl.innerText = '❌ 로그인 실패: 승인되지 않은 사번이거나 비밀번호가 틀렸습니다.';
       msgEl.style.display = 'block';
       return;
     }
     const namePart = email.split('@')[0];
-    localStorage.setItem('jeju_worker_name', namePart);
+    const profile = await blockUnapprovedUser(data.user, namePart, email, msgEl);
+    if (!profile) return;
+    const finalName = profile.name || namePart;
+    localStorage.setItem('jeju_worker_name', finalName);
     localStorage.setItem('jeju_login_email', email);
-    unlock(namePart, email);
+    unlock(finalName, email, data.user);
   });
 
   document.getElementById('btnAdminLogin').addEventListener('click', async (e) => {
@@ -3194,6 +3251,12 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       return;
     }
     const profile = await getSignedInProfile(data.user);
+    if (!profile.isApproved) {
+      await supabaseClient.auth.signOut({ scope: 'local' });
+      msgEl.innerText = '⏳ 최고관리자 승인 후 이용할 수 있습니다.';
+      msgEl.style.display = 'block';
+      return;
+    }
     if (profile.role !== 'admin') {
       await supabaseClient.auth.signOut({ scope: 'local' });
       msgEl.innerText = '❌ 최고관리자 권한이 없는 계정입니다.';
@@ -3243,6 +3306,13 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
         return;
       }
 
+      const approvedProfile = await blockUnapprovedUser(passwordData.user, email.split('@')[0], email, msgEl);
+      if (!approvedProfile) {
+        button.disabled = false;
+        button.innerText = '🔐 내 아이디 지문등록·로그인';
+        return;
+      }
+
       button.innerText = '지문 등록 중...';
       const { data: registerData, error: registerError } = await supabaseClient.auth.registerPasskey();
       button.disabled = false;
@@ -3256,7 +3326,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       }
 
       const signedInEmail = passwordData.user.email || email;
-      const name = signedInEmail.split('@')[0];
+      const name = approvedProfile.name || signedInEmail.split('@')[0];
       localStorage.setItem('jeju_worker_name', name);
       localStorage.setItem('jeju_login_email', signedInEmail);
       unlock(name, signedInEmail, passwordData.user);
@@ -3291,9 +3361,12 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       return;
     }
     const name = signedInEmail.split('@')[0];
-    localStorage.setItem('jeju_worker_name', name);
+    const approvedProfile = await blockUnapprovedUser(passkeyData.user, name, signedInEmail, msgEl);
+    if (!approvedProfile) return;
+    const finalName = approvedProfile.name || name;
+    localStorage.setItem('jeju_worker_name', finalName);
     localStorage.setItem('jeju_login_email', signedInEmail);
-    unlock(name, signedInEmail, passkeyData.user);
+    unlock(finalName, signedInEmail, passkeyData.user);
   });
 
   document.getElementById('btnRegisterPasskey').addEventListener('click', async (e) => {
@@ -3347,15 +3420,13 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       regMsg.style.display = 'block';
       return;
     }
-    localStorage.setItem('jeju_worker_name', name);
-    if (data.session) {
-      unlock(name, email);
-    } else {
-      alert(`✅ [${name}] 가입 신청이 완료되었습니다. 이메일 인증 후 로그인해 주세요.`);
-      document.getElementById('register-box').style.display = 'none';
-      document.getElementById('login-box').style.display = 'block';
-      document.getElementById('loginEmail').value = email;
-    }
+    if (data.user) await ensurePendingProfile(data.user, name, email);
+    if (data.session) await supabaseClient.auth.signOut({ scope: 'local' });
+    alert(`✅ [${name}] 가입 신청이 완료되었습니다. 최고관리자 승인 후 로그인할 수 있습니다.`);
+    document.getElementById('register-box').style.display = 'none';
+    document.getElementById('login-box').style.display = 'block';
+    document.getElementById('loginEmail').value = email;
+    document.getElementById('regPassword').value = '';
   });
 
   document.getElementById('btnLogout').addEventListener('click', async () => {
@@ -4339,10 +4410,11 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   const rememberedLoginEmail = localStorage.getItem('jeju_login_email');
   if (rememberedLoginEmail) document.getElementById('loginEmail').value = rememberedLoginEmail;
 
-  supabaseClient.auth.getUser().then(({ data, error }) => {
+  supabaseClient.auth.getUser().then(async ({ data, error }) => {
     if (error || !data.user) return;
     const email = data.user.email || 'user@jeju.com';
     const savedName = localStorage.getItem('jeju_worker_name') || email.split('@')[0];
+    const profile = await blockUnapprovedUser(data.user, savedName, email, document.getElementById('loginMsg'));
+    if (!profile) return;
     unlock(savedName, email, data.user);
   });
-
