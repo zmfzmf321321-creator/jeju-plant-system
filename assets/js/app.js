@@ -590,11 +590,13 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   }
 
   function setAdminMenuVisible(visible) {
-    document.body.classList.toggle('admin-mode', Boolean(visible));
+    const canManageApprovals = Boolean(visible && isAdminMode);
+    document.body.classList.toggle('admin-mode', canManageApprovals);
     document.querySelectorAll('.admin-only-menu').forEach(el => {
-      el.hidden = !visible;
+      el.hidden = !canManageApprovals;
+      el.setAttribute('aria-hidden', String(!canManageApprovals));
     });
-    if (!visible) updateApprovalBadge([]);
+    if (!canManageApprovals) updateApprovalBadge([]);
   }
 
   function updateApprovalBadge(records = []) {
@@ -3671,6 +3673,8 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   });
 
   document.getElementById('btnLogout').addEventListener('click', async () => {
+    isAdminMode = false;
+    setAdminMenuVisible(false);
     await supabaseClient.auth.signOut({ scope: 'local' });
     localStorage.removeItem('jeju_worker_name');
     location.reload();
@@ -4654,8 +4658,4 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   supabaseClient.auth.getUser().then(async ({ data, error }) => {
     if (error || !data.user) return;
     const email = data.user.email || 'user@jeju.com';
-    const savedName = localStorage.getItem('jeju_worker_name') || email.split('@')[0];
-    const profile = await blockUnapprovedUser(data.user, savedName, email, document.getElementById('loginMsg'));
-    if (!profile) return;
-    unlock(savedName, email, data.user);
-  });
+    const savedName = localStorage.getItem('jeju_worker_name')
