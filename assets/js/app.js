@@ -590,9 +590,11 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   }
 
   function setAdminMenuVisible(visible) {
+    document.body.classList.toggle('admin-mode', Boolean(visible));
     document.querySelectorAll('.admin-only-menu').forEach(el => {
-      el.style.display = visible ? '' : 'none';
+      el.hidden = !visible;
     });
+    if (!visible) updateApprovalBadge([]);
   }
 
   function updateApprovalBadge(records = []) {
@@ -1075,6 +1077,10 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   }
 
   window.switchMainMenu = function(menu) {
+    if (menu === '권한승인' && !isAdminMode) {
+      setAdminMenuVisible(false);
+      return;
+    }
     selectedMainMenu = menu;
     setMainMenuActive(menu);
     measurePoints = [];
