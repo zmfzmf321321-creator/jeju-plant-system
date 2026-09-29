@@ -854,8 +854,6 @@
       box-shadow: 0 4px 14px rgba(8,124,168,.28);
     }
     .main-menu-btn.todo-main { border-color: rgba(36,180,126,.55); color: #b7f4d9; }
-    .admin-only-menu, .admin-only-menu[hidden] { display: none !important; }
-    body.admin-mode .admin-only-menu:not([hidden]) { display: inline-flex !important; }
     .todo-badge {
       display: none; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px;
       background: #24b47e; color: #052e22; font-size: 11px; line-height: 18px;
@@ -1001,10 +999,6 @@
     .inspection-status.success { color: #6ee7b7; }
     .todo-edit-btn { flex: 0 0 auto; border: 1px solid var(--line-strong); border-radius: 7px; padding: 6px 9px; background: var(--surface-raised); color: #cbd5e1; font-size: 11px; font-weight: 700; }
 
-    #admin-approval-view {
-      display: none; width: 100%; height: 100%; position: absolute; inset: 0; z-index: 50;
-      overflow-y: auto; padding: 24px; background: var(--app-bg);
-    }
     #password-management-view {
       display: none; width: 100%; height: 100%; position: absolute; inset: 0; z-index: 50;
       overflow-y: auto; padding: 24px; background: var(--app-bg);
@@ -1064,7 +1058,7 @@
       .ai-inspection-grid { grid-template-columns: 1fr; }
       .inspection-fields { grid-template-columns: 1fr 1fr; }
       #ai-inspection-view { padding: 14px 10px; }
-      #admin-approval-view, #password-management-view { padding: 14px 10px; }
+      #password-management-view { padding: 14px 10px; }
       .approval-panel { padding: 14px; }
       .approval-item { grid-template-columns: 1fr; align-items: stretch; }
       .approval-actions { justify-content: flex-start; }

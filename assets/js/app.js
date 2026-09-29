@@ -582,182 +582,6 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     badge.style.display = remaining > 0 ? 'inline-block' : 'none';
   }
 
-  function setApprovalStatus(message, type = '') {
-    const status = document.getElementById('approvalManagementStatus');
-    if (!status) return;
-    status.textContent = message;
-    status.className = `approval-status${type ? ` ${type}` : ''}`;
-  }
-
-  function setAdminMenuVisible(visible) {
-    const canManageApprovals = Boolean(visible && isAdminMode);
-    document.body.classList.toggle('admin-mode', canManageApprovals);
-    document.querySelectorAll('.admin-only-menu').forEach(el => {
-      el.hidden = !canManageApprovals;
-      el.setAttribute('aria-hidden', String(!canManageApprovals));
-    });
-    if (!canManageApprovals) updateApprovalBadge([]);
-  }
-
-  function updateApprovalBadge(records = []) {
-    const badge = document.getElementById('approvalBadge');
-    if (!badge) return;
-    const pending = records.filter(record => !record.is_approved).length;
-    badge.textContent = String(pending);
-    badge.style.display = pending > 0 ? 'inline-block' : 'none';
-  }
-
-  function renderApprovalUsers(records = []) {
-    const list = document.getElementById('approvalUserList');
-    if (!list) return;
-    list.replaceChildren();
-
-    if (!records.length) {
-      const empty = document.createElement('div');
-      empty.className = 'approval-empty';
-      empty.textContent = '가입 신청 내역이 없습니다.';
-      list.appendChild(empty);
-      updateApprovalBadge([]);
-      return;
-    }
-
-    const sorted = [...records].sort((a, b) => {
-      const pendingOrder = Number(Boolean(a.is_approved)) - Number(Boolean(b.is_approved));
-      if (pendingOrder !== 0) return pendingOrder;
-      return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-    });
-
-    sorted.forEach(record => {
-      const item = document.createElement('div');
-      item.className = 'approval-item';
-
-      const body = document.createElement('div');
-      const title = document.createElement('div');
-      title.className = 'approval-name';
-      title.textContent = record.name || record.email || '이름 없음';
-      const meta = document.createElement('div');
-      meta.className = 'approval-meta';
-      meta.textContent = [
-        record.email || '이메일 없음',
-        record.role === 'admin' ? '최고관리자' : '팀원',
-        record.is_approved ? '현재 상태: 승인완료' : '현재 상태: 승인대기',
-        formatTodoDate(record.created_at)
-      ].filter(Boolean).join(' · ');
-      body.append(title, meta);
-
-      const actionWrap = document.createElement('div');
-      actionWrap.className = 'approval-actions';
-      const badge = document.createElement('span');
-      badge.className = `approval-badge${record.is_approved ? '' : ' pending'}`;
-      badge.textContent = record.is_approved ? '승인완료' : '승인대기';
-      actionWrap.appendChild(badge);
-
-      const isCurrentUser = record.id && currentUserInfo.id === record.id;
-      if (record.is_approved) {
-        if (record.role !== 'admin') {
-          const button = document.createElement('button');
-          button.type = 'button';
-          button.className = 'approval-action-btn approval-revoke-btn';
-          button.textContent = '승인해제';
-          button.addEventListener('click', () => setUserApproval(record, false, button));
-          actionWrap.appendChild(button);
-        }
-      } else {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'approval-action-btn';
-        button.textContent = '승인';
-        button.addEventListener('click', () => setUserApproval(record, true, button));
-        actionWrap.appendChild(button);
-      }
-      if (isCurrentUser) {
-        const self = document.createElement('span');
-        self.className = 'approval-meta';
-        self.textContent = '현재 로그인 계정';
-        actionWrap.appendChild(self);
-      }
-
-      item.append(body, actionWrap);
-      list.appendChild(item);
-    });
-    updateApprovalBadge(sorted);
-  }
-
-  async function loadApprovalBadge() {
-    if (!isAdminMode) {
-      updateApprovalBadge([]);
-      return;
-    }
-    const { data, error } = await supabaseClient
-      .from('user_profiles')
-      .select('id, is_approved')
-      .eq('is_approved', false);
-    if (error) {
-      console.error('승인 대기 배지 조회 오류:', error);
-      updateApprovalBadge([]);
-      return;
-    }
-    updateApprovalBadge(data || []);
-  }
-
-  window.loadApprovalUsers = async function() {
-    const list = document.getElementById('approvalUserList');
-    if (!isAdminMode) {
-      if (list) {
-        list.innerHTML = '<div class="approval-empty">최고관리자만 권한승인을 할 수 있습니다.</div>';
-      }
-      setApprovalStatus('최고관리자 권한이 필요합니다.', 'error');
-      updateApprovalBadge([]);
-      return;
-    }
-
-    setApprovalStatus('가입 신청 목록을 불러오는 중입니다.');
-    const { data, error } = await supabaseClient.rpc('admin_list_approval_users');
-
-    if (error) {
-      console.error('권한승인 목록 조회 오류:', error);
-      renderApprovalUsers([]);
-      setApprovalStatus(`목록 조회 실패: ${error.message || '로그인 권한을 확인해 주세요.'}`, 'error');
-      return;
-    }
-
-    const records = Array.isArray(data) ? data : data ? [data] : [];
-    renderApprovalUsers(records);
-    const pending = records.filter(record => !record.is_approved).length;
-    setApprovalStatus(`승인 대기 ${pending}명 · 전체 ${records.length}명`, pending ? '' : 'success');
-  };
-
-  async function setUserApproval(record, approved, button) {
-    const userId = record?.id;
-    if (!isAdminMode || !userId) return;
-    if (!approved && record.role === 'admin') {
-      setApprovalStatus('최고관리자 계정은 승인해제할 수 없습니다.', 'error');
-      return;
-    }
-    button.disabled = true;
-    button.textContent = approved ? '승인 중...' : '해제 중...';
-    setApprovalStatus(approved ? '권한을 승인하는 중입니다.' : '권한을 승인해제하는 중입니다.');
-
-    const { data, error } = await supabaseClient
-      .rpc('set_user_approval', {
-        p_target_user_id: userId,
-        p_approved: approved
-      });
-
-    const updatedRows = Array.isArray(data) ? data : data ? [data] : [];
-    if (error || !updatedRows.some(row => row.id === userId && row.is_approved === approved)) {
-      console.error('권한승인 오류:', error);
-      button.disabled = false;
-      button.textContent = approved ? '승인' : '승인해제';
-      const detail = error?.message || '데이터베이스에서 변경 결과를 확인하지 못했습니다.';
-      setApprovalStatus(`${approved ? '승인' : '승인해제'} 실패: ${detail}`, 'error');
-      return;
-    }
-
-    await window.loadApprovalUsers();
-    setApprovalStatus(approved ? '가입 신청을 승인했습니다.' : '승인을 해제했습니다.', 'success');
-  }
-
   function renderHomeTodos(records = currentTodoRecords) {
     const list = document.getElementById('homeTodoList');
     if (!list) return;
@@ -1023,7 +847,6 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       'tms-management-view',
       'todo-management-view',
       'materials-management-view',
-      'admin-approval-view',
       'password-management-view',
       'ai-inspection-view'
     ].map(id => document.getElementById(id)).filter(Boolean);
@@ -1042,7 +865,6 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       '정비이력': 'main-menu-history',
       '자료실': 'main-menu-materials',
       '비밀번호': 'main-menu-password',
-      '권한승인': 'main-menu-approvals'
     };
     Object.entries(map).forEach(([key, id]) => {
       const el = document.getElementById(id);
@@ -1081,10 +903,6 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   }
 
   window.switchMainMenu = function(menu) {
-    if (menu === '권한승인' && !isAdminMode) {
-      setAdminMenuVisible(false);
-      return;
-    }
     selectedMainMenu = menu;
     setMainMenuActive(menu);
     measurePoints = [];
@@ -1141,10 +959,6 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
         status.textContent = '';
         status.className = 'approval-status';
       }
-    } else if (menu === '권한승인') {
-      selectedSubTab = '권한승인';
-      document.getElementById('admin-approval-view').style.display = 'block';
-      loadApprovalUsers();
     }
     updateFloorTitle();
   };
@@ -3364,8 +3178,6 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     const authOverlay = document.getElementById('auth-overlay');
     if (authOverlay) authOverlay.remove();
     document.getElementById('loginUserBadge').innerText = isAdminMode ? '👑 최고관리자' : `👤 ${finalName}`;
-    setAdminMenuVisible(isAdminMode);
-    if (isAdminMode) loadApprovalBadge();
     selectedMajor = '기력';
     selectedSubTab = '2호기';
     selectedSection = '보일러';
@@ -3385,7 +3197,6 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     document.getElementById('tms-management-view').style.display = 'none';
     document.getElementById('todo-management-view').style.display = 'none';
     document.getElementById('materials-management-view').style.display = 'none';
-    document.getElementById('admin-approval-view').style.display = 'none';
     document.getElementById('floor-bar').style.display = 'flex';
 
     switchSubTab('2호기');
@@ -3674,7 +3485,6 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
 
   document.getElementById('btnLogout').addEventListener('click', async () => {
     isAdminMode = false;
-    setAdminMenuVisible(false);
     await supabaseClient.auth.signOut({ scope: 'local' });
     localStorage.removeItem('jeju_worker_name');
     location.reload();
