@@ -811,6 +811,7 @@
       .major-tab-btn { margin-bottom: 2px; }
       .sub-tab-btn.nav-work { margin-top: 4px; }
       #section-selector-row { padding-top: 12px; margin-top: 3px; border-top: 1px solid var(--line); }
+      #view-mode-row { flex-direction: column; align-items: stretch; padding-top: 12px; margin-top: 3px; border-top: 1px solid var(--line); }
       #main-viewport { left: var(--side-w); width: calc(100vw - var(--side-w)); top: var(--header-h); }
       #floor-bar { left: var(--side-w); width: calc(100vw - var(--side-w)); }
       #measure-info-hud { top: calc(var(--header-h) + 10px); margin-left: calc(var(--side-w) / 2); }
@@ -821,6 +822,9 @@
       .tool-label { display: none; }
       .header-btns button { width: 34px; padding: 0; font-size: 14px; }
       .header-btns .btn-logout { width: 34px; }
+      body.equipment-mode-visible #unit-selector-bar { height: calc(var(--nav-h) + 38px); }
+      body.equipment-mode-visible #main-viewport { top: calc(var(--header-h) + var(--nav-h) + 38px); }
+      body.equipment-mode-visible #measure-info-hud { top: calc(var(--header-h) + var(--nav-h) + 46px); }
     }
 
     @media (max-width: 600px) {
@@ -941,6 +945,7 @@
     #sub-steam-todo, #sub-engine-todo { display: none !important; }
     .nav-todo.active { background: #167c5b !important; color: #fff !important; }
     #view-mode-row { display: none; }
+    #view-mode-row .view-mode-btn { flex: 1; min-width: 0; }
     .view-mode-btn {
       flex-shrink: 0; height: 27px; padding: 0 13px; border: 1px solid var(--line);
       border-radius: 7px; background: transparent; color: #8fa2bd; font-size: 11px; font-weight: 800;

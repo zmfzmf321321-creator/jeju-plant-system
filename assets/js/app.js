@@ -1000,6 +1000,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     const engineRow = document.getElementById('sub-tabs-engine');
     const sectionRow = document.getElementById('section-selector-row');
     const viewModeRow = document.getElementById('view-mode-row');
+    document.body.classList.toggle('equipment-mode-visible', visible);
     if (kicker) kicker.style.display = visible ? '' : 'none';
     if (majorRow) majorRow.style.display = visible ? 'flex' : 'none';
     if (!visible) {
@@ -1407,7 +1408,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       document.getElementById('sub-engine-2').classList.toggle('active', sub === '2호기');
       if (engineHist) engineHist.classList.toggle('active', sub === '관리이력');
       document.getElementById('sub-engine-logic').classList.toggle('active', sub === '로직관리');
-      document.getElementById('section-selector-row').style.display = (sub === '1호기' || sub === '2호기') ? 'flex' : 'none';
+      document.getElementById('section-selector-row').style.display = 'none';
     }
     syncSectionControls();
 
@@ -1534,6 +1535,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     const supports3d = selectedMajor === '내연' || (
       selectedMajor === '기력' && (selectedSubTab === '2호기' || selectedSubTab === '3호기') && selectedSection === '보일러'
     );
+    btn3d.style.display = supports3d ? '' : 'none';
     if (selectedViewMode === '3d' && !supports3d) selectedViewMode = 'floor';
 
     if (selectedViewMode === '3d') {

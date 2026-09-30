@@ -9,7 +9,7 @@
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon.png">
   <link rel="apple-touch-icon" href="./assets/icons/icon.png">
-  <link rel="stylesheet" href="./assets/css/styles.css?v=20260930-engine2-floor-mirror">
+  <link rel="stylesheet" href="./assets/css/styles.css?v=20260930-viewmode-row">
 </head>
 <body>
 
@@ -90,6 +90,8 @@
   <div class="selector-row" id="section-selector-row">
     <button class="sec-tab-btn active" id="sec-boiler" onclick="switchSection('보일러')">🏭 보일러</button>
     <button class="sec-tab-btn" id="sec-am" onclick="switchSection('탈질')">🌿 탈질설비 (AM)</button>
+  </div>
+  <div class="selector-row" id="view-mode-row" aria-label="설비 화면 방식">
     <button class="view-mode-btn active" id="view-mode-3d" onclick="switchViewMode('3d')">🧊 3D</button>
     <button class="view-mode-btn" id="view-mode-floor" onclick="switchViewMode('floor')">🗺️ 층별 도면</button>
   </div>
@@ -668,6 +670,6 @@
   <img id="lightbox-target-img" src="" alt="확대 사진" onclick="event.stopPropagation()">
 </div>
 
-  <script src="./assets/js/app.js?v=20260930-engine2-floor-mirror"></script>
+  <script src="./assets/js/app.js?v=20260930-viewmode-row"></script>
 </body>
 </html>
