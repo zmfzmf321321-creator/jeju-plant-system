@@ -130,6 +130,18 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     return s;
   }
 
+  function isMirroredEngineFloor() {
+    return selectedMajor === '내연' && selectedSubTab === '2호기';
+  }
+
+  function toFloorDisplayX(dataX) {
+    return isMirroredEngineFloor() ? 1400 - Number(dataX || 0) : Number(dataX || 0);
+  }
+
+  function toFloorDataX(displayX) {
+    return isMirroredEngineFloor() ? 1400 - Number(displayX || 0) : Number(displayX || 0);
+  }
+
   window.openImageLightbox = function(imgSrc) {
     if (!imgSrc) return;
     const modal = document.getElementById('image-lightbox-modal');
@@ -3769,6 +3781,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
 
   window.openFloorRoom = function(floor, imgFile, btn) {
     selectedFloor = normalizeFloor(floor);
+    board.classList.toggle('mirrored-engine-floor', isMirroredEngineFloor());
     document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
     if (btn) btn.classList.add('active');
     else {
@@ -3782,11 +3795,11 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     const testImg = new Image();
     testImg.src = `./${imgFile}`;
     testImg.onload = () => {
-      board.style.backgroundImage = `url('./${imgFile}')`;
+      document.getElementById('floor-plan-background').style.backgroundImage = `url('./${imgFile}')`;
       notice.style.display = 'none';
     };
     testImg.onerror = () => {
-      board.style.backgroundImage = 'none';
+      document.getElementById('floor-plan-background').style.backgroundImage = 'none';
       notice.innerText = `⚠️ [${imgFile}] 파일 부재`;
       notice.style.display = 'block';
     };
@@ -3889,7 +3902,8 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     const rect = board.getBoundingClientRect();
     const clickX = (e.clientX - rect.left) / scale;
     const clickY = (e.clientY - rect.top) / scale;
-    const curX = Math.round(Math.max(0, Math.min(1400, clickX)));
+    const displayX = Math.round(Math.max(0, Math.min(1400, clickX)));
+    const curX = toFloorDataX(displayX);
     const curY = Math.round(Math.max(0, Math.min(1000, clickY)));
     if (isMeasureMode) {
       if (isAdminMode) {
@@ -3899,7 +3913,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
           marker.id = 'temp-measure-marker-2d';
           board.appendChild(marker);
         }
-        marker.style.left = `${curX}px`;
+        marker.style.left = `${displayX}px`;
         marker.style.top = `${curY}px`;
         measureHud.style.display = 'block';
         measureHud.innerHTML = `📍 2D 도면 좌표: <b style="color:#38bdf8;">X:${curX}, Y:${curY}</b> (복사됨)`;
@@ -3915,9 +3929,9 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       measurePoints.push({
         idx: nextIdx,
         floor: selectedFloor,
-        x: curX,
+        x: displayX,
         y: curY,
-        ...p3d
+        ...get3DCoordFrom2D(selectedFloor, curX, curY)
       });
       renderMeasureMarkers2D();
       updateMeasureHudResult();
@@ -4062,7 +4076,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       const pin = document.createElement('div');
       pin.id = `floor-pin-${item.id}`;
       pin.className = 'floor-inst-pin';
-      pin.style.left = `${item.coord_x}px`;
+      pin.style.left = `${toFloorDisplayX(item.coord_x)}px`;
       pin.style.top = `${item.coord_y}px`;
       const img = item.photo_url || item.image_data;
       pin.style.backgroundImage = img ? `url(${img})` : 'none';
@@ -4135,7 +4149,8 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
           try { pin.releasePointerCapture(e.pointerId); } catch(err) {}
           pin.classList.remove('pin-dragging');
 
-          const fx = parseInt(pin.style.left);
+          const fxDisplay = parseInt(pin.style.left);
+          const fx = toFloorDataX(fxDisplay);
           const fy = parseInt(pin.style.top);
           item.coord_x = fx;
           item.coord_y = fy;
@@ -4556,7 +4571,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     switchViewMode('floor');
     openFloorRoom(targetFloor, targetFile, null);
     scale = 1.0;
-    panX = (700 - item.coord_x) * scale;
+    panX = (700 - toFloorDisplayX(item.coord_x)) * scale;
     panY = (500 - item.coord_y) * scale;
     updateTransform();
     setTimeout(() => {
