@@ -999,20 +999,25 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     const steamRow = document.getElementById('sub-tabs-steam');
     const engineRow = document.getElementById('sub-tabs-engine');
     const sectionRow = document.getElementById('section-selector-row');
-    const viewModeRow = document.getElementById('view-mode-row');
-    document.body.classList.toggle('equipment-mode-visible', visible);
+    setEquipmentViewToolbar(false);
     if (kicker) kicker.style.display = visible ? '' : 'none';
     if (majorRow) majorRow.style.display = visible ? 'flex' : 'none';
     if (!visible) {
       if (steamRow) steamRow.style.display = 'none';
       if (engineRow) engineRow.style.display = 'none';
       if (sectionRow) sectionRow.style.display = 'none';
-      if (viewModeRow) viewModeRow.style.display = 'none';
       return;
     }
     if (steamRow) steamRow.style.display = selectedMajor === '기력' ? 'flex' : 'none';
     if (engineRow) engineRow.style.display = selectedMajor === '내연' ? 'flex' : 'none';
     syncSectionControls();
+  }
+
+  function setEquipmentViewToolbar(visible) {
+    const toolbar = document.getElementById('floor-toolbar');
+    const viewport = document.getElementById('main-viewport');
+    if (toolbar) toolbar.style.display = visible ? 'flex' : 'none';
+    if (viewport) viewport.classList.toggle('view-toolbar-visible', visible);
   }
 
   function syncSectionControls() {
@@ -1423,7 +1428,6 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     const viewMaterials = document.getElementById('materials-management-view');
     const viewAiInspection = document.getElementById('ai-inspection-view');
     const floorBar = document.getElementById('floor-bar');
-    const viewModeRow = document.getElementById('view-mode-row');
 
     if (viewHome) viewHome.style.display = 'none';
     view3D.style.display = 'none';
@@ -1435,7 +1439,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     viewTodo.style.display = 'none';
     viewMaterials.style.display = 'none';
     viewAiInspection.style.display = 'none';
-    if (viewModeRow) viewModeRow.style.display = 'none';
+    setEquipmentViewToolbar(false);
 
     if (sub === 'AI점검') {
       floorBar.style.display = 'none';
@@ -1474,21 +1478,21 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       resetTmsForm();
       loadTmsEquipment();
     } else if (sub === '연료펌프룸') {
-      if (viewModeRow) viewModeRow.style.display = 'flex';
+      setEquipmentViewToolbar(true);
       renderFloorBar();
       selectedViewMode = 'floor';
       switchViewMode('floor');
     } else if (sub === '암모니아탱크') {
-      if (viewModeRow) viewModeRow.style.display = 'flex';
+      setEquipmentViewToolbar(true);
       renderFloorBar();
       selectedViewMode = 'floor';
       switchViewMode('floor');
     } else if (selectedMajor === '기력') {
-      if (viewModeRow) viewModeRow.style.display = 'flex';
+      setEquipmentViewToolbar(true);
       selectedViewMode = '3d';
       switchSection(selectedSection || '보일러');
     } else {
-      if (viewModeRow) viewModeRow.style.display = 'flex';
+      setEquipmentViewToolbar(true);
       selectedViewMode = '3d';
       switchViewMode('3d');
     }
@@ -1527,18 +1531,17 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     selectedViewMode = mode === 'floor' ? 'floor' : '3d';
     const view3D = document.getElementById('overall-3d-view');
     const viewFloor = document.getElementById('floor-room-view');
-    const btn3d = document.getElementById('view-mode-3d');
-    const btnFloor = document.getElementById('view-mode-floor');
-    btn3d.classList.toggle('active', selectedViewMode === '3d');
-    btnFloor.classList.toggle('active', selectedViewMode === 'floor');
-
     const supports3d = selectedMajor === '내연' || (
       selectedMajor === '기력' && (selectedSubTab === '2호기' || selectedSubTab === '3호기') && selectedSection === '보일러'
     );
-    btn3d.style.display = supports3d ? '' : 'none';
     if (selectedViewMode === '3d' && !supports3d) selectedViewMode = 'floor';
+    document.querySelectorAll('#floor-floor-buttons .floor-btn').forEach(button => button.classList.remove('active'));
+    const btn3d = document.getElementById('btn-view-3d');
+    const managedButton = document.getElementById('btnToggleManagedEquipment');
+    if (managedButton) managedButton.style.display = selectedViewMode === 'floor' ? '' : 'none';
 
     if (selectedViewMode === '3d') {
+      if (btn3d) btn3d.classList.add('active');
       viewFloor.style.display = 'none';
       viewFloor.classList.remove('managed-open');
       document.getElementById('btnToggleManagedEquipment').classList.remove('active');
@@ -1571,33 +1574,35 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       const [floor, file] = defaultFloorForSelection();
       openFloorRoom(floor, file, null);
     }
-    btn3d.classList.toggle('active', selectedViewMode === '3d');
-    btnFloor.classList.toggle('active', selectedViewMode === 'floor');
     updateFloorTitle();
   };
 
   function renderFloorBar() {
     const bar = document.getElementById('floor-floor-buttons');
     bar.innerHTML = '';
+    const supports3d = selectedMajor === '내연' || (
+      selectedMajor === '기력' && (selectedSubTab === '2호기' || selectedSubTab === '3호기') && selectedSection === '보일러'
+    );
+    if (supports3d) bar.insertAdjacentHTML('beforeend', `<button type="button" class="floor-btn" id="btn-view-3d" onclick="switchViewMode('3d')">🧊 3D</button>`);
 
     if (selectedSubTab === '연료펌프룸') {
-      bar.innerHTML = `<button class="floor-btn active" onclick="openFloorRoom('연료펌프 1층', 'assets/floor-plans/fuel-pump-room/fuel_floor_1f.jpg', this)">연료펌프 1층</button>`;
+      bar.insertAdjacentHTML('beforeend', `<button class="floor-btn active" onclick="openFloorRoom('연료펌프 1층', 'assets/floor-plans/fuel-pump-room/fuel_floor_1f.jpg', this)">연료펌프 1층</button>`);
       return;
     }
     if (selectedSubTab === '암모니아탱크') {
-      bar.innerHTML = `<button class="floor-btn active" onclick="openFloorRoom('암모니아 탱크 구역', 'assets/floor-plans/ammonia-tank/am_tank_floor.jpg', this)">암모니아 탱크 구역</button>`;
+      bar.insertAdjacentHTML('beforeend', `<button class="floor-btn active" onclick="openFloorRoom('암모니아 탱크 구역', 'assets/floor-plans/ammonia-tank/am_tank_floor.jpg', this)">암모니아 탱크 구역</button>`);
       return;
     }
 
     if (selectedMajor === '내연') {
-      bar.innerHTML = `
+      bar.insertAdjacentHTML('beforeend', `
         <button class="floor-btn" onclick="openFloorRoom('지하층', 'assets/floor-plans/engine/engine_floor_b1.jpg', this)">지하</button>
         <button class="floor-btn" onclick="openFloorRoom('1층', 'assets/floor-plans/engine/engine_floor_1f.jpg', this)">1층</button>
         <button class="floor-btn" onclick="openFloorRoom('2층', 'assets/floor-plans/engine/engine_floor_2f.jpg', this)">2층</button>
         <button class="floor-btn active" onclick="openFloorRoom('3층', 'assets/floor-plans/engine/engine_floor_3f.jpg', this)">3층</button>
-      `;
+      `);
     } else if (selectedSection === '보일러') {
-      bar.innerHTML = `
+      bar.insertAdjacentHTML('beforeend', `
         <button class="floor-btn" onclick="openFloorRoom('IDF', 'assets/floor-plans/idf/IDF_FRONT.PNG', this)">IDF</button>
         <button class="floor-btn" onclick="openFloorRoom('1층', 'assets/floor-plans/boiler/floor_1f.jpg', this)">1층</button>
         <button class="floor-btn" onclick="openFloorRoom('2층', 'assets/floor-plans/boiler/floor_2f.jpg', this)">2층</button>
@@ -1611,14 +1616,14 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
         <button class="floor-btn" onclick="openFloorRoom('5.5층', 'assets/floor-plans/boiler/floor_5_5f.jpg', this)">5.5층</button>
         <button class="floor-btn" onclick="openFloorRoom('6층', 'assets/floor-plans/boiler/floor_6f.jpg', this)">6층</button>
         <button class="floor-btn" onclick="openFloorRoom('7층', 'assets/floor-plans/boiler/floor_7f.jpg', this)">7층</button>
-      `;
+      `);
     } else if (selectedSection === '탈질') {
-      bar.innerHTML = `
+      bar.insertAdjacentHTML('beforeend', `
         <button class="floor-btn active" onclick="openFloorRoom('탈질 1층', 'assets/floor-plans/denitrification/am_floor_1f.jpg', this)">탈질 1층</button>
         <button class="floor-btn" onclick="openFloorRoom('탈질 3층', 'assets/floor-plans/denitrification/am_floor_3f.jpg', this)">탈질 3층</button>
         <button class="floor-btn" onclick="openFloorRoom('탈질 3.1/3층', 'assets/floor-plans/denitrification/am_floor_3_1_3f.jpg', this)">탈질 3.1/3층</button>
         <button class="floor-btn" onclick="openFloorRoom('탈질 4.5층', 'assets/floor-plans/denitrification/am_4_5f.jpg', this)">탈질 4.5층</button>
-      `;
+      `);
     }
   }
 
@@ -1655,9 +1660,9 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       floorTag.innerText = selectedFloor === 'ALL' ? `내연 ${selectedSubTab} 3D` : `내연 ${selectedSubTab} ${selectedFloor}`;
     }
     const floorViewTitle = document.getElementById('floor-view-title');
-    if (floorViewTitle && selectedFloor !== 'ALL') {
+    if (floorViewTitle) {
       const area = selectedMajor === '내연' ? `내연 ${selectedSubTab}` : (selectedSection === '탈질' ? '탈질설비' : (selectedSubTab === '연료펌프룸' || selectedSubTab === '암모니아탱크' ? selectedSubTab : '보일러'));
-      floorViewTitle.textContent = `${area} ${selectedFloor} 설비도`;
+      floorViewTitle.textContent = selectedFloor === 'ALL' ? `${area} 3D 설비도` : `${area} ${selectedFloor} 설비도`;
     }
   }
 
@@ -3782,6 +3787,9 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   }
 
   window.openFloorRoom = function(floor, imgFile, btn) {
+    selectedViewMode = 'floor';
+    const managedButton = document.getElementById('btnToggleManagedEquipment');
+    if (managedButton) managedButton.style.display = '';
     selectedFloor = normalizeFloor(floor);
     board.classList.toggle('mirrored-engine-floor', isMirroredEngineFloor());
     document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));

@@ -9,7 +9,7 @@
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon.png">
   <link rel="apple-touch-icon" href="./assets/icons/icon.png">
-  <link rel="stylesheet" href="./assets/css/styles.css?v=20260930-viewmode-row">
+  <link rel="stylesheet" href="./assets/css/styles.css?v=20260930-unified-viewbar">
 </head>
 <body>
 
@@ -91,10 +91,6 @@
     <button class="sec-tab-btn active" id="sec-boiler" onclick="switchSection('보일러')">🏭 보일러</button>
     <button class="sec-tab-btn" id="sec-am" onclick="switchSection('탈질')">🌿 탈질설비 (AM)</button>
   </div>
-  <div class="selector-row" id="view-mode-row" aria-label="설비 화면 방식">
-    <button class="view-mode-btn active" id="view-mode-3d" onclick="switchViewMode('3d')">🧊 3D</button>
-    <button class="view-mode-btn" id="view-mode-floor" onclick="switchViewMode('floor')">🗺️ 층별 도면</button>
-  </div>
 </div>
 
 <div id="measure-info-hud">📐 모델 위 모서리를 터치하면 좌표가 자동 측정됩니다.</div>
@@ -138,12 +134,13 @@
     </model-viewer>
   </div>
 
+  <div id="floor-toolbar" style="display:none;">
+    <div id="floor-view-title">보일러 3층 설비도</div>
+    <div id="floor-floor-buttons" aria-label="3D 및 층 선택"></div>
+    <button type="button" id="btnToggleManagedEquipment" onclick="toggleManagedEquipment()">관리 설비</button>
+  </div>
+
   <div id="floor-room-view">
-    <div id="floor-toolbar">
-      <div id="floor-view-title">보일러 3층 설비도</div>
-      <div id="floor-floor-buttons" aria-label="층 선택"></div>
-      <button type="button" id="btnToggleManagedEquipment" onclick="toggleManagedEquipment()">관리 설비</button>
-    </div>
     <div id="floor-canvas-wrap">
       <div id="floor-board">
         <div id="floor-plan-background" aria-hidden="true"></div>
@@ -670,6 +667,6 @@
   <img id="lightbox-target-img" src="" alt="확대 사진" onclick="event.stopPropagation()">
 </div>
 
-  <script src="./assets/js/app.js?v=20260930-viewmode-row"></script>
+  <script src="./assets/js/app.js?v=20260930-unified-viewbar"></script>
 </body>
 </html>
