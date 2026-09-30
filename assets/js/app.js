@@ -170,13 +170,15 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     if (e.target.src) openImageLightbox(e.target.src);
   });
 
-  function get3DCoordFrom2D(floor, cx, cy, major = selectedMajor) {
+  function get3DCoordFrom2D(floor, cx, cy, major = selectedMajor, unit = selectedSubTab) {
     const validFloor = normalizeFloor(floor);
     if (major === '내연') {
       const bounds = engineFloorCorners2D[validFloor] || engineFloorCorners2D['1층'];
       const u = (cx - bounds.c1.x) / (bounds.c4.x - bounds.c1.x || 1);
       const v = (cy - bounds.c1.y) / (bounds.c4.y - bounds.c1.y || 1);
-      const x3d = engineModelCorners3D.c1.x + u * (engineModelCorners3D.c4.x - engineModelCorners3D.c1.x);
+      // 2호기 GLB는 1호기의 X축 반전 모델이다. 도면 저장 좌표는 1호기 기준을 유지한다.
+      const referenceX = engineModelCorners3D.c1.x + u * (engineModelCorners3D.c4.x - engineModelCorners3D.c1.x);
+      const x3d = unit === '2호기' ? -referenceX : referenceX;
       const z3d = engineModelCorners3D.c1.y + v * (engineModelCorners3D.c4.y - engineModelCorners3D.c1.y);
       const y3d = engineFloor3DHeights[validFloor] ?? engineFloor3DHeights['1층'];
       return { x3d, y3d, z3d };
@@ -4265,7 +4267,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       let pos = item.model_position;
       // 내연은 도면 좌표를 X/Z에, 층 EL을 Y에 매핑해 과거의 잘못된 3D 좌표도 자동 보정한다.
       if (selectedMajor === '내연') {
-        const p3d = get3DCoordFrom2D(item.floor, item.coord_x, item.coord_y, selectedMajor);
+        const p3d = get3DCoordFrom2D(item.floor, item.coord_x, item.coord_y, selectedMajor, item.unit);
         pos = `${p3d.x3d.toFixed(2)} ${p3d.y3d.toFixed(2)} ${p3d.z3d.toFixed(2)}`;
       } else if (!pos || pos === '0 0 0') {
         const floorKey = normalizeFloor(item.floor);
