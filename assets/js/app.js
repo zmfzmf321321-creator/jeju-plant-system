@@ -1493,6 +1493,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       switchSection(selectedSection || '보일러');
     } else {
       setEquipmentViewToolbar(true);
+      renderFloorBar();
       selectedViewMode = '3d';
       switchViewMode('3d');
     }
