@@ -11,6 +11,11 @@
 - `assets/models/`: 3D 모델 파일
 - `assets/icons/`: 앱 아이콘
 - `supabase/migrations/`: 데이터베이스 마이그레이션
+- `supabase/functions/gemini-chat/index.ts`: 사용자 인증·승인 검사 후 AI 대화/OCR을 처리하는 운영 Edge Function
+- `supabase/tests/approval_access.sql`: 임시 계정과 레코드를 롤백하면서 승인 전/후/취소 및 권한 위조를 검증
+- `tests/app-security.test.cjs`: 프런트엔드 승인, 사진, XSS, 페이지 조회, 좌표·날짜, 저장 충돌 회귀 검사
+- `tests/live-anonymous-access.cjs`: 운영 API의 익명 데이터·AI·사진 접근 차단을 읽기 전용으로 확인
+- `SECURITY.md`: Supabase 승인 절차, 접근 계약, 보안 검증 및 배포 주의점
 
 ## `assets/js/app.js` 안의 주요 분야
 
@@ -26,6 +31,13 @@
 - 통합 이력: 설비 기본자료, 점검/정비, 교정, TMS, 로직, 자료, 할 일 통합 조회
 - AI 점검/OCR: 점검 기록, 사진, OCR 추출, AI 대화
 - 인증: 로그인, 가입, 패스키, 로그아웃
+- 가입은 항상 미승인 `member`로 생성하며, `user_profiles.is_approved = true`인 계정만 사용 가능
+- 승인/역할 변경은 Supabase 대시보드의 신뢰된 운영자가 수행하며 브라우저 및 승인 RPC에는 변경 권한 없음
+- 업무 테이블과 Storage에는 현재 DB 승인 상태를 확인하는 restrictive RLS 적용
+- 설비 사진 및 자료실 버킷은 private이며, 인증 다운로드한 Blob URL로 표시·다운로드
+- 정비이력은 편집 시작 시의 JSON 원본과 비교해 갱신하며 동시 변경 시 덮어쓰기를 거절
+- AI 대화 이력은 이름 대신 사용자 UUID로 조회·저장
+- 통합 이력과 Excel 조회는 기본키로 정렬한 페이지 조회 사용
 - 계측/검색: 3D/2D 거리 계측, 통합 검색, 설비 위치 이동
 
 ## 다음에 더 나누기 좋은 기준

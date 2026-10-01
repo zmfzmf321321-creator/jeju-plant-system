@@ -33,6 +33,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   let activeTargetId = null;
   let activeCalibRecord = null;
   let editingHistoryIndex = null;
+  let historyEditorSnapshot = null;
   let clickedFloorCoord = { x: 0, y: 0 };
   let isMeasureMode = false;
   let measurePoints = [];
@@ -146,7 +147,8 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     if (!imgSrc) return;
     const modal = document.getElementById('image-lightbox-modal');
     const targetImg = document.getElementById('lightbox-target-img');
-    targetImg.src = imgSrc;
+    if (/^data:image\/(jpeg|png|webp|gif|bmp);base64,/i.test(imgSrc) || (imgSrc.startsWith('blob:') && [...photoCache.values()].includes(imgSrc))) targetImg.src = imgSrc;
+    else bindPhoto(targetImg, imgSrc);
     modal.style.display = 'flex';
   };
 
@@ -192,28 +194,97 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     return { x3d, y3d: h, z3d };
   }
 
+  const photoCache = new Map();
+  const materialObjectUrls = new Set();
+  let securityEpoch = 0;
+  const rasterTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/bmp']);
+  function storagePhotoPath(value) {
+    const url = new URL(value, SUPABASE_URL);
+    const prefix = '/storage/v1/object/public/instrument-photos/';
+    if (url.origin !== SUPABASE_URL || url.username || url.password || !url.pathname.startsWith(prefix)) throw new Error('허용되지 않은 사진 주소입니다.');
+    const path = decodeURIComponent(url.pathname.slice(prefix.length));
+    if (path.includes('\\') || path.includes('\0') || path.split('/').some(part => !part || part === '.' || part === '..')) throw new Error('허용되지 않은 사진 경로입니다.');
+    return path;
+  }
+  async function getPhotoBlob(value) {
+    if (/^data:image\/(jpeg|png|webp|gif|bmp);base64,/i.test(value)) {
+      if (value.length > 28 * 1024 * 1024) throw new Error('사진 크기 제한을 초과했습니다.');
+      const blob = await (await fetch(value)).blob();
+      if (!rasterTypes.has(blob.type) || blob.size > 20 * 1024 * 1024) throw new Error('지원되지 않는 이미지입니다.');
+      return blob;
+    }
+    const { data, error } = await supabaseClient.storage.from('instrument-photos').download(storagePhotoPath(value));
+    if (error) throw error;
+    if (!rasterTypes.has(data.type) || data.size > 20 * 1024 * 1024) throw new Error('지원되지 않는 이미지입니다.');
+    return data;
+  }
+  async function resolvePhoto(value) {
+    if (!value) return '';
+    if (value.startsWith('blob:') && [...photoCache.values()].includes(value)) return value;
+    if (photoCache.has(value)) return photoCache.get(value);
+    const epoch = securityEpoch;
+    const blob = await getPhotoBlob(value);
+    if (epoch !== securityEpoch || !currentUserInfo.id) throw new Error('로그인 승인을 확인해 주세요.');
+    if (photoCache.has(value)) return photoCache.get(value);
+    const url = URL.createObjectURL(blob); photoCache.set(value, url); return url;
+  }
+  function bindPhoto(element, value, background = false) {
+    const token = Symbol('photo'); element.photoToken = token;
+    if (background) element.style.backgroundImage = 'none'; else element.removeAttribute('src');
+    if (!value) return;
+    resolvePhoto(value).then(url => {
+      if (element.photoToken !== token) return;
+      if (background) element.style.backgroundImage = `url("${url}")`; else element.src = url;
+    }).catch(error => console.warn('사진 조회 실패:', error.message));
+  }
+  function clearSensitiveState() {
+    securityEpoch++;
+    for (const url of photoCache.values()) URL.revokeObjectURL(url);
+    photoCache.clear();
+    for (const url of materialObjectUrls) URL.revokeObjectURL(url);
+    materialObjectUrls.clear();
+    currentInstruments = []; currentMaterials = []; calibrationCache = []; currentChatMessages = [];
+    currentTodoRecords = []; currentTmsEquipment = []; currentInspectionPhotos = []; currentInspectionItems = [];
+    unifiedData = { tms: [], logic: [], materials: [], todos: [], calibrations: [], aiInspections: [] };
+    currentUserInfo = { id: '', name: '', email: '', role: 'member' }; isAdminMode = false;
+    document.querySelectorAll('img').forEach(el => { el.photoToken = null; el.removeAttribute('src'); });
+    document.querySelectorAll('.floor-inst-pin,.hotspot-pin').forEach(el => el.remove());
+    ['infoBody','infoHistoryList','aiChatBox','aiSavedHistoryBox','historyTableBody','searchResultsList'].forEach(id => document.getElementById(id)?.replaceChildren());
+  }
   async function uploadImageToStorage(file) {
     if (!file) return null;
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-      const filePath = `${fileName}`;
-      const { data, error } = await supabaseClient.storage.from('instrument-photos').upload(filePath, file);
-      if (error) {
-        alert('⚠️ 이미지 업로드 실패: ' + error.message);
-        return null;
-      }
-      const { data: publicURLData } = supabaseClient.storage.from('instrument-photos').getPublicUrl(filePath);
-      return publicURLData.publicUrl;
-    } catch (err) {
-      return null;
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type) || file.size > 20 * 1024 * 1024) { alert('JPEG/PNG/WebP/GIF 이미지(20MB 이하)만 가능합니다.'); return null; }
+    const { data } = await supabaseClient.auth.getUser();
+    const profile = await getSignedInProfile(data?.user);
+    if (!profile.isApproved) { alert('Supabase 관리자 승인 후 이용할 수 있습니다.'); return null; }
+    const ext = { 'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif' }[file.type];
+    const path = `${data.user.id}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabaseClient.storage.from('instrument-photos').upload(path, file, { contentType: file.type });
+    if (error) { alert('이미지 업로드 실패: ' + error.message); return null; }
+    return supabaseClient.storage.from('instrument-photos').getPublicUrl(path).data.publicUrl;
+  }
+  async function fetchAllRows(table, columns = '*', order = 'id') {
+    const rows = [];
+    for (let offset = 0; ; offset += 1000) {
+      const { data, error } = await supabaseClient.from(table).select(columns).order(order, { ascending: true }).range(offset, offset + 999);
+      if (error) throw error;
+      rows.push(...(data || []));
+      if (!data || data.length < 1000) return rows;
     }
+  }
+  async function saveHistoryConditionally(target, original, logs) {
+    let query = supabaseClient.from('instruments').update({ history_logs: logs }).eq('id', target.id);
+    query = original === null ? query.is('history_logs', null) : query.eq('history_logs', JSON.stringify(original));
+    const { data, error } = await query.select('id').maybeSingle();
+    if (error || !data) { alert('저장하지 못했습니다. 다른 사용자의 변경 또는 승인 상태를 확인해 주세요. 작성 내용은 유지됩니다.'); await fetchInstruments(); return false; }
+    target.history_logs = logs; target.originalHistoryLogs = structuredClone(logs); return true;
   }
 
   async function prepareImagePayloadForOcr(fileOrUrl) {
     if (typeof fileOrUrl === 'string') {
-      return fileOrUrl;
+      fileOrUrl = await getPhotoBlob(fileOrUrl);
     }
+    if (!rasterTypes.has(fileOrUrl?.type) || fileOrUrl.size > 20 * 1024 * 1024) throw new Error('지원되지 않는 사진입니다.');
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -238,7 +309,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
           ctx.drawImage(img, 0, 0, w, h);
           resolve(canvas.toDataURL('image/jpeg', 0.85));
         };
-        img.onerror = () => resolve(e.target.result);
+        img.onerror = () => reject(new Error('사진을 읽을 수 없습니다.'));
         img.src = e.target.result;
       };
       reader.onerror = (err) => reject(err);
@@ -252,6 +323,12 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
+
+  function escapeDisplayText(value) {
+    return String(value ?? '').replace(/[&<>"']/g, character => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    })[character]);
   }
 
   function setLogicStatus(message, type = '') {
@@ -1178,6 +1255,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   }
 
   async function loadMaterials() {
+    const epoch = securityEpoch;
     setMaterialsStatus('자료 목록을 불러오는 중입니다.');
     const { data: authData } = await supabaseClient.auth.getSession();
     if (!authData.session) {
@@ -1201,26 +1279,33 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       return;
     }
 
+    if (epoch !== securityEpoch) return;
     currentMaterials = data || [];
     renderMaterials();
     setMaterialsStatus(`총 ${currentMaterials.length}개의 자료가 있습니다.`);
   }
 
   async function openMaterial(record) {
+    if (!['application/pdf', ...rasterTypes].includes(record.mime_type)) return downloadMaterial(record);
+    const epoch = securityEpoch;
     setMaterialsStatus('자료를 여는 중입니다.');
     const { data, error } = await supabaseClient.storage
       .from('maintenance-materials')
-      .createSignedUrl(record.storage_path, 300);
-    if (error || !data?.signedUrl) {
+      .download(record.storage_path);
+    if (error || !data) {
       console.error('자료 열기 오류:', error);
       setMaterialsStatus('자료를 열지 못했습니다.', 'error');
       return;
     }
-    window.open(data.signedUrl, '_blank', 'noopener');
+    if (epoch !== securityEpoch) return;
+    if (!['application/pdf', ...rasterTypes].includes(data.type)) return downloadMaterial(record);
+    const url = URL.createObjectURL(data); materialObjectUrls.add(url);
+    window.open(url, '_blank', 'noopener,noreferrer');
     setMaterialsStatus('자료를 새 창에서 열었습니다.', 'success');
   }
 
   async function downloadMaterial(record) {
+    const epoch = securityEpoch;
     setMaterialsStatus('자료를 다운로드하는 중입니다.');
     const { data, error } = await supabaseClient.storage
       .from('maintenance-materials')
@@ -1230,14 +1315,15 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       setMaterialsStatus('자료를 다운로드하지 못했습니다.', 'error');
       return;
     }
-    const url = URL.createObjectURL(data);
+    if (epoch !== securityEpoch) return;
+    const url = URL.createObjectURL(data); materialObjectUrls.add(url);
     const link = document.createElement('a');
     link.href = url;
     link.download = record.original_file_name;
     document.body.appendChild(link);
     link.click();
     link.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    window.setTimeout(() => { URL.revokeObjectURL(url); materialObjectUrls.delete(url); }, 1000);
     setMaterialsStatus('다운로드를 시작했습니다.', 'success');
   }
 
@@ -1675,30 +1761,30 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   }
 
   async function loadUnifiedData(force = false) {
+    const epoch = securityEpoch;
     const cacheIsFresh = Date.now() - unifiedDataLoadedAt < 60 * 1000;
     if (!force && cacheIsFresh) return unifiedData;
     if (unifiedDataLoadingPromise) return unifiedDataLoadingPromise;
 
     const readTable = async (label, query) => {
-      const { data, error } = await query;
-      if (error) {
+      try { return (await query) || []; } catch (error) {
         console.error(`${label} 통합조회 오류:`, error);
         return [];
       }
-      return data || [];
     };
 
     unifiedDataLoadingPromise = Promise.all([
-      readTable('TMS', supabaseClient.from('tms_equipment').select('id, major_category, tag_name, equipment_name, maintenance_history, created_at, updated_at').limit(1000)),
-      readTable('로직', supabaseClient.from('logic_change_logs').select('id, major_category, equipment_name, change_content, change_reason, change_date, created_at').limit(1000)),
-      readTable('자료', supabaseClient.from('maintenance_materials').select('id, major_category, title, description, material_type, original_file_name, uploaded_by_name, created_at').limit(1000)),
-      readTable('할 일', supabaseClient.from('maintenance_todos').select('id, major_category, task_text, created_by_name, created_at, completed_at').limit(1000)),
-      readTable('AI 점검', supabaseClient.from('ai_inspections').select('id, major_category, unit, title, question, ai_summary, checklist, result_summary, status, photo_urls, created_by_name, created_at, updated_at, completed_at').limit(1000)),
+      readTable('TMS', fetchAllRows('tms_equipment', 'id, major_category, tag_name, equipment_name, maintenance_history, created_at, updated_at')),
+      readTable('로직', fetchAllRows('logic_change_logs', 'id, major_category, equipment_name, change_content, change_reason, change_date, created_at')),
+      readTable('자료', fetchAllRows('maintenance_materials', 'id, major_category, title, description, material_type, original_file_name, uploaded_by_name, created_at')),
+      readTable('할 일', fetchAllRows('maintenance_todos', 'id, major_category, task_text, created_by_name, created_at, completed_at')),
+      readTable('AI 점검', fetchAllRows('ai_inspections', 'id, major_category, unit, title, question, ai_summary, checklist, result_summary, status, photo_urls, created_by_name, created_at, updated_at, completed_at')),
       getCalibrationRecords().catch(error => {
         console.error('교정 통합조회 오류:', error);
         return [];
       })
     ]).then(([tms, logic, materials, todos, aiInspections, calibrations]) => {
+      if (epoch !== securityEpoch) return unifiedData;
       unifiedData = { tms, logic, materials, todos, aiInspections, calibrations };
       unifiedDataLoadedAt = Date.now();
       return unifiedData;
@@ -1870,18 +1956,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   }
 
   async function fetchAllExcelRows(table, columns = '*') {
-    const pageSize = 1000;
-    const rows = [];
-    for (let offset = 0; ; offset += pageSize) {
-      const { data, error } = await supabaseClient
-        .from(table)
-        .select(columns)
-        .range(offset, offset + pageSize - 1);
-      if (error) throw new Error(`${table} 자료 조회 실패: ${error.message}`);
-      rows.push(...(data || []));
-      if (!data || data.length < pageSize) break;
-    }
-    return rows;
+    return fetchAllRows(table, columns, table === 'Instrumnet_calibration' ? '구분' : 'id');
   }
 
   async function exportAllDataToExcel() {
@@ -2101,11 +2176,6 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     });
   };
 
-  async function fetchManuals() {
-    const { data } = await supabaseClient.from('manuals').select('*');
-    currentManuals = data || [];
-  }
-
   window.startNewChat = function() {
     currentChatSessionId = 'session_' + Date.now();
     currentChatMessages = [];
@@ -2139,7 +2209,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     const { data, error } = await supabaseClient
       .from('ai_chat_history')
       .select('*')
-      .eq('user_name', workerName)
+      .eq('user_id', currentUserInfo.id)
       .order('created_at', { ascending: false })
       .limit(50);
     if (error || !data || data.length === 0) {
@@ -2149,16 +2219,14 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       </div>`;
       return;
     }
-    box.innerHTML = data.map(item => `
-      <div style="background: #fff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 8px; margin-bottom: 6px; font-size: 12px;">
-        <div style="display: flex; justify-content: space-between; color: #64748b; font-size: 10px; margin-bottom: 4px;">
-          <span>👤 ${item.user_name || '작업자'} (세션: ${item.session_id ? item.session_id.slice(-6) : '기본'})</span>
-          <span>${item.created_at ? item.created_at.slice(0, 16).replace('T', ' ') : ''}</span>
-        </div>
-        <div style="color: #0284c7; font-weight: bold; margin-bottom: 2px;">Q: ${item.prompt}</div>
-        <div style="color: #334155; white-space: pre-wrap; line-height: 1.3;">A: ${item.response}</div>
-      </div>
-    `).join('');
+    box.replaceChildren();
+    data.forEach(item => {
+      const row = document.createElement('div'); row.className = 'history-item';
+      for (const text of [`👤 ${item.user_name || '작업자'} · ${item.created_at || ''}`, `Q: ${item.prompt || ''}`, `A: ${item.response || ''}`]) {
+        const child = document.createElement('div'); child.style.whiteSpace = 'pre-wrap'; child.textContent = text; row.appendChild(child);
+      }
+      box.appendChild(row);
+    });
   }
 
   document.getElementById('btnOpenGemini').addEventListener('click', async () => {
@@ -2166,12 +2234,13 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   });
 
   async function fetchMaterialMetadata() {
+    const epoch = securityEpoch;
     const { data, error } = await supabaseClient
       .from('maintenance_materials')
       .select('title, description, material_type, original_file_name, major_category')
       .order('created_at', { ascending: false })
       .limit(100);
-    if (!error) currentMaterials = data || [];
+    if (!error && epoch === securityEpoch) currentMaterials = data || [];
   }
 
   const EQUIPMENT_SEARCH_ALIASES = [
@@ -2332,13 +2401,11 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   }
 
   async function getCalibrationRecords() {
+    const epoch = securityEpoch;
     const cacheAge = Date.now() - calibrationCacheLoadedAt;
     if (calibrationCache.length > 0 && cacheAge < 5 * 60 * 1000) return calibrationCache;
-    const { data, error } = await supabaseClient
-      .from('Instrumnet_calibration')
-      .select('*')
-      .limit(500);
-    if (error) throw error;
+    const data = await fetchAllRows('Instrumnet_calibration', '*', '구분');
+    if (epoch !== securityEpoch) return [];
     calibrationCache = data || [];
     calibrationCacheLoadedAt = Date.now();
     return calibrationCache;
@@ -2354,6 +2421,8 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   async function callGemini(userPrompt, extraContext = '', targetPhotos = []) {
     if (isAiRequestPending) return;
     isAiRequestPending = true;
+    const requestSession = currentChatSessionId;
+    const requestEpoch = securityEpoch;
     const sendButton = document.getElementById('btnSendAi');
     sendButton.disabled = true;
     appendAiMsg('user', userPrompt);
@@ -2406,9 +2475,12 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     const history = buildChatHistoryForApi();
 
     try {
+      photosToSend = await Promise.all(photosToSend.map(prepareImagePayloadForOcr));
       const { data, error } = await supabaseClient.functions.invoke('gemini-chat', {
         body: { prompt: userPrompt, history, extraContext: enrichedContext, photosToSend, mode: 'chat' }
       });
+
+      if (requestSession !== currentChatSessionId || requestEpoch !== securityEpoch) return;
 
       const lastMsg = document.querySelector('#aiChatBox .ai-msg-bot:last-child');
       if (!error && data?.candidates?.[0]?.content?.parts?.[0]?.text) {
@@ -2423,6 +2495,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
 
         const workerName = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자';
         await supabaseClient.from('ai_chat_history').insert([{
+          user_id: currentUserInfo.id,
           user_name: workerName,
           session_id: currentChatSessionId,
           prompt: userPrompt,
@@ -2589,7 +2662,20 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     }
   }
 
+  let inspectionSaving = false;
   async function saveInspection(complete = false) {
+    if (inspectionSaving) return;
+    inspectionSaving = true;
+    try { await saveInspectionRecord(complete); }
+    catch (error) { setInspectionStatus('aiInspectionSaveStatus', error.message, 'error'); }
+    finally { inspectionSaving = false; }
+  }
+  async function saveInspectionRecord(complete = false) {
+    const recordId = currentInspectionId, major = selectedMajor;
+    const unit = lastEquipmentUnit[major] || '', summary = currentInspectionSummary;
+    const epoch = securityEpoch;
+    const photos = [...currentInspectionPhotos];
+    const photoFiles = [...pendingInspectionPhotoFiles];
     const question = document.getElementById('aiInspectionQuestion').value.trim();
     const items = currentInspectionItems
       .map(item => ({ ...item, task: String(item.task || '').trim() }))
@@ -2605,30 +2691,30 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       return;
     }
     setInspectionStatus('aiInspectionSaveStatus', complete ? '점검 결과를 관리이력에 저장하는 중입니다.' : '점검표를 임시 저장하는 중입니다.');
-    for (const file of pendingInspectionPhotoFiles.slice(0, 5)) {
+    for (const file of photoFiles.slice(0, 5)) {
       const url = await uploadImageToStorage(file);
-      if (url) currentInspectionPhotos.push(url);
+      if (!url) throw new Error('사진 저장에 실패했습니다. 입력 내용은 유지됩니다.');
+      photos.push(url);
     }
-    pendingInspectionPhotoFiles = [];
-    document.getElementById('aiInspectionPhotos').value = '';
+    if (epoch !== securityEpoch) return;
     const now = new Date().toISOString();
     const resultLines = items.map((item, index) => `${index + 1}. ${item.task} · ${item.status}${item.value ? ` · ${item.value}` : ''}${item.memo ? ` · ${item.memo}` : ''}`);
     const payload = {
-      major_category: selectedMajor,
-      unit: lastEquipmentUnit[selectedMajor] || '',
+      major_category: major,
+      unit,
       title: question.slice(0, 200),
       question,
-      ai_summary: currentInspectionSummary,
+      ai_summary: summary,
       checklist: items,
-      photo_urls: currentInspectionPhotos,
+      photo_urls: photos,
       result_summary: complete ? resultLines.join('\n') : '',
       status: complete ? '완료' : '진행중',
       created_by_name: currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '작업자',
       updated_at: now,
       completed_at: complete ? now : null
     };
-    const query = currentInspectionId
-      ? supabaseClient.from('ai_inspections').update(payload).eq('id', currentInspectionId)
+    const query = recordId
+      ? supabaseClient.from('ai_inspections').update(payload).eq('id', recordId)
       : supabaseClient.from('ai_inspections').insert([payload]);
     const { data, error } = await query.select('id').single();
     if (error || !data?.id) {
@@ -2636,6 +2722,10 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       setInspectionStatus('aiInspectionSaveStatus', '점검표를 저장하지 못했습니다.', 'error');
       return;
     }
+    if (currentInspectionId !== recordId || selectedMajor !== major || epoch !== securityEpoch) { invalidateUnifiedData(); return; }
+    pendingInspectionPhotoFiles = [];
+    document.getElementById('aiInspectionPhotos').value = '';
+    currentInspectionPhotos = photos;
     currentInspectionId = data.id;
     currentInspectionItems = items;
     invalidateUnifiedData();
@@ -2787,7 +2877,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     const preview = document.getElementById('editInstPhotoPreview');
     const currentImg = target.photo_url || target.image_data;
     if (currentImg) {
-      preview.src = currentImg;
+      bindPhoto(preview, currentImg);
       preview.style.display = 'block';
     } else {
       preview.style.display = 'none';
@@ -2859,10 +2949,10 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     alert('⏳ 교정 성적서 데이터를 Supabase에 저장 중...');
 
     let updateRes = null;
-    if (activeCalibRecord && activeCalibRecord["구분"]) {
+    if (activeCalibRecord && activeCalibRecord["구분"] != null) {
       updateRes = await supabaseClient.from('Instrumnet_calibration').update(payload).eq('구분', activeCalibRecord["구분"]);
     } else {
-      updateRes = await supabaseClient.from('Instrumnet_calibration').upsert([payload], { onConflict: 'Tag No' });
+      updateRes = await supabaseClient.from('Instrumnet_calibration').insert([payload]);
     }
 
     if (!updateRes.error) {
@@ -2967,18 +3057,20 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
         if (parsed.status_content) {
           const logs = Array.isArray(target.history_logs) ? [...target.history_logs] : [];
           logs.unshift({
-            date: new Date().toISOString().slice(0, 10),
+            date: getLocalDateValue(),
             author: currentUserInfo.name || localStorage.getItem('jeju_worker_name') || 'AI 진단',
             content: parsed.status_content,
             photo: target.photo_url || target.image_data || null
           });
           updateFields.history_logs = logs;
-          target.history_logs = logs;
         }
 
-        const { error } = await supabaseClient.from('instruments').update(updateFields).eq('id', target.id);
-        if (!error) {
+        let query = supabaseClient.from('instruments').update(updateFields).eq('id', target.id);
+        if (updateFields.history_logs) query = target.originalHistoryLogs === null ? query.is('history_logs', null) : query.eq('history_logs', JSON.stringify(target.originalHistoryLogs));
+        const { data, error } = await query.select('id').maybeSingle();
+        if (!error && data) {
           Object.assign(target, updateFields);
+          if (updateFields.history_logs) target.originalHistoryLogs = structuredClone(updateFields.history_logs);
           invalidateUnifiedData();
           closeOcrEditModal();
           showDetail(target);
@@ -2986,7 +3078,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
           render3DHotspots();
           if (selectedSubTab === '관리이력') renderHistoryTable();
         } else {
-          alert('❌ 저장 실패: ' + error.message);
+          alert('❌ 저장 실패: ' + (error?.message || '다른 사용자의 변경 또는 승인 상태를 확인해 주세요.'));
         }
       } else {
         document.getElementById('tagNo').value = document.getElementById('ocrTagNo').value.trim();
@@ -3021,8 +3113,8 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     try {
       photoPayload = await prepareImagePayloadForOcr(fileOrUrl);
     } catch (prepErr) {
-      console.warn("로컬 처리 건너뛰고 원본 전송:", prepErr);
-      photoPayload = fileOrUrl;
+      alert('사진을 처리하지 못했습니다: ' + prepErr.message);
+      return;
     }
 
     try {
@@ -3186,9 +3278,13 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
 
   function previewImageFile(file, previewElementId) {
     if (!file) return;
+    if (!rasterTypes.has(file.type) || file.size > 20 * 1024 * 1024) { alert('지원되는 이미지(20MB 이하)를 선택해 주세요.'); return; }
+    const epoch = securityEpoch;
+    const p = document.getElementById(previewElementId);
+    const token = Symbol('preview'); p.photoToken = token;
     const r = new FileReader();
     r.onload = function(e) {
-      const p = document.getElementById(previewElementId);
+      if (epoch !== securityEpoch || p.photoToken !== token) return;
       p.src = e.target.result;
       p.style.display = 'block';
     };
@@ -3223,18 +3319,16 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   });
 
   async function handleUpdateMainPhoto(file) {
-    if (!file) return;
+    const targetId = activeTargetId;
+    const target = currentInstruments.find(i => i.id === targetId);
+    if (!file || !target) return;
     const uploadedUrl = await uploadImageToStorage(file);
     if (!uploadedUrl) return;
-    const target = currentInstruments.find(i => i.id === activeTargetId);
-    if (!target) return;
-    target.photo_url = uploadedUrl;
-    target.image_data = uploadedUrl;
-    document.getElementById('infoMainImg').src = uploadedUrl;
-    document.getElementById('infoMainImg').style.display = 'block';
-    await supabaseClient.from('instruments').update({ photo_url: uploadedUrl, image_data: uploadedUrl }).eq('id', activeTargetId);
-    renderFloorPins();
-    render3DHotspots();
+    const { data, error } = await supabaseClient.from('instruments').update({ photo_url: uploadedUrl, image_data: uploadedUrl }).eq('id',targetId).select('id').maybeSingle();
+    if (error || !data) { alert('사진 저장 실패: 승인 상태와 권한을 확인해 주세요.'); return; }
+    target.photo_url = uploadedUrl; target.image_data = uploadedUrl;
+    if (activeTargetId === targetId) { bindPhoto(document.getElementById('infoMainImg'),uploadedUrl); document.getElementById('infoMainImg').style.display = 'block'; }
+    renderFloorPins(); render3DHotspots();
   }
 
   document.getElementById('updateMainPhotoCam').addEventListener('change', (e) => handleUpdateMainPhoto(e.target.files[0]));
@@ -3242,6 +3336,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
 
   async function getSignedInProfile(user) {
     if (!user?.id) return { name: '', role: 'member', isApproved: false, exists: false };
+    try {
     const { data, error } = await supabaseClient
       .from('user_profiles')
       .select('name, role, is_approved')
@@ -3254,6 +3349,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       isApproved: data.is_approved === true,
       exists: true
     };
+    } catch { return { name: '', role: 'member', isApproved: false, exists: false }; }
   }
 
   async function ensurePendingProfile(user, name = '', email = '') {
@@ -3264,9 +3360,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     const { error } = await supabaseClient.from('user_profiles').insert({
       id: user.id,
       email: email || user.email || '',
-      name: fallbackName,
-      role: 'member',
-      is_approved: false
+      name: fallbackName
     });
     if (error) {
       console.warn('Failed to create pending user profile', error);
@@ -3332,7 +3426,6 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
 
     switchSubTab('2호기');
     switchMainMenu('홈');
-    await fetchManuals();
     fetchInstruments();
   }
 
@@ -3555,7 +3648,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       return;
     }
     regMsg.style.display = 'none';
-    const { data, error } = await supabaseClient.auth.signUp({ email, password: pass });
+    const { data, error } = await supabaseClient.auth.signUp({ email, password: pass, options: { data: { name } } });
     if (error) {
       regMsg.innerText = `❌ 가입 신청 실패: ${error.message}`;
       regMsg.style.display = 'block';
@@ -3615,10 +3708,36 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   });
 
   document.getElementById('btnLogout').addEventListener('click', async () => {
-    isAdminMode = false;
+    clearSensitiveState();
     await supabaseClient.auth.signOut({ scope: 'local' });
     localStorage.removeItem('jeju_worker_name');
     location.reload();
+  });
+
+  let approvalCheckPending = false;
+  async function recheckApproval() {
+    if (!currentUserInfo.id || approvalCheckPending) return;
+    approvalCheckPending = true;
+    try {
+      const { data } = await supabaseClient.auth.getUser();
+      const profile = await getSignedInProfile(data?.user);
+      if (!profile.isApproved) {
+        clearSensitiveState();
+        await supabaseClient.auth.signOut({ scope: 'local' });
+        alert('승인이 취소되었거나 로그인 상태를 확인할 수 없습니다. Supabase 관리자 승인 후 이용해 주세요.');
+        location.reload();
+      }
+    } catch {
+      clearSensitiveState();
+      await supabaseClient.auth.signOut({ scope: 'local' });
+      location.reload();
+    } finally { approvalCheckPending = false; }
+  }
+  window.addEventListener('focus', recheckApproval);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) recheckApproval(); });
+  setInterval(recheckApproval, 30000);
+  supabaseClient.auth.onAuthStateChange(event => {
+    if (event === 'SIGNED_OUT' && currentUserInfo.id) { clearSensitiveState(); location.reload(); }
   });
 
   const canvasWrap = document.getElementById('floor-canvas-wrap');
@@ -3658,7 +3777,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     const count = measurePoints.length;
     if (count === 0) return;
     if (count === 1) {
-      measureHud.innerHTML = `📍 <b>P1(${measurePoints[0].floor})</b> 선택됨.<br><span style="font-size:11px; color:#94a3b8;">두 번째 지점을 터치하면 거리가 자동 계산됩니다. (층 이동 가능)</span>`;
+      measureHud.innerHTML = `📍 <b>P1(${escapeDisplayText(measurePoints[0].floor)})</b> 선택됨.<br><span style="font-size:11px; color:#94a3b8;">두 번째 지점을 터치하면 거리가 자동 계산됩니다. (층 이동 가능)</span>`;
       return;
     }
     let total3D = 0;
@@ -3677,9 +3796,9 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       const p2 = measurePoints[1];
       const vDiff = Math.abs(p2.y3d - p1.y3d).toFixed(2);
       if (p1.floor === p2.floor) {
-        measureHud.innerHTML = `📏 <b>[${p1.floor}] 수평 직선거리: <span style="color:#10b981;">${totalH.toFixed(2)} m</span></b><div style="font-size:11px; color:#94a3b8; margin-top:2px;">추가 지점 터치 시 연속 누적 측정 가능 (최대 10개)</div>`;
+        measureHud.innerHTML = `📏 <b>[${escapeDisplayText(p1.floor)}] 수평 직선거리: <span style="color:#10b981;">${totalH.toFixed(2)} m</span></b><div style="font-size:11px; color:#94a3b8; margin-top:2px;">추가 지점 터치 시 연속 누적 측정 가능 (최대 10개)</div>`;
       } else {
-        measureHud.innerHTML = `📏 <b>[${p1.floor} ↔ ${p2.floor}] 3D 입체거리: <span style="color:#f59e0b;">${total3D.toFixed(2)} m</span></b><div style="font-size:11px; color:#94a3b8; margin-top:2px;">(수평: ${totalH.toFixed(2)}m, 층고: ${vDiff}m)</div>`;
+        measureHud.innerHTML = `📏 <b>[${escapeDisplayText(p1.floor)} ↔ ${escapeDisplayText(p2.floor)}] 3D 입체거리: <span style="color:#f59e0b;">${total3D.toFixed(2)} m</span></b><div style="font-size:11px; color:#94a3b8; margin-top:2px;">(수평: ${totalH.toFixed(2)}m, 층고: ${vDiff}m)</div>`;
       }
     } else {
       measureHud.innerHTML = `📏 <b>[총 ${count}개 지점] 누적 3D 거리: <span style="color:#10b981;">${total3D.toFixed(2)} m</span></b> (수평: ${totalH.toFixed(2)}m)<div style="font-size:11px; color:#94a3b8; margin-top:2px;">${count < 10 ? `다음 지점(P${count + 1}) 터치 가능 (${count}/10)` : `최대 10개 지점 완료 | 터치 시 새로 시작`}</div>`;
@@ -3990,7 +4109,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     const initAuthor = document.getElementById('initHistAuthor').value.trim() || currentUserInfo.name || '관리자';
     if (initContent) {
       initialLogs.push({
-        date: new Date().toISOString().slice(0, 10),
+        date: getLocalDateValue(),
         author: initAuthor,
         content: initContent,
         photo: initHistPhotoUrl
@@ -4048,8 +4167,10 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       major = parts[0];
       unit = parts[1];
     }
-    const coordX = parseFloat(item.coord_x ?? item.x_coord ?? 400) || 400;
-    const coordY = parseFloat(item.coord_y ?? item.y_coord ?? 400) || 400;
+    const parsedX = parseFloat(item.coord_x ?? item.x_coord);
+    const coordX = Number.isFinite(parsedX) ? parsedX : 400;
+    const parsedY = parseFloat(item.coord_y ?? item.y_coord);
+    const coordY = Number.isFinite(parsedY) ? parsedY : 400;
     const image = item.photo_url || item.image_data || null;
     return {
       ...item,
@@ -4060,14 +4181,17 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       coord_y: coordY,
       photo_url: image,
       image_data: image,
+      originalHistoryLogs: structuredClone(item.history_logs ?? null),
       history_logs: Array.isArray(item.history_logs) ? item.history_logs : []
     };
   }
 
   /* 💡 층수 및 설비 정보 정규화 로직이 적용된 fetchInstruments */
   async function fetchInstruments() {
-    const { data, error } = await supabaseClient.from('instruments').select('*');
-    if (!error) {
+    const epoch = securityEpoch;
+    let data, error;
+    try { data = await fetchAllRows('instruments'); } catch (err) { error = err; }
+    if (!error && epoch === securityEpoch) {
       currentInstruments = (data || []).map(normalizeInstrumentRecord);
       renderFloorPins();
       render3DHotspots();
@@ -4092,8 +4216,9 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       pin.style.left = `${toFloorDisplayX(item.coord_x)}px`;
       pin.style.top = `${item.coord_y}px`;
       const img = item.photo_url || item.image_data;
-      pin.style.backgroundImage = img ? `url(${img})` : 'none';
-      pin.innerHTML = img ? `<span>${item.tag_no}</span>` : `📍<span>${item.tag_no}</span>`;
+      bindPhoto(pin, img, true);
+      const label = document.createElement('span'); label.textContent = item.tag_no || '';
+      if (!img) pin.appendChild(document.createTextNode('📍')); pin.appendChild(label);
       
       let pressTimer = null;
       let startClientX = 0;
@@ -4165,17 +4290,18 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
           const fxDisplay = parseInt(pin.style.left);
           const fx = toFloorDataX(fxDisplay);
           const fy = parseInt(pin.style.top);
-          item.coord_x = fx;
-          item.coord_y = fy;
-          item.x_coord = fx;
-          item.y_coord = fy;
-
+          const { data, error } = await supabaseClient.from('instruments').update({
+            coord_x: fx, coord_y: fy, x_coord: fx, y_coord: fy
+          }).eq('id', item.id).select('id').maybeSingle();
+          if (error || !data) {
+            pin.style.left = `${toFloorDisplayX(item.coord_x)}px`;
+            pin.style.top = `${item.coord_y}px`;
+            measureHud.innerText = '위치 저장 실패: 승인 상태와 연결을 확인해 주세요.';
+            return;
+          }
+          Object.assign(item, { coord_x: fx, coord_y: fy, x_coord: fx, y_coord: fy });
           measureHud.innerText = `✅ [${item.tag_no}] 위치가 저장되었습니다.`;
           setTimeout(() => { if (!isMeasureMode) measureHud.style.display = 'none'; }, 2000);
-
-          await supabaseClient.from('instruments').update({
-            coord_x: fx, coord_y: fy, x_coord: fx, y_coord: fy
-          }).eq('id', item.id);
 
           render3DHotspots();
           return;
@@ -4284,9 +4410,9 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       btn.slot = `hotspot-${item.id}`;
       btn.dataset.position = pos;
       const img = item.photo_url || item.image_data;
-      btn.style.backgroundImage = img ? `url(${img})` : 'none';
+      bindPhoto(btn, img, true);
       const floorLabel = (item.floor || '').replace('층', 'F');
-      btn.innerHTML = `<span>${floorLabel}</span>`;
+      const label = document.createElement('span'); label.textContent = floorLabel; btn.appendChild(label);
       btn.onclick = (e) => {
         e.stopPropagation();
         showDetail(item);
@@ -4301,22 +4427,21 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     const mainImg = document.getElementById('infoMainImg');
     const img = item.photo_url || item.image_data;
     mainImg.style.display = img ? 'block' : 'none';
-    if (img) mainImg.src = img;
-    document.getElementById('infoBody').innerHTML = `
-      <div><b>Tag-name:</b> <span style="color:#38bdf8; font-weight:bold;">${item.tag_no || '-'}</span></div>
-      <div><b>설비 구분:</b> <span style="color:#38bdf8; font-weight:bold;">${selectedMajor} ${item.unit || '2호기'}</span></div>
-      <div><b>도면 층:</b> <span style="color:#0284c7; font-weight:bold;">${item.floor}</span></div>
-      <div><b>모델명:</b> ${item.model || '-'}</div>
-      <div><b>측정범위:</b> ${item.signal_range || '-'}</div>
-    `;
+    bindPhoto(mainImg, img);
+    const info = document.getElementById('infoBody'); info.replaceChildren();
+    for (const [label, value] of [['Tag-name',item.tag_no],['설비 구분',`${instrumentMajor(item)} ${item.unit || '2호기'}`],['도면 층',item.floor],['모델명',item.model],['측정범위',item.signal_range]]) {
+      const row = document.createElement('div'); const title = document.createElement('b'); title.textContent = `${label}: `;
+      const text = document.createElement('span'); text.textContent = value || '-'; row.append(title,text); info.appendChild(row);
+    }
     renderHistoryListModal(item);
     document.getElementById('btnAddHistBtn').onclick = () => {
       editingHistoryIndex = null;
+      historyEditorSnapshot = { targetId: item.id, index: null, original: structuredClone(item.originalHistoryLogs) };
       historyEditOpenedFromTable = false;
       document.getElementById('info-modal').style.display = 'none';
       document.getElementById('histModalTitle').innerText = '📋 새 점검/정비 이력 추가';
       document.getElementById('histTargetTag').innerText = `[${item.tag_no}] ${item.name}`;
-      document.getElementById('histDate').value = new Date().toISOString().slice(0, 10);
+      document.getElementById('histDate').value = getLocalDateValue();
       document.getElementById('histAuthor').value = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '';
       document.getElementById('histContent').value = '';
       pendingHistPhotoFile = null;
@@ -4341,19 +4466,19 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       listEl.innerHTML = '<div style="color:#94a3b8; font-size:11px;">등록된 점검 이력이 없습니다.</div>';
       return;
     }
-    listEl.innerHTML = logs.map((h, idx) => `
-      <div class="history-item">
-        <div class="history-item-header">
-          <span>${h.date} | 👤 ${h.author}</span>
-          <div class="history-actions">
-            <button class="btn-hist-action btn-hist-edit" onclick="openEditHistory(${idx})">✏️ 수정</button>
-            <button class="btn-hist-action btn-hist-del" onclick="deleteHistoryItem(${idx})">🗑️ 삭제</button>
-          </div>
-        </div>
-        <div style="color:#111; font-weight:bold; font-size:12px; margin-top:2px; white-space: pre-line;">${h.content}</div>
-        ${h.photo ? `<img src="${h.photo}" class="hist-img" title="클릭 시 전체화면 확대" onclick="openImageLightbox('${h.photo}')">` : ''}
-      </div>
-    `).join('');
+    listEl.replaceChildren();
+    logs.forEach((h, idx) => {
+      const row = document.createElement('div'); row.className = 'history-item';
+      const header = document.createElement('div'); header.className = 'history-item-header';
+      const title = document.createElement('span'); title.textContent = `${h.date || ''} | 👤 ${h.author || ''}`;
+      const actions = document.createElement('div'); actions.className = 'history-actions';
+      for (const [text, cls, action] of [['✏️ 수정','btn-hist-edit',()=>openEditHistory(idx)],['🗑️ 삭제','btn-hist-del',()=>deleteHistoryItem(idx)]]) {
+        const button = document.createElement('button'); button.className = `btn-hist-action ${cls}`; button.textContent = text; button.addEventListener('click',action); actions.appendChild(button);
+      }
+      header.append(title,actions); const content = document.createElement('div'); content.style.whiteSpace = 'pre-line'; content.textContent = h.content || ''; row.append(header,content);
+      if (h.photo) { const image = document.createElement('img'); image.className = 'hist-img'; bindPhoto(image,h.photo); image.addEventListener('click',()=>openImageLightbox(h.photo)); row.appendChild(image); }
+      listEl.appendChild(row);
+    });
   }
 
   window.closeHistoryEditor = function() {
@@ -4370,17 +4495,18 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     if (!target || !target.history_logs[idx]) return;
     const h = target.history_logs[idx];
     editingHistoryIndex = idx;
+    historyEditorSnapshot = { targetId: target.id, index: idx, original: structuredClone(target.originalHistoryLogs) };
     historyEditOpenedFromTable = openedFromTable;
     document.getElementById('info-modal').style.display = 'none';
     document.getElementById('histModalTitle').innerText = '✏️ 점검/정비 이력 수정';
     document.getElementById('histTargetTag').innerText = `[${target.tag_no}] ${target.name}`;
-    document.getElementById('histDate').value = h.date || new Date().toISOString().slice(0, 10);
+    document.getElementById('histDate').value = h.date || getLocalDateValue();
     document.getElementById('histAuthor').value = h.author || '';
     document.getElementById('histContent').value = h.content || '';
     pendingHistPhotoFile = null;
     const preview = document.getElementById('histPhotoPreview');
     preview.style.display = h.photo ? 'block' : 'none';
-    if (h.photo) preview.src = h.photo;
+    bindPhoto(preview, h.photo);
     document.getElementById('histPhotoCam').value = '';
     document.getElementById('histPhotoGallery').value = '';
     document.getElementById('history-modal').style.display = 'block';
@@ -4390,13 +4516,16 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     if (!confirm('해당 점검 이력을 삭제하시겠습니까?')) return;
     const target = currentInstruments.find(i => i.id === activeTargetId);
     if (!target) return;
-    target.history_logs.splice(idx, 1);
-    const { error } = await supabaseClient.from('instruments').update({ history_logs: target.history_logs }).eq('id', activeTargetId);
-    if (!error) {
+    const original = structuredClone(target.originalHistoryLogs);
+    const logs = [...target.history_logs]; logs.splice(idx, 1);
+    if (await saveHistoryConditionally(target,original,logs)) {
       invalidateUnifiedData();
       renderHistoryListModal(target);
       alert('✅ 삭제 완료');
       if (selectedSubTab === '관리이력') renderHistoryTable();
+    } else {
+      const latest = currentInstruments.find(item => item.id === target.id);
+      if (latest && activeTargetId === target.id) renderHistoryListModal(latest);
     }
   };
 
@@ -4407,37 +4536,41 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       alert('작업자와 내용을 입력하세요.');
       return;
     }
-    alert('⏳ 스토리지에 사진 업로드 및 이력 저장 중...');
-    const histPhotoUrl = await uploadImageToStorage(pendingHistPhotoFile);
+    const targetId = historyEditorSnapshot?.targetId ?? activeTargetId;
+    const editIndex = historyEditorSnapshot ? historyEditorSnapshot.index : editingHistoryIndex;
+    const date = document.getElementById('histDate').value;
+    const target = currentInstruments.find(i => i.id === targetId);
+    if (!target) return;
+    const original = structuredClone(historyEditorSnapshot ? historyEditorSnapshot.original : target.originalHistoryLogs);
+    const logs = Array.isArray(original) ? structuredClone(original) : [];
+    const photoFile = pendingHistPhotoFile;
+    const histPhotoUrl = await uploadImageToStorage(photoFile);
     localStorage.setItem('jeju_worker_name', workerName);
     currentUserInfo.name = workerName;
     document.getElementById('loginUserBadge').innerText = `👤 ${workerName}`;
-    const target = currentInstruments.find(i => i.id === activeTargetId);
-    if (!target) return;
-    const logs = Array.isArray(target.history_logs) ? [...target.history_logs] : [];
     let finalPhotoUrl = histPhotoUrl;
-    if (!finalPhotoUrl && editingHistoryIndex !== null && logs[editingHistoryIndex]) {
-      finalPhotoUrl = logs[editingHistoryIndex].photo;
+    if (!finalPhotoUrl && editIndex !== null && logs[editIndex]) {
+      finalPhotoUrl = logs[editIndex].photo;
     }
     const entryData = {
-      date: document.getElementById('histDate').value,
+      date,
       author: workerName,
       content: text,
       photo: finalPhotoUrl
     };
-    if (editingHistoryIndex !== null) logs[editingHistoryIndex] = entryData;
+    if (editIndex !== null) logs[editIndex] = entryData;
     else logs.unshift(entryData);
-    const { error } = await supabaseClient.from('instruments').update({ history_logs: logs }).eq('id', activeTargetId);
-    if (!error) {
+    if (photoFile && !histPhotoUrl) return;
+    if (await saveHistoryConditionally(target, original, logs)) {
       const returnToHistoryTable = historyEditOpenedFromTable;
       target.history_logs = logs;
       document.getElementById('history-modal').style.display = 'none';
       invalidateUnifiedData();
-      if (!returnToHistoryTable) {
+      if (!returnToHistoryTable && activeTargetId === targetId) {
         renderHistoryListModal(target);
         document.getElementById('info-modal').style.display = 'block';
       }
-      alert(editingHistoryIndex !== null ? '✅ 수정 완료' : '✅ 등록 완료');
+      alert(editIndex !== null ? '✅ 수정 완료' : '✅ 등록 완료');
       editingHistoryIndex = null;
       historyEditOpenedFromTable = false;
       if (selectedSubTab === '관리이력') renderHistoryTable();
