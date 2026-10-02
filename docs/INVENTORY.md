@@ -5,10 +5,13 @@
 `20261002013956_inventory_blank_item_codes.sql`,
 `20261002043858_inventory_details.sql`,
 `20261002044743_inventory_life_rules.sql`,
-`20261002044823_inventory_life_trigger_owner.sql`을 순서대로 적용해야 합니다.
+`20261002044823_inventory_life_trigger_owner.sql`,
+`20261002050239_inventory_category_life.sql`을 순서대로 적용해야 합니다.
 
 계측기 교체주기 자동 판별 규칙은 [`INVENTORY_LIFE_RULES.md`](INVENTORY_LIFE_RULES.md)에 정리했습니다.
-품명·분류·규격·모델명에서 타입을 확인하며, 일치하는 고정 주기가 있으면 수명을 자동 입력합니다.
+화면에서는 분류 목록에서 계측기 타입을 선택하고, 목록에 없으면 ‘기타’에서 직접 입력합니다.
+선택한 분류의 고정 주기가 있으면 수명을 자동 입력합니다. CSV는 분류를 우선 사용하며,
+분류가 비어 있을 때만 품명·규격·모델명에서 타입을 찾습니다.
 CSV에서 `service_life`를 비워도 같은 규칙이 적용됩니다. 직접 입력한 수명은 유지됩니다.
 
 ## CSV 가져오기
@@ -24,7 +27,7 @@ Supabase Dashboard → Table Editor → `inventory` → Import data from CSV에�
 | `standard_qty` | 정수(최대 보관 수량) | 예 |
 | `stock_qty` | 시작 현재고 | 예 |
 | `item_code` | 중복되지 않는 품목코드 | 아니요 |
-| `category` | 자재 분류 | 아니요 |
+| `category` | 계측기 분류. 화면에서는 목록 또는 기타 직접 입력 | CSV에서는 아니요 |
 | `spec` | 규격 | 아니요 |
 | `model_name` | 모델명 | 아니요 |
 | `purpose` | 용도 | 아니요 |

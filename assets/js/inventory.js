@@ -19,10 +19,22 @@
 
   const byId = id => document.getElementById(id);
   const field = id => byId(id).value.trim();
+  const categorySelect = byId('inventoryCategory');
+  inventoryCategoryOptions.forEach(([name]) => categorySelect.add(new Option(name, name)));
+  categorySelect.add(new Option('기타', '기타'));
+  const categoryValue = () => categorySelect.value === '기타'
+    ? field('inventoryCategoryOther') : categorySelect.value;
+  const categoryForInference = () => categorySelect.value === '기타'
+    ? field('inventoryCategoryOther') || '기타' : categorySelect.value;
+  function refreshCategoryOther() {
+    const other = categorySelect.value === '기타';
+    byId('inventoryCategoryOtherField').hidden = !other;
+    byId('inventoryCategoryOther').required = other;
+  }
   const emptyText = value => value == null || value === '' ? '—' : String(value);
   const itemById = id => items.find(item => item.id === id);
   const inferredLife = () => inferInventoryServiceLife({
-    item_name: field('inventoryItemName'), category: field('inventoryCategory'),
+    item_name: field('inventoryItemName'), category: categoryForInference(),
     spec: field('inventorySpec'), model_name: field('inventoryModelName')
   });
   function refreshServiceLife() {
@@ -160,7 +172,11 @@
     byId('inventoryMajorCategory').value = item?.major_category || '';
     byId('inventoryItemName').value = item?.item_name || '';
     byId('inventoryItemCode').value = item?.item_code || '';
-    byId('inventoryCategory').value = item?.category || '';
+    const savedCategory = item?.category || '';
+    const listedCategory = inventoryCategoryOptions.some(([name]) => name === savedCategory);
+    categorySelect.value = savedCategory ? (listedCategory ? savedCategory : '기타') : '';
+    byId('inventoryCategoryOther').value = listedCategory ? '' : savedCategory;
+    refreshCategoryOther();
     byId('inventorySpec').value = item?.spec || '';
     byId('inventoryModelName').value = item?.model_name || '';
     byId('inventoryPurpose').value = item?.purpose || '';
@@ -186,6 +202,7 @@
       errorElement.textContent = '대분류를 선택해 주세요.'; return;
     }
     if (!field('inventoryItemName')) { errorElement.textContent = '품명을 입력해 주세요.'; return; }
+    if (!categoryValue()) { errorElement.textContent = '분류를 선택하거나 기타 분류명을 입력해 주세요.'; return; }
     if (!Number.isSafeInteger(standard) || standard < 0 || !Number.isSafeInteger(current)
       || current < 0 || current > standard) {
       errorElement.textContent = '정수와 현재고를 확인해 주세요. 현재고는 정수보다 클 수 없습니다.'; return;
@@ -194,7 +211,7 @@
       major_category: field('inventoryMajorCategory'), purpose: field('inventoryPurpose') || null,
       service_life: field('inventoryServiceLife') || null,
       item_name: field('inventoryItemName'), item_code: field('inventoryItemCode') || null,
-      category: field('inventoryCategory') || null, spec: field('inventorySpec') || null,
+      category: categoryValue(), spec: field('inventorySpec') || null,
       model_name: field('inventoryModelName') || null, location: field('inventoryLocation') || null,
       unit: field('inventoryUnit') || 'EA', standard_qty: standard,
       updated_by: currentUserInfo.name || '작업자', updated_at: new Date().toISOString()
@@ -274,8 +291,11 @@
   byId('inventoryEditorCancel').addEventListener('click', () => editor.close());
   byId('inventoryChangeCancel').addEventListener('click', () => changeDialog.close());
   byId('inventoryEditorForm').addEventListener('submit', saveEditor);
-  ['inventoryItemName', 'inventoryCategory', 'inventorySpec', 'inventoryModelName'].forEach(id =>
+  ['inventoryItemName', 'inventoryCategoryOther', 'inventorySpec', 'inventoryModelName'].forEach(id =>
     byId(id).addEventListener('input', refreshServiceLife));
+  categorySelect.addEventListener('change', () => {
+    refreshCategoryOther(); lifeMode = 'auto'; refreshServiceLife();
+  });
   byId('inventoryServiceLife').addEventListener('input', () => {
     lifeMode = 'manual'; refreshServiceLife();
   });

@@ -9,7 +9,7 @@
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon.png">
   <link rel="apple-touch-icon" href="./assets/icons/icon.png">
-  <link rel="stylesheet" href="./assets/css/styles.css?v=20261002-inventory-life">
+  <link rel="stylesheet" href="./assets/css/styles.css?v=20261002-inventory-category">
 </head>
 <body>
 
@@ -703,7 +703,8 @@
         <label>대분류 <select id="inventoryMajorCategory" required><option value="">선택</option><option value="기력">기력</option><option value="내연">내연</option><option value="환경">환경</option></select></label>
         <label>품명 <input id="inventoryItemName" type="text" maxlength="200" required></label>
         <label>품목코드 <input id="inventoryItemCode" type="text" maxlength="100" placeholder="선택 입력"></label>
-        <label>분류 <input id="inventoryCategory" type="text" maxlength="100" placeholder="예: 계측기"></label>
+        <label>분류 <select id="inventoryCategory" required><option value="">선택</option></select></label>
+        <label id="inventoryCategoryOtherField" hidden>기타 분류 <input id="inventoryCategoryOther" type="text" maxlength="100" placeholder="분류명 직접 입력"></label>
         <label>규격 <input id="inventorySpec" type="text" maxlength="200"></label>
         <label>모델명 <input id="inventoryModelName" type="text" maxlength="200"></label>
         <label>용도 <input id="inventoryPurpose" type="text" maxlength="500" placeholder="예: 압력 계측"></label>
@@ -732,7 +733,7 @@
   </dialog>
 
   <script src="./assets/js/app.js?v=20261002-inventory"></script>
-  <script src="./assets/js/inventory-life.js?v=20261002-inventory-life"></script>
-  <script src="./assets/js/inventory.js?v=20261002-inventory-life"></script>
+  <script src="./assets/js/inventory-life.js?v=20261002-inventory-category"></script>
+  <script src="./assets/js/inventory.js?v=20261002-inventory-category"></script>
 </body>
 </html>
