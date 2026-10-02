@@ -998,6 +998,9 @@
     .inventory-dialog label { display: grid; gap: 5px; color: var(--muted); font-size: 12px; font-weight: 700; }
     .inventory-dialog input, .inventory-dialog select { width: 100%; font-size: 14px; }
     .inventory-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+    .inventory-life-helper { display: flex; align-items: center; gap: 10px; margin-top: 10px; color: var(--muted); font-size: 12px; }
+    .inventory-life-helper button { border: 1px solid var(--line-strong); border-radius: 7px; padding: 5px 8px; background: var(--surface-raised); color: var(--text); cursor: pointer; white-space: nowrap; }
+    .inventory-life-helper button[hidden] { display: none; }
     #inventoryEditorHint { margin-top: 13px; }
     #inventoryChangeForm { display: grid; gap: 14px; }
     .inventory-form-error { min-height: 18px; font-size: 12px; }

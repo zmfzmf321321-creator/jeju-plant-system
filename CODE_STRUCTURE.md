@@ -8,11 +8,13 @@
 - `assets/css/styles.css`: 전체 화면 스타일, 반응형 레이아웃, 모달/패널 디자인
 - `assets/js/app.js`: Supabase 연동, 메뉴 전환, 설비 도면, 이력, AI 점검, 검색 등 동작 로직
 - `assets/js/inventory.js`: 자재 등록·수정·보관 종료, 정수/현재고 표시, 사유가 남는 입출고와 이력
+- `assets/js/inventory-life.js`: 계측기 타입별 고정 교체주기 판별
 - `assets/floor-plans/`: 보일러, 탈질, 내연, 연료펌프룸, 암모니아탱크 도면 이미지
 - `assets/models/`: 3D 모델 파일
 - `assets/icons/`: 앱 아이콘
 - `supabase/migrations/`: 데이터베이스 마이그레이션
 - `docs/INVENTORY.md`: Supabase CSV 초기 자료 열과 자재관리 사용 안내
+- `docs/INVENTORY_LIFE_RULES.md`: 계측기 교체주기 판별 기준과 수동 입력 대상
 - `supabase/functions/gemini-chat/index.ts`: 사용자 인증·승인 검사 후 AI 대화/OCR을 처리하는 운영 Edge Function
 - `supabase/tests/approval_access.sql`: 임시 계정과 레코드를 롤백하면서 승인 전/후/취소 및 권한 위조를 검증
 - `tests/app-security.test.cjs`: 프런트엔드 승인, 사진, XSS, 페이지 조회, 좌표·날짜, 저장 충돌 회귀 검사

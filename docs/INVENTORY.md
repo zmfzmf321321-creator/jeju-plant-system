@@ -3,7 +3,13 @@
 자재관리 화면은 Supabase의 `public.inventory`를 읽습니다. 운영 DB에는
 `20261002013712_inventory_management.sql`과
 `20261002013956_inventory_blank_item_codes.sql`,
-`20261002043858_inventory_details.sql`을 순서대로 적용해야 합니다.
+`20261002043858_inventory_details.sql`,
+`20261002044743_inventory_life_rules.sql`,
+`20261002044823_inventory_life_trigger_owner.sql`을 순서대로 적용해야 합니다.
+
+계측기 교체주기 자동 판별 규칙은 [`INVENTORY_LIFE_RULES.md`](INVENTORY_LIFE_RULES.md)에 정리했습니다.
+품명·분류·규격·모델명에서 타입을 확인하며, 일치하는 고정 주기가 있으면 수명을 자동 입력합니다.
+CSV에서 `service_life`를 비워도 같은 규칙이 적용됩니다. 직접 입력한 수명은 유지됩니다.
 
 ## CSV 가져오기
 
@@ -22,7 +28,7 @@ Supabase Dashboard → Table Editor → `inventory` → Import data from CSV에�
 | `spec` | 규격 | 아니요 |
 | `model_name` | 모델명 | 아니요 |
 | `purpose` | 용도 | 아니요 |
-| `service_life` | 수명 기간, 예: 5년 또는 18개월 | 아니요 |
+| `service_life` | 교체주기, 예: 6년. 자동 판별이 안 되면 직접 입력 | 아니요 |
 | `unit` | 단위, 예: EA | 아니요 |
 | `location` | 보관 위치 | 아니요 |
 

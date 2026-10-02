@@ -15,11 +15,27 @@
   let changeItemId = null;
   let changeDirection = 1;
   let loadToken = 0;
+  let lifeMode = 'auto';
 
   const byId = id => document.getElementById(id);
   const field = id => byId(id).value.trim();
   const emptyText = value => value == null || value === '' ? '—' : String(value);
   const itemById = id => items.find(item => item.id === id);
+  const inferredLife = () => inferInventoryServiceLife({
+    item_name: field('inventoryItemName'), category: field('inventoryCategory'),
+    spec: field('inventorySpec'), model_name: field('inventoryModelName')
+  });
+  function refreshServiceLife() {
+    const match = inferredLife();
+    if (lifeMode === 'auto') byId('inventoryServiceLife').value = match.value || '';
+    const note = byId('inventoryServiceLifeNote');
+    note.textContent = lifeMode === 'manual'
+      ? '직접 입력한 수명입니다. 자동값으로 돌아가려면 ‘자동값 사용’을 누르세요.'
+      : match.value ? `${match.type}: ${match.value} 자동 적용 · 필요하면 수정할 수 있습니다.`
+        : match.type ? `${match.type}: 고정 교체주기가 없어 직접 입력해 주세요.`
+          : '타입을 구별하지 못했습니다. 수명을 직접 입력해 주세요.';
+    byId('inventoryAutoLifeButton').hidden = lifeMode === 'auto' || !match.value;
+  }
   const errorText = error => error?.code === '23505'
     ? '같은 품목코드가 이미 있습니다.'
     : (error?.message || '요청을 처리하지 못했습니다.');
@@ -149,6 +165,9 @@
     byId('inventoryModelName').value = item?.model_name || '';
     byId('inventoryPurpose').value = item?.purpose || '';
     byId('inventoryServiceLife').value = item?.service_life || '';
+    const match = inferredLife();
+    lifeMode = !item?.service_life || item.service_life === match.value ? 'auto' : 'manual';
+    refreshServiceLife();
     byId('inventoryLocation').value = item?.location || '';
     byId('inventoryUnit').value = item?.unit || 'EA';
     byId('inventoryStandardQty').value = item?.standard_qty ?? 0;
@@ -255,6 +274,14 @@
   byId('inventoryEditorCancel').addEventListener('click', () => editor.close());
   byId('inventoryChangeCancel').addEventListener('click', () => changeDialog.close());
   byId('inventoryEditorForm').addEventListener('submit', saveEditor);
+  ['inventoryItemName', 'inventoryCategory', 'inventorySpec', 'inventoryModelName'].forEach(id =>
+    byId(id).addEventListener('input', refreshServiceLife));
+  byId('inventoryServiceLife').addEventListener('input', () => {
+    lifeMode = 'manual'; refreshServiceLife();
+  });
+  byId('inventoryAutoLifeButton').addEventListener('click', () => {
+    lifeMode = 'auto'; refreshServiceLife();
+  });
   byId('inventoryChangeForm').addEventListener('submit', saveChange);
   search.addEventListener('input', render);
   majorFilter.addEventListener('change', render);

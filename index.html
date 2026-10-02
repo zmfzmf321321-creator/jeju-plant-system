@@ -9,7 +9,7 @@
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon.png">
   <link rel="apple-touch-icon" href="./assets/icons/icon.png">
-  <link rel="stylesheet" href="./assets/css/styles.css?v=20261002-inventory-fields">
+  <link rel="stylesheet" href="./assets/css/styles.css?v=20261002-inventory-life">
 </head>
 <body>
 
@@ -707,12 +707,13 @@
         <label>규격 <input id="inventorySpec" type="text" maxlength="200"></label>
         <label>모델명 <input id="inventoryModelName" type="text" maxlength="200"></label>
         <label>용도 <input id="inventoryPurpose" type="text" maxlength="500" placeholder="예: 압력 계측"></label>
-        <label>수명 <input id="inventoryServiceLife" type="text" maxlength="100" placeholder="예: 5년, 18개월"></label>
+        <label>수명 <input id="inventoryServiceLife" type="text" maxlength="100" placeholder="타입 미확인 시 직접 입력"></label>
         <label>보관 위치 <input id="inventoryLocation" type="text" maxlength="200"></label>
         <label>단위 <input id="inventoryUnit" type="text" maxlength="20" value="EA" required></label>
         <label>정수 <input id="inventoryStandardQty" type="number" min="0" step="1" required></label>
         <label id="inventoryInitialQtyField">초기 현재고 <input id="inventoryInitialQty" type="number" min="0" step="1" value="0" required></label>
       </div>
+      <div class="inventory-life-helper"><span id="inventoryServiceLifeNote">품명을 입력하면 교체주기를 자동 판별합니다.</span><button type="button" id="inventoryAutoLifeButton">자동값 사용</button></div>
       <p id="inventoryEditorHint">초기 현재고는 자동으로 ‘초기 재고 등록’ 이력에 기록됩니다.</p>
       <div id="inventoryEditorError" class="inventory-form-error" role="alert"></div>
       <div class="inventory-dialog-actions"><button type="button" id="inventoryEditorCancel">취소</button><button type="submit" class="inventory-primary-btn" id="inventoryEditorSubmit">등록</button></div>
@@ -731,6 +732,7 @@
   </dialog>
 
   <script src="./assets/js/app.js?v=20261002-inventory"></script>
-  <script src="./assets/js/inventory.js?v=20261002-inventory-fields"></script>
+  <script src="./assets/js/inventory-life.js?v=20261002-inventory-life"></script>
+  <script src="./assets/js/inventory.js?v=20261002-inventory-life"></script>
 </body>
 </html>
