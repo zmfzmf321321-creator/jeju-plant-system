@@ -8,6 +8,7 @@
   const editor = document.getElementById('inventoryEditorDialog');
   const changeDialog = document.getElementById('inventoryChangeDialog');
   const search = document.getElementById('inventorySearch');
+  const majorFilter = document.getElementById('inventoryMajorFilter');
   const showArchived = document.getElementById('inventoryShowArchived');
   let items = [];
   let historyItemId = null;
@@ -42,22 +43,28 @@
     const query = search.value.trim().toLocaleLowerCase();
     const visible = items.filter(item => {
       if (item.is_archived && !showArchived.checked) return false;
+      if (majorFilter.value !== '전체' && item.major_category !== majorFilter.value) return false;
       return !query || [item.item_name, item.item_code, item.category, item.spec,
-        item.model_name, item.location].some(value => String(value || '').toLocaleLowerCase().includes(query));
+        item.model_name, item.purpose, item.service_life, item.location, item.major_category]
+        .some(value => String(value || '').toLocaleLowerCase().includes(query));
     });
     tableBody.replaceChildren();
     if (!visible.length) {
       const row = make('tr');
       const cell = make('td', '', items.length ? '조건에 맞는 자재가 없습니다.' : '등록된 자재가 없습니다. CSV를 가져오거나 자재를 등록해 주세요.');
-      cell.colSpan = 5; row.append(cell); tableBody.append(row); return;
+      cell.colSpan = 6; row.append(cell); tableBody.append(row); return;
     }
     visible.forEach(item => {
       const row = make('tr', item.is_archived ? 'archived' : '');
       const nameCell = make('td');
       nameCell.append(make('div', 'inventory-name', item.item_name),
-        make('div', 'inventory-meta', [item.item_code, item.category].filter(Boolean).join(' · ') || '품목코드 없음'));
+        make('div', 'inventory-meta', [item.item_code, item.category].filter(Boolean).join(' · ') || '품목코드 없음'),
+        make('div', 'inventory-major', item.major_category || '대분류 미지정'));
       const specCell = make('td');
       specCell.append(make('div', '', emptyText(item.spec)), make('div', 'inventory-meta', `모델명 ${emptyText(item.model_name)}`));
+      const purposeCell = make('td');
+      purposeCell.append(make('div', '', emptyText(item.purpose)),
+        make('div', 'inventory-meta', `수명 ${emptyText(item.service_life)}`));
       const placeCell = make('td', '', emptyText(item.location));
       const quantity = make('td', 'inventory-qty');
       const current = Number(item.stock_qty || 0);
@@ -70,7 +77,7 @@
           action('수정', 'edit', item.id), action('삭제', 'archive', item.id));
       } else buttons.append(action('복원', 'restore', item.id));
       buttons.append(action('이력', 'history', item.id));
-      row.append(nameCell, specCell, placeCell, quantity, buttons);
+      row.append(nameCell, specCell, purposeCell, placeCell, quantity, buttons);
       tableBody.append(row);
     });
   }
@@ -79,7 +86,7 @@
     const rows = [];
     for (let offset = 0; ; offset += 1000) {
       const { data, error } = await supabaseClient.from('inventory')
-        .select('id,category,item_code,item_name,spec,model_name,stock_qty,standard_qty,unit,location,is_archived,updated_at')
+        .select('id,major_category,category,item_code,item_name,spec,model_name,purpose,service_life,stock_qty,standard_qty,unit,location,is_archived,updated_at')
         .order('item_name', { ascending: true }).range(offset, offset + 999);
       if (error) throw error;
       rows.push(...(data || []));
@@ -134,11 +141,14 @@
     byId('inventoryEditorSubmit').textContent = item ? '수정 저장' : '등록';
     byId('inventoryInitialQtyField').style.display = item ? 'none' : '';
     byId('inventoryEditorHint').style.display = item ? 'none' : '';
+    byId('inventoryMajorCategory').value = item?.major_category || '';
     byId('inventoryItemName').value = item?.item_name || '';
     byId('inventoryItemCode').value = item?.item_code || '';
     byId('inventoryCategory').value = item?.category || '';
     byId('inventorySpec').value = item?.spec || '';
     byId('inventoryModelName').value = item?.model_name || '';
+    byId('inventoryPurpose').value = item?.purpose || '';
+    byId('inventoryServiceLife').value = item?.service_life || '';
     byId('inventoryLocation').value = item?.location || '';
     byId('inventoryUnit').value = item?.unit || 'EA';
     byId('inventoryStandardQty').value = item?.standard_qty ?? 0;
@@ -153,12 +163,17 @@
     const initial = Number(field('inventoryInitialQty'));
     const current = id ? Number(itemById(id)?.stock_qty || 0) : initial;
     const errorElement = byId('inventoryEditorError');
+    if (!['기력', '내연', '환경'].includes(field('inventoryMajorCategory'))) {
+      errorElement.textContent = '대분류를 선택해 주세요.'; return;
+    }
     if (!field('inventoryItemName')) { errorElement.textContent = '품명을 입력해 주세요.'; return; }
     if (!Number.isSafeInteger(standard) || standard < 0 || !Number.isSafeInteger(current)
       || current < 0 || current > standard) {
       errorElement.textContent = '정수와 현재고를 확인해 주세요. 현재고는 정수보다 클 수 없습니다.'; return;
     }
     const payload = {
+      major_category: field('inventoryMajorCategory'), purpose: field('inventoryPurpose') || null,
+      service_life: field('inventoryServiceLife') || null,
       item_name: field('inventoryItemName'), item_code: field('inventoryItemCode') || null,
       category: field('inventoryCategory') || null, spec: field('inventorySpec') || null,
       model_name: field('inventoryModelName') || null, location: field('inventoryLocation') || null,
@@ -242,6 +257,7 @@
   byId('inventoryEditorForm').addEventListener('submit', saveEditor);
   byId('inventoryChangeForm').addEventListener('submit', saveChange);
   search.addEventListener('input', render);
+  majorFilter.addEventListener('change', render);
   showArchived.addEventListener('change', render);
   window.loadInventoryPage = load;
   window.clearInventoryPage = () => {

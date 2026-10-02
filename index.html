@@ -9,7 +9,7 @@
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon.png">
   <link rel="apple-touch-icon" href="./assets/icons/icon.png">
-  <link rel="stylesheet" href="./assets/css/styles.css?v=20261002-inventory">
+  <link rel="stylesheet" href="./assets/css/styles.css?v=20261002-inventory-fields">
 </head>
 <body>
 
@@ -420,6 +420,8 @@
         <button type="button" id="inventoryAddButton" class="inventory-primary-btn">+ 자재 등록</button>
       </div>
       <div class="inventory-tools">
+        <label for="inventoryMajorFilter">대분류</label>
+        <select id="inventoryMajorFilter"><option value="전체">전체</option><option value="기력">기력</option><option value="내연">내연</option><option value="환경">환경</option></select>
         <label for="inventorySearch">자재 검색</label>
         <input id="inventorySearch" type="search" placeholder="품명·품목코드·규격·모델명 검색" autocomplete="off">
         <label class="inventory-archive-toggle"><input id="inventoryShowArchived" type="checkbox"> 보관 종료 항목 보기</label>
@@ -427,8 +429,8 @@
       <div id="inventoryStatus" class="inventory-status" role="status" aria-live="polite"></div>
       <div class="inventory-table-wrap">
         <table class="inventory-table">
-          <thead><tr><th>자재</th><th>규격 / 모델명</th><th>보관 위치</th><th>정수 / 현재고</th><th>작업</th></tr></thead>
-          <tbody id="inventoryTableBody"><tr><td colspan="5">자재관리 탭을 열면 목록을 불러옵니다.</td></tr></tbody>
+          <thead><tr><th>자재</th><th>규격 / 모델명</th><th>용도 / 수명</th><th>보관 위치</th><th>정수 / 현재고</th><th>작업</th></tr></thead>
+          <tbody id="inventoryTableBody"><tr><td colspan="6">자재관리 탭을 열면 목록을 불러옵니다.</td></tr></tbody>
         </table>
       </div>
       <section class="inventory-history-panel" aria-labelledby="inventoryHistoryTitle">
@@ -698,11 +700,14 @@
       <h3 id="inventoryEditorTitle">자재 등록</h3>
       <input id="inventoryEditId" type="hidden">
       <div class="inventory-form-grid">
+        <label>대분류 <select id="inventoryMajorCategory" required><option value="">선택</option><option value="기력">기력</option><option value="내연">내연</option><option value="환경">환경</option></select></label>
         <label>품명 <input id="inventoryItemName" type="text" maxlength="200" required></label>
         <label>품목코드 <input id="inventoryItemCode" type="text" maxlength="100" placeholder="선택 입력"></label>
         <label>분류 <input id="inventoryCategory" type="text" maxlength="100" placeholder="예: 계측기"></label>
         <label>규격 <input id="inventorySpec" type="text" maxlength="200"></label>
         <label>모델명 <input id="inventoryModelName" type="text" maxlength="200"></label>
+        <label>용도 <input id="inventoryPurpose" type="text" maxlength="500" placeholder="예: 압력 계측"></label>
+        <label>수명 <input id="inventoryServiceLife" type="text" maxlength="100" placeholder="예: 5년, 18개월"></label>
         <label>보관 위치 <input id="inventoryLocation" type="text" maxlength="200"></label>
         <label>단위 <input id="inventoryUnit" type="text" maxlength="20" value="EA" required></label>
         <label>정수 <input id="inventoryStandardQty" type="number" min="0" step="1" required></label>
@@ -726,6 +731,6 @@
   </dialog>
 
   <script src="./assets/js/app.js?v=20261002-inventory"></script>
-  <script src="./assets/js/inventory.js?v=20261002-inventory"></script>
+  <script src="./assets/js/inventory.js?v=20261002-inventory-fields"></script>
 </body>
 </html>

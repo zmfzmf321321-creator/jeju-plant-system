@@ -2,7 +2,8 @@
 
 자재관리 화면은 Supabase의 `public.inventory`를 읽습니다. 운영 DB에는
 `20261002013712_inventory_management.sql`과
-`20261002013956_inventory_blank_item_codes.sql`을 순서대로 적용해야 합니다.
+`20261002013956_inventory_blank_item_codes.sql`,
+`20261002043858_inventory_details.sql`을 순서대로 적용해야 합니다.
 
 ## CSV 가져오기
 
@@ -12,6 +13,7 @@ Supabase Dashboard → Table Editor → `inventory` → Import data from CSV에�
 
 | 열 | 의미 | 필수 |
 | --- | --- | --- |
+| `major_category` | 대분류: 기력, 내연, 환경 중 하나 | 예 |
 | `item_name` | 품명 | 예 |
 | `standard_qty` | 정수(최대 보관 수량) | 예 |
 | `stock_qty` | 시작 현재고 | 예 |
@@ -19,6 +21,8 @@ Supabase Dashboard → Table Editor → `inventory` → Import data from CSV에�
 | `category` | 자재 분류 | 아니요 |
 | `spec` | 규격 | 아니요 |
 | `model_name` | 모델명 | 아니요 |
+| `purpose` | 용도 | 아니요 |
+| `service_life` | 수명 기간, 예: 5년 또는 18개월 | 아니요 |
 | `unit` | 단위, 예: EA | 아니요 |
 | `location` | 보관 위치 | 아니요 |
 
