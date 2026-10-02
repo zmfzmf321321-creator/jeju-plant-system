@@ -941,6 +941,83 @@
     #sub-steam-todo, #sub-engine-todo { display: none !important; }
     .nav-todo.active { background: #167c5b !important; color: #fff !important; }
     #floor-room-view { touch-action: none; }
+
+    /* 자재관리 */
+    #inventory-management-view {
+      display: none; position: absolute; inset: 0; overflow-y: auto;
+      background: var(--app-bg); padding: 22px;
+    }
+    .inventory-panel { max-width: 1180px; margin: 0 auto; }
+    .inventory-header, .inventory-tools, .inventory-dialog-actions {
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    .inventory-header { justify-content: space-between; margin-bottom: 20px; }
+    .inventory-header h2 { margin: 0 0 5px; color: var(--text); font-size: 22px; }
+    .inventory-header p, #inventoryEditorHint, #inventoryChangeBalance { margin: 0; color: var(--muted); font-size: 13px; }
+    .inventory-primary-btn {
+      border: 1px solid var(--primary); border-radius: 9px; padding: 9px 14px;
+      background: var(--primary-deep); color: #fff; font-weight: 700;
+    }
+    .inventory-tools { margin-bottom: 12px; }
+    .inventory-tools > label:first-child { font-size: 13px; color: var(--muted); }
+    .inventory-tools input[type=search], .inventory-dialog input {
+      border: 1px solid var(--line-strong); border-radius: 8px; padding: 9px 10px;
+      background: var(--surface-raised); color: var(--text); min-width: 0;
+    }
+    .inventory-tools input[type=search] { flex: 1; min-width: 200px; max-width: 410px; }
+    .inventory-archive-toggle { margin-left: auto; color: var(--muted); font-size: 12px; }
+    .inventory-status { min-height: 22px; color: var(--muted); font-size: 12px; }
+    .inventory-status.error, .inventory-form-error { color: #fca5a5; }
+    .inventory-table-wrap { overflow-x: auto; }
+    .inventory-table { width: 100%; border-collapse: collapse; color: var(--text); font-size: 13px; }
+    .inventory-table th { text-align: left; padding: 11px 9px; background: var(--surface-raised); color: #8bdef7; white-space: nowrap; }
+    .inventory-table td { padding: 11px 9px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+    .inventory-table .inventory-name { font-weight: 700; }
+    .inventory-table .inventory-meta { color: var(--muted); font-size: 11px; margin-top: 3px; }
+    .inventory-table .inventory-qty { white-space: nowrap; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .inventory-table .inventory-qty.low { color: #fbbf24; }
+    .inventory-table .inventory-actions { min-width: 235px; }
+    .inventory-table button, .inventory-dialog-actions button {
+      border: 1px solid var(--line-strong); border-radius: 8px; padding: 7px 9px;
+      background: var(--surface-raised); color: var(--text); font-size: 12px; margin: 2px;
+    }
+    .inventory-table button:hover, .inventory-dialog-actions button:hover { border-color: var(--primary); }
+    .inventory-table tr.archived { opacity: .62; }
+    .inventory-history-panel { margin-top: 22px; border-top: 1px solid var(--line); padding-top: 14px; }
+    .inventory-history-panel h3 { margin: 0 0 10px; font-size: 15px; }
+    #inventoryHistoryList { color: var(--muted); font-size: 12px; }
+    .inventory-history-entry { padding: 7px 0; border-bottom: 1px solid var(--line); }
+    .inventory-dialog {
+      width: min(94vw, 560px); max-height: 86vh; overflow-y: auto; border: 1px solid var(--line-strong);
+      border-radius: 14px; padding: 22px; background: var(--surface); color: var(--text);
+      box-shadow: 0 25px 70px rgba(0,0,0,.55);
+    }
+    .inventory-dialog::backdrop { background: rgba(0,0,0,.65); }
+    .inventory-dialog h3 { margin: 0 0 18px; font-size: 18px; }
+    .inventory-dialog label { display: grid; gap: 5px; color: var(--muted); font-size: 12px; font-weight: 700; }
+    .inventory-dialog input { width: 100%; font-size: 14px; }
+    .inventory-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+    #inventoryEditorHint { margin-top: 13px; }
+    #inventoryChangeForm { display: grid; gap: 14px; }
+    .inventory-form-error { min-height: 18px; font-size: 12px; }
+    .inventory-dialog-actions { justify-content: flex-end; margin-top: 8px; }
+    .inventory-dialog-actions .inventory-primary-btn { background: var(--primary-deep); color: #fff; }
+    @media (max-width: 700px) {
+      #inventory-management-view { padding: 14px 10px; }
+      .inventory-header h2 { font-size: 18px; }
+      .inventory-table, .inventory-table tbody { display: block; width: 100%; }
+      .inventory-table thead { display: none; }
+      .inventory-table tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 7px 12px; padding: 12px 2px; border-bottom: 1px solid var(--line); }
+      .inventory-table td { display: block; min-width: 0; padding: 0; border: 0; overflow-wrap: anywhere; }
+      .inventory-table td:first-child, .inventory-table td:last-child { grid-column: 1 / -1; }
+      .inventory-table td:nth-child(2)::before { content: '규격 / 모델명'; }
+      .inventory-table td:nth-child(3)::before { content: '보관 위치'; }
+      .inventory-table td:nth-child(4)::before { content: '정수 / 현재고'; }
+      .inventory-table td:nth-child(2)::before, .inventory-table td:nth-child(3)::before, .inventory-table td:nth-child(4)::before { display: block; margin-bottom: 4px; color: var(--muted); font-size: 11px; font-weight: 400; }
+      .inventory-table .inventory-actions { min-width: 0; }
+      .inventory-archive-toggle { margin-left: 0; }
+      .inventory-form-grid { grid-template-columns: 1fr; }
+    }
     #floor-toolbar {
       position: absolute; top: 0; left: 0; right: 0; height: 58px; z-index: 160;
       display: flex; align-items: center; gap: 10px; padding: 8px 12px;

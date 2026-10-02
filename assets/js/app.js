@@ -247,6 +247,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     currentTodoRecords = []; currentTmsEquipment = []; currentInspectionPhotos = []; currentInspectionItems = [];
     unifiedData = { tms: [], logic: [], materials: [], todos: [], calibrations: [], aiInspections: [] };
     currentUserInfo = { id: '', name: '', email: '', role: 'member' }; isAdminMode = false;
+    window.clearInventoryPage?.();
     document.querySelectorAll('img').forEach(el => { el.photoToken = null; el.removeAttribute('src'); });
     document.querySelectorAll('.floor-inst-pin,.hotspot-pin').forEach(el => el.remove());
     ['infoBody','infoHistoryList','aiChatBox','aiSavedHistoryBox','historyTableBody','searchResultsList'].forEach(id => document.getElementById(id)?.replaceChildren());
@@ -1047,6 +1048,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       'tms-management-view',
       'todo-management-view',
       'materials-management-view',
+      'inventory-management-view',
       'password-management-view',
       'ai-inspection-view'
     ].map(id => document.getElementById(id)).filter(Boolean);
@@ -1063,6 +1065,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       'AI점검': 'main-menu-ai',
       '할일': 'main-menu-todo',
       '정비이력': 'main-menu-history',
+      '자재관리': 'main-menu-inventory',
       '자료실': 'main-menu-materials',
       '비밀번호': 'main-menu-password',
     };
@@ -1151,6 +1154,10 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       document.getElementById('tableFilterInput').value = '';
       updateHistoryFilterButtons();
       renderHistoryTable();
+    } else if (menu === '자재관리') {
+      selectedSubTab = '자재관리';
+      document.getElementById('inventory-management-view').style.display = 'block';
+      window.loadInventoryPage?.();
     } else if (menu === '자료실') {
       selectedSubTab = '자료실';
       document.getElementById('materials-management-view').style.display = 'block';
@@ -1726,6 +1733,8 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       floorTag.innerText = '통합 할 일';
     } else if (selectedMainMenu === '정비이력') {
       floorTag.innerText = '통합 정비이력';
+    } else if (selectedMainMenu === '자재관리') {
+      floorTag.innerText = '자재관리';
     } else if (selectedMainMenu === '자료실') {
       floorTag.innerText = '자료실';
     } else if (selectedSubTab === '할일') {

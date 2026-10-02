@@ -20,6 +20,7 @@ Auth의 이메일 확인은 이용 승인과 다릅니다. 앱의 관리자 로�
 - user_profiles의 클라이언트 쓰기는 본인 가입용 id/email/name INSERT만 허용합니다. 승인·역할 UPDATE 및 기존 승인 RPC의 EXECUTE는 금지합니다.
 - 신규 가입 trigger가 member/false를 직접 지정합니다. 기존 사용자와 승인값은 유지합니다.
 - instrument-photos 및 maintenance-materials는 private입니다. 사진·자료는 사용자 JWT로 다운로드하며 공개·서명 URL을 새로 발급하지 않습니다.
+- 자재의 현재고는 승인된 팀원만 `change_inventory_stock` 함수로 변경합니다. 함수는 현재 승인 상태를 다시 확인하고 행 잠금 안에서 현재고와 변경 사유 이력을 함께 저장합니다. 브라우저에는 현재고 직접 UPDATE와 자재 영구 DELETE 권한이 없습니다.
 - 사진 업로드는 사용자 UUID 폴더, 랜덤 UUID 파일명, JPEG/PNG/WebP/GIF, 최대 20MiB입니다. 기존 사진 경로와 DB에 저장된 canonical URL은 보존하며 URL을 공개 파일 주소로 사용하지 않습니다.
 - gemini-chat은 POST마다 Auth 서버에서 JWT를 검증하고 user_profiles의 실제 승인을 검사한 뒤 요청을 처리합니다. 요청 최대 12MiB, AI 사진 최대 8MiB이며 외부 URL·redirect·SVG를 거절합니다.
 - AI 대화 이력은 user_id로 소유권을 확인합니다. 기존 이름 기반 기록 중 단일 프로필과 일치한 기록만 연결하며, 소유자를 확정할 수 없는 기록은 삭제하지 않고 승인된 관리자에게만 허용합니다.
@@ -47,6 +48,8 @@ git diff --check
 `supabase/tests/approval_access.sql`은 신뢰된 DB 운영자가 SQL Editor에서 실행합니다. 임시 pending/approved/revoked 계정으로 조회·수정·업로드·자기승인·관리자 승격·RPC·신규 교정 ID·대화 소유권 위조를 검사하며 끝에서 전체 fixture를 롤백합니다. ID sequence에는 테스트에 따른 빈 번호가 생길 수 있습니다.
 
 2026-10-01 운영 적용 후 승인 접근 SQL 검사, 익명 HTTP 검사, Edge mock 검사, 프런트엔드 회귀 검사를 통과했습니다. Supabase 보안 Advisor의 남은 경고는 유출된 비밀번호 보호가 꺼져 있다는 설정 항목입니다. 해당 보호는 대시보드 Auth 설정에서 별도로 활성화할 수 있으며 이번 변경에서는 Auth 설정을 바꾸지 않았습니다.
+
+2026-10-02 자재관리 함수는 의도적으로 `SECURITY DEFINER`이며 승인 상태·수량 범위·필수 사유를 함수 안에서 검증합니다. 보안 Advisor는 인증 사용자가 이 함수를 실행할 수 있다는 경고를 표시합니다. 이 실행 권한은 승인된 팀원의 입출고 기능에 필요하며 `anon` 실행 권한은 없습니다.
 
 ## 배포와 변경 범위
 

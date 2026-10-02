@@ -9,7 +9,7 @@
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon.png">
   <link rel="apple-touch-icon" href="./assets/icons/icon.png">
-  <link rel="stylesheet" href="./assets/css/styles.css?v=20260930-unified-viewbar">
+  <link rel="stylesheet" href="./assets/css/styles.css?v=20261002-inventory">
 </head>
 <body>
 
@@ -60,6 +60,7 @@
     <button class="main-menu-btn" id="main-menu-ai" onclick="switchMainMenu('AI점검')">AI점검</button>
     <button class="main-menu-btn todo-main" id="main-menu-todo" onclick="switchMainMenu('할일')">✅ 할 일 <span class="todo-badge" id="todoBadge">0</span></button>
     <button class="main-menu-btn" id="main-menu-history" onclick="switchMainMenu('정비이력')">정비이력</button>
+    <button class="main-menu-btn" id="main-menu-inventory" onclick="switchMainMenu('자재관리')">자재관리</button>
     <button class="main-menu-btn" id="main-menu-materials" onclick="switchMainMenu('자료실')">자료실</button>
     <button class="main-menu-btn" id="main-menu-password" onclick="switchMainMenu('비밀번호')">비밀번호</button>
   </div>
@@ -412,6 +413,31 @@
     </div>
   </div>
 
+  <div id="inventory-management-view">
+    <div class="inventory-panel">
+      <div class="inventory-header">
+        <div><h2>자재관리</h2><p>정수 / 현재고를 확인하고 입고·사용 사유를 기록합니다.</p></div>
+        <button type="button" id="inventoryAddButton" class="inventory-primary-btn">+ 자재 등록</button>
+      </div>
+      <div class="inventory-tools">
+        <label for="inventorySearch">자재 검색</label>
+        <input id="inventorySearch" type="search" placeholder="품명·품목코드·규격·모델명 검색" autocomplete="off">
+        <label class="inventory-archive-toggle"><input id="inventoryShowArchived" type="checkbox"> 보관 종료 항목 보기</label>
+      </div>
+      <div id="inventoryStatus" class="inventory-status" role="status" aria-live="polite"></div>
+      <div class="inventory-table-wrap">
+        <table class="inventory-table">
+          <thead><tr><th>자재</th><th>규격 / 모델명</th><th>보관 위치</th><th>정수 / 현재고</th><th>작업</th></tr></thead>
+          <tbody id="inventoryTableBody"><tr><td colspan="5">자재관리 탭을 열면 목록을 불러옵니다.</td></tr></tbody>
+        </table>
+      </div>
+      <section class="inventory-history-panel" aria-labelledby="inventoryHistoryTitle">
+        <h3 id="inventoryHistoryTitle">수량 변경 이력</h3>
+        <div id="inventoryHistoryList">자재의 이력 버튼을 누르면 기록을 볼 수 있습니다.</div>
+      </section>
+    </div>
+  </div>
+
   <div id="password-management-view">
     <div class="approval-panel">
       <div class="approval-title">비밀번호 변경</div>
@@ -667,6 +693,39 @@
   <img id="lightbox-target-img" src="" alt="확대 사진" onclick="event.stopPropagation()">
 </div>
 
-  <script src="./assets/js/app.js?v=20261001-dashboard-approval"></script>
+  <dialog id="inventoryEditorDialog" class="inventory-dialog">
+    <form id="inventoryEditorForm">
+      <h3 id="inventoryEditorTitle">자재 등록</h3>
+      <input id="inventoryEditId" type="hidden">
+      <div class="inventory-form-grid">
+        <label>품명 <input id="inventoryItemName" type="text" maxlength="200" required></label>
+        <label>품목코드 <input id="inventoryItemCode" type="text" maxlength="100" placeholder="선택 입력"></label>
+        <label>분류 <input id="inventoryCategory" type="text" maxlength="100" placeholder="예: 계측기"></label>
+        <label>규격 <input id="inventorySpec" type="text" maxlength="200"></label>
+        <label>모델명 <input id="inventoryModelName" type="text" maxlength="200"></label>
+        <label>보관 위치 <input id="inventoryLocation" type="text" maxlength="200"></label>
+        <label>단위 <input id="inventoryUnit" type="text" maxlength="20" value="EA" required></label>
+        <label>정수 <input id="inventoryStandardQty" type="number" min="0" step="1" required></label>
+        <label id="inventoryInitialQtyField">초기 현재고 <input id="inventoryInitialQty" type="number" min="0" step="1" value="0" required></label>
+      </div>
+      <p id="inventoryEditorHint">초기 현재고는 자동으로 ‘초기 재고 등록’ 이력에 기록됩니다.</p>
+      <div id="inventoryEditorError" class="inventory-form-error" role="alert"></div>
+      <div class="inventory-dialog-actions"><button type="button" id="inventoryEditorCancel">취소</button><button type="submit" class="inventory-primary-btn" id="inventoryEditorSubmit">등록</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="inventoryChangeDialog" class="inventory-dialog">
+    <form id="inventoryChangeForm">
+      <h3 id="inventoryChangeTitle">수량 변경</h3>
+      <p id="inventoryChangeBalance"></p>
+      <label>변경 수량 <input id="inventoryChangeAmount" type="number" min="1" step="1" required></label>
+      <label>사유 <input id="inventoryChangeReason" type="text" maxlength="500" placeholder="예: 3호기 교체 작업" required></label>
+      <div id="inventoryChangeError" class="inventory-form-error" role="alert"></div>
+      <div class="inventory-dialog-actions"><button type="button" id="inventoryChangeCancel">취소</button><button type="submit" class="inventory-primary-btn" id="inventoryChangeSubmit">저장</button></div>
+    </form>
+  </dialog>
+
+  <script src="./assets/js/app.js?v=20261002-inventory"></script>
+  <script src="./assets/js/inventory.js?v=20261002-inventory"></script>
 </body>
 </html>
