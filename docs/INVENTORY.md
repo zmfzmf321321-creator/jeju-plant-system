@@ -1,8 +1,8 @@
 # 자재관리와 CSV 초기 자료
 
 자재관리 화면은 Supabase의 `public.inventory`를 읽습니다. 운영 DB에는
-`20261002103012_inventory_management.sql`과
-`20261002104500_inventory_blank_item_codes.sql`을 순서대로 적용해야 합니다.
+`20261002013712_inventory_management.sql`과
+`20261002013956_inventory_blank_item_codes.sql`을 순서대로 적용해야 합니다.
 
 ## CSV 가져오기
 
