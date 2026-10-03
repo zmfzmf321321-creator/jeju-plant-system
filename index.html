@@ -9,7 +9,7 @@
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon.png">
   <link rel="apple-touch-icon" href="./assets/icons/icon.png">
-  <link rel="stylesheet" href="./assets/css/styles.css?v=20261002-inventory-category">
+  <link rel="stylesheet" href="./assets/css/styles.css?v=20261003-inventory-import">
 </head>
 <body>
 
@@ -421,7 +421,7 @@
       </div>
       <div class="inventory-tools">
         <label for="inventoryMajorFilter">대분류</label>
-        <select id="inventoryMajorFilter"><option value="전체">전체</option><option value="기력">기력</option><option value="내연">내연</option><option value="환경">환경</option></select>
+        <select id="inventoryMajorFilter"><option value="전체">전체</option><option value="기력">제주발전본부 1발전소 보일러자재</option><option value="내연">내연</option><option value="환경">제주발전본부 1발전소 환경자재</option></select>
         <label for="inventorySearch">자재 검색</label>
         <input id="inventorySearch" type="search" placeholder="품명·품목코드·규격·모델명 검색" autocomplete="off">
         <label class="inventory-archive-toggle"><input id="inventoryShowArchived" type="checkbox"> 보관 종료 항목 보기</label>
@@ -700,7 +700,7 @@
       <h3 id="inventoryEditorTitle">자재 등록</h3>
       <input id="inventoryEditId" type="hidden">
       <div class="inventory-form-grid">
-        <label>대분류 <select id="inventoryMajorCategory" required><option value="">선택</option><option value="기력">기력</option><option value="내연">내연</option><option value="환경">환경</option></select></label>
+        <label>대분류 <select id="inventoryMajorCategory" required><option value="">선택</option><option value="기력">제주발전본부 1발전소 보일러자재</option><option value="내연">내연</option><option value="환경">제주발전본부 1발전소 환경자재</option></select></label>
         <label>품명 <input id="inventoryItemName" type="text" maxlength="200" required></label>
         <label>품목코드 <input id="inventoryItemCode" type="text" maxlength="100" placeholder="선택 입력"></label>
         <label>분류 <select id="inventoryCategory" required><option value="">선택</option></select></label>
@@ -711,7 +711,7 @@
         <label>수명 <input id="inventoryServiceLife" type="text" maxlength="100" placeholder="타입 미확인 시 직접 입력"></label>
         <label>보관 위치 <input id="inventoryLocation" type="text" maxlength="200"></label>
         <label>단위 <input id="inventoryUnit" type="text" maxlength="20" value="EA" required></label>
-        <label>정수 <input id="inventoryStandardQty" type="number" min="0" step="1" required></label>
+        <label>정수 <input id="inventoryStandardQty" type="number" min="0" step="1" placeholder="미지정 가능"></label>
         <label id="inventoryInitialQtyField">초기 현재고 <input id="inventoryInitialQty" type="number" min="0" step="1" value="0" required></label>
       </div>
       <div class="inventory-life-helper"><span id="inventoryServiceLifeNote">품명을 입력하면 교체주기를 자동 판별합니다.</span><button type="button" id="inventoryAutoLifeButton">자동값 사용</button></div>
@@ -732,8 +732,9 @@
     </form>
   </dialog>
 
-  <script src="./assets/js/app.js?v=20261002-inventory"></script>
-  <script src="./assets/js/inventory-life.js?v=20261002-inventory-category"></script>
-  <script src="./assets/js/inventory.js?v=20261002-inventory-category"></script>
+  <script src="./assets/js/app.js?v=20261003-inventory-import"></script>
+  <script src="./assets/js/inventory-life.js?v=20261003-inventory-import"></script>
+  <script src="./assets/js/inventory.js?v=20261003-inventory-import"></script>
 </body>
 </html>
+

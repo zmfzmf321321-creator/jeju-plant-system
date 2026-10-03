@@ -68,12 +68,17 @@
   };
 
   function render() {
+    const majorLabel = value => ({
+      '기력': '제주발전본부 1발전소 보일러자재',
+      '환경': '제주발전본부 1발전소 환경자재'
+    })[value] || value || '대분류 미지정';
     const query = search.value.trim().toLocaleLowerCase();
     const visible = items.filter(item => {
       if (item.is_archived && !showArchived.checked) return false;
       if (majorFilter.value !== '전체' && item.major_category !== majorFilter.value) return false;
       return !query || [item.item_name, item.item_code, item.category, item.spec,
-        item.model_name, item.purpose, item.service_life, item.location, item.major_category]
+        item.model_name, item.purpose, item.service_life, item.location, item.major_category,
+        majorLabel(item.major_category)]
         .some(value => String(value || '').toLocaleLowerCase().includes(query));
     });
     tableBody.replaceChildren();
@@ -87,7 +92,7 @@
       const nameCell = make('td');
       nameCell.append(make('div', 'inventory-name', item.item_name),
         make('div', 'inventory-meta', [item.item_code, item.category].filter(Boolean).join(' · ') || '품목코드 없음'),
-        make('div', 'inventory-major', item.major_category || '대분류 미지정'));
+        make('div', 'inventory-major', majorLabel(item.major_category)));
       const specCell = make('td');
       specCell.append(make('div', '', emptyText(item.spec)), make('div', 'inventory-meta', `모델명 ${emptyText(item.model_name)}`));
       const purposeCell = make('td');
@@ -96,9 +101,9 @@
       const placeCell = make('td', '', emptyText(item.location));
       const quantity = make('td', 'inventory-qty');
       const current = Number(item.stock_qty || 0);
-      const standard = Number(item.standard_qty || 0);
-      quantity.textContent = `${standard} / ${current}${item.unit || 'EA'}`;
-      if (standard > 0 && current <= Math.ceil(standard * 0.2)) quantity.classList.add('low');
+      const standard = item.standard_qty == null ? null : Number(item.standard_qty);
+      quantity.textContent = `${standard ?? '미지정'} / ${current}${item.unit || 'EA'}`;
+      if (standard != null && standard > 0 && current <= Math.ceil(standard * 0.2)) quantity.classList.add('low');
       const buttons = make('td', 'inventory-actions');
       if (!item.is_archived) {
         buttons.append(action('+ 입고', 'in', item.id), action('− 사용', 'out', item.id),
@@ -186,7 +191,7 @@
     refreshServiceLife();
     byId('inventoryLocation').value = item?.location || '';
     byId('inventoryUnit').value = item?.unit || 'EA';
-    byId('inventoryStandardQty').value = item?.standard_qty ?? 0;
+    byId('inventoryStandardQty').value = item?.standard_qty ?? '';
     byId('inventoryInitialQty').value = 0;
     editor.showModal();
   }
@@ -194,7 +199,8 @@
   async function saveEditor(event) {
     event.preventDefault();
     const id = field('inventoryEditId');
-    const standard = Number(field('inventoryStandardQty'));
+    const standardText = field('inventoryStandardQty');
+    const standard = standardText === '' ? null : Number(standardText);
     const initial = Number(field('inventoryInitialQty'));
     const current = id ? Number(itemById(id)?.stock_qty || 0) : initial;
     const errorElement = byId('inventoryEditorError');
@@ -203,9 +209,9 @@
     }
     if (!field('inventoryItemName')) { errorElement.textContent = '품명을 입력해 주세요.'; return; }
     if (!categoryValue()) { errorElement.textContent = '분류를 선택하거나 기타 분류명을 입력해 주세요.'; return; }
-    if (!Number.isSafeInteger(standard) || standard < 0 || !Number.isSafeInteger(current)
-      || current < 0 || current > standard) {
-      errorElement.textContent = '정수와 현재고를 확인해 주세요. 현재고는 정수보다 클 수 없습니다.'; return;
+    if ((standard !== null && (!Number.isSafeInteger(standard) || standard < 0))
+      || !Number.isSafeInteger(current) || current < 0) {
+      errorElement.textContent = '정수와 현재고는 0 이상의 정수로 입력해 주세요.'; return;
     }
     const payload = {
       major_category: field('inventoryMajorCategory'), purpose: field('inventoryPurpose') || null,
@@ -233,7 +239,7 @@
     byId('inventoryChangeForm').reset();
     byId('inventoryChangeError').textContent = '';
     byId('inventoryChangeTitle').textContent = `${item.item_name} ${direction > 0 ? '입고' : '사용'}`;
-    byId('inventoryChangeBalance').textContent = `정수 / 현재고: ${item.standard_qty} / ${item.stock_qty}${item.unit || 'EA'}`;
+    byId('inventoryChangeBalance').textContent = `정수 / 현재고: ${item.standard_qty ?? '미지정'} / ${item.stock_qty}${item.unit || 'EA'}`;
     changeDialog.showModal();
   }
 
@@ -248,8 +254,8 @@
     if (!Number.isSafeInteger(quantity) || quantity < 1 || !reason) {
       errorElement.textContent = '변경 수량과 사유를 입력해 주세요.'; return;
     }
-    if (next < 0 || next > Number(item.standard_qty)) {
-      errorElement.textContent = '변경 후 현재고는 0 이상 정수 이하이어야 합니다.'; return;
+    if (next < 0) {
+      errorElement.textContent = '변경 후 현재고는 0 이상이어야 합니다.'; return;
     }
     byId('inventoryChangeSubmit').disabled = true;
     const { error } = await supabaseClient.rpc('change_inventory_stock', {
@@ -314,3 +320,4 @@
     setStatus('');
   };
 })();
+

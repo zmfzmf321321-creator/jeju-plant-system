@@ -6,7 +6,8 @@
 `20261002043858_inventory_details.sql`,
 `20261002044743_inventory_life_rules.sql`,
 `20261002044823_inventory_life_trigger_owner.sql`,
-`20261002050239_inventory_category_life.sql`을 순서대로 적용해야 합니다.
+`20261002050239_inventory_category_life.sql`과
+`20261003123941_allow_nullable_inventory_standard_and_overstock.sql`을 순서대로 적용해야 합니다.
 
 계측기 교체주기 자동 판별 규칙은 [`INVENTORY_LIFE_RULES.md`](INVENTORY_LIFE_RULES.md)에 정리했습니다.
 화면에서는 분류 목록에서 계측기 타입을 선택하고, 목록에 없으면 ‘기타’에서 직접 입력합니다.
@@ -24,7 +25,7 @@ Supabase Dashboard → Table Editor → `inventory` → Import data from CSV에�
 | --- | --- | --- |
 | `major_category` | 대분류: 기력, 내연, 환경 중 하나 | 예 |
 | `item_name` | 품명 | 예 |
-| `standard_qty` | 정수(최대 보관 수량) | 예 |
+| `standard_qty` | 정수(기준 수량). 원본에 값이 없으면 빈칸 | 아니요 |
 | `stock_qty` | 시작 현재고 | 예 |
 | `item_code` | 중복되지 않는 품목코드 | 아니요 |
 | `category` | 계측기 분류. 화면에서는 목록 또는 기타 직접 입력 | CSV에서는 아니요 |
@@ -35,7 +36,8 @@ Supabase Dashboard → Table Editor → `inventory` → Import data from CSV에�
 | `unit` | 단위, 예: EA | 아니요 |
 | `location` | 보관 위치 | 아니요 |
 
-정수와 현재고는 0 이상의 정수이며, 현재고는 정수를 넘을 수 없습니다.
+정수는 비어 있거나 0 이상의 정수이고, 현재고는 0 이상의 정수입니다.
+원본 자료처럼 현재고가 정수보다 많은 경우에도 원래 수량을 보존합니다.
 품목코드가 없는 행은 CSV 셀을 비워도 됩니다.
 가져온 행의 현재고는 `초기 재고 등록` 이력으로 자동 기록됩니다.
 
@@ -45,3 +47,14 @@ Supabase Dashboard → Table Editor → `inventory` → Import data from CSV에�
 
 승인된 팀원만 자재와 이력을 조회하고 변경할 수 있습니다. 브라우저의 직접
 `stock_qty` 갱신은 허용하지 않으며 수량 변경 함수만 사용할 수 있습니다.
+
+## 2026년 원본 자료 반영
+
+Gmail 첨부 원본은 공개 GitHub 저장소에 노출되지 않도록 로컬
+`data/inventory-source/`에 보관합니다. 원본에서 추출한 매핑과 점검 결과는
+`data/inventory-prepared/`에 보관하며 두 경로 모두 Git 추적에서 제외합니다.
+보일러 원본의 첫 시트가 자재 목록이고 `Sheet1`의 중요 발전자재 17행은
+필요수량 참고표로 사용합니다. TMS 원본의 `기력`·`내연` 두 시트는 모두
+웹앱의 ‘제주발전본부 1발전소 환경자재’로 묶고, 원래 시트명은 용도에 남깁니다.
+보일러 목록은 ‘제주발전본부 1발전소 보일러자재’로 표시합니다.
+
