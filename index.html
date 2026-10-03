@@ -9,7 +9,7 @@
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon.png">
   <link rel="apple-touch-icon" href="./assets/icons/icon.png">
-  <link rel="stylesheet" href="./assets/css/styles.css?v=20261003-inventory-import">
+  <link rel="stylesheet" href="./assets/css/styles.css?v=20261003-inline-history">
 </head>
 <body>
 
@@ -433,7 +433,7 @@
           <tbody id="inventoryTableBody"><tr><td colspan="6">자재관리 탭을 열면 목록을 불러옵니다.</td></tr></tbody>
         </table>
       </div>
-      <section class="inventory-history-panel" aria-labelledby="inventoryHistoryTitle">
+      <section id="inventoryHistoryPanel" class="inventory-history-panel" aria-labelledby="inventoryHistoryTitle" hidden>
         <h3 id="inventoryHistoryTitle">수량 변경 이력</h3>
         <div id="inventoryHistoryList">자재의 이력 버튼을 누르면 기록을 볼 수 있습니다.</div>
       </section>
@@ -726,7 +726,7 @@
       <h3 id="inventoryChangeTitle">수량 변경</h3>
       <p id="inventoryChangeBalance"></p>
       <label>변경 수량 <input id="inventoryChangeAmount" type="number" min="1" step="1" required></label>
-      <label>사유 <input id="inventoryChangeReason" type="text" maxlength="500" placeholder="예: 3호기 교체 작업" required></label>
+      <label><span id="inventoryChangeReasonLabel">사유</span> <input id="inventoryChangeReason" type="text" maxlength="500" placeholder="예: 3호기 교체 작업" required></label>
       <div id="inventoryChangeError" class="inventory-form-error" role="alert"></div>
       <div class="inventory-dialog-actions"><button type="button" id="inventoryChangeCancel">취소</button><button type="submit" class="inventory-primary-btn" id="inventoryChangeSubmit">저장</button></div>
     </form>
@@ -734,7 +734,7 @@
 
   <script src="./assets/js/app.js?v=20261003-inventory-import"></script>
   <script src="./assets/js/inventory-life.js?v=20261003-inventory-import"></script>
-  <script src="./assets/js/inventory.js?v=20261003-inventory-import"></script>
+  <script src="./assets/js/inventory.js?v=20261003-inline-history"></script>
 </body>
 </html>
 

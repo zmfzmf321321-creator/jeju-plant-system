@@ -984,7 +984,9 @@
     }
     .inventory-table button:hover, .inventory-dialog-actions button:hover { border-color: var(--primary); }
     .inventory-table tr.archived { opacity: .62; }
-    .inventory-history-panel { margin-top: 22px; border-top: 1px solid var(--line); padding-top: 14px; }
+    .inventory-history-row td { padding: 8px 9px 14px; }
+    .inventory-history-panel { border: 1px solid var(--line); border-radius: 9px; padding: 12px 14px; background: var(--surface-raised); }
+    .inventory-history-panel[hidden] { display: none; }
     .inventory-history-panel h3 { margin: 0 0 10px; font-size: 15px; }
     #inventoryHistoryList { color: var(--muted); font-size: 12px; }
     .inventory-history-entry { padding: 7px 0; border-bottom: 1px solid var(--line); }
@@ -1015,6 +1017,8 @@
       .inventory-table tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 7px 12px; padding: 12px 2px; border-bottom: 1px solid var(--line); }
       .inventory-table td { display: block; min-width: 0; padding: 0; border: 0; overflow-wrap: anywhere; }
       .inventory-table td:first-child, .inventory-table td:last-child { grid-column: 1 / -1; }
+      .inventory-table .inventory-history-row { display: block; padding: 0 2px 12px; }
+      .inventory-table .inventory-history-row td { padding: 0; }
       .inventory-table td:nth-child(2)::before { content: '규격 / 모델명'; }
       .inventory-table td:nth-child(3)::before { content: '용도 / 수명'; }
       .inventory-table td:nth-child(4)::before { content: '보관 위치'; }
@@ -1166,3 +1170,4 @@
       .home-todo-category { grid-column: 2; justify-self: start; }
       .ai-floating-btn { right: 12px; bottom: 12px; min-height: 38px; padding: 0 12px; font-size: 12px; }
     }
+

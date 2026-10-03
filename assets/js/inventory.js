@@ -4,6 +4,8 @@
   if (!view) return;
   const tableBody = document.getElementById('inventoryTableBody');
   const status = document.getElementById('inventoryStatus');
+  const historyPanel = document.getElementById('inventoryHistoryPanel');
+  const historyTitle = document.getElementById('inventoryHistoryTitle');
   const history = document.getElementById('inventoryHistoryList');
   const editor = document.getElementById('inventoryEditorDialog');
   const changeDialog = document.getElementById('inventoryChangeDialog');
@@ -81,6 +83,7 @@
         majorLabel(item.major_category)]
         .some(value => String(value || '').toLocaleLowerCase().includes(query));
     });
+    if (historyItemId && !visible.some(item => item.id === historyItemId)) historyItemId = null;
     tableBody.replaceChildren();
     if (!visible.length) {
       const row = make('tr');
@@ -109,9 +112,21 @@
         buttons.append(action('+ 입고', 'in', item.id), action('− 사용', 'out', item.id),
           action('수정', 'edit', item.id), action('삭제', 'archive', item.id));
       } else buttons.append(action('복원', 'restore', item.id));
-      buttons.append(action('이력', 'history', item.id));
+      const historyButton = action('이력', 'history', item.id);
+      historyButton.setAttribute('aria-expanded', String(historyItemId === item.id));
+      if (historyItemId === item.id) historyButton.setAttribute('aria-controls', 'inventoryHistoryPanel');
+      buttons.append(historyButton);
       row.append(nameCell, specCell, purposeCell, placeCell, quantity, buttons);
       tableBody.append(row);
+      if (historyItemId === item.id) {
+        const detailRow = make('tr', 'inventory-history-row');
+        const detailCell = make('td');
+        detailCell.colSpan = 6;
+        historyPanel.hidden = false;
+        detailCell.append(historyPanel);
+        detailRow.append(detailCell);
+        tableBody.append(detailRow);
+      }
     });
   }
 
@@ -147,9 +162,8 @@
 
   async function loadHistory(id) {
     const item = itemById(id);
-    if (!item) return;
-    historyItemId = id;
-    byId('inventoryHistoryTitle').textContent = `${item.item_name} 수량 변경 이력`;
+    if (!item || historyItemId !== id) return;
+    historyTitle.textContent = `${item.item_name} 수량 변경 이력`;
     history.textContent = '이력을 불러오는 중입니다.';
     const { data, error } = await supabaseClient.from('inventory_movements')
       .select('id,change_qty,before_qty,after_qty,reason,changed_by_name,created_at')
@@ -240,6 +254,8 @@
     byId('inventoryChangeError').textContent = '';
     byId('inventoryChangeTitle').textContent = `${item.item_name} ${direction > 0 ? '입고' : '사용'}`;
     byId('inventoryChangeBalance').textContent = `정수 / 현재고: ${item.standard_qty ?? '미지정'} / ${item.stock_qty}${item.unit || 'EA'}`;
+    byId('inventoryChangeReasonLabel').textContent = direction > 0 ? '입고 사유' : '사용처·사용 내용';
+    byId('inventoryChangeReason').placeholder = direction > 0 ? '예: 신규 구매 입고' : '예: 2호기 보일러 압력계 교체';
     changeDialog.showModal();
   }
 
@@ -252,7 +268,10 @@
     const errorElement = byId('inventoryChangeError');
     const next = Number(item.stock_qty) + changeDirection * quantity;
     if (!Number.isSafeInteger(quantity) || quantity < 1 || !reason) {
-      errorElement.textContent = '변경 수량과 사유를 입력해 주세요.'; return;
+      errorElement.textContent = changeDirection > 0
+        ? '변경 수량과 입고 사유를 입력해 주세요.'
+        : '변경 수량과 사용처·사용 내용을 입력해 주세요.';
+      return;
     }
     if (next < 0) {
       errorElement.textContent = '변경 후 현재고는 0 이상이어야 합니다.'; return;
@@ -290,7 +309,12 @@
       case 'edit': openEditor(item); break;
       case 'archive': setArchived(item, true); break;
       case 'restore': setArchived(item, false); break;
-      case 'history': loadHistory(item.id); break;
+      case 'history':
+        historyItemId = historyItemId === item.id ? null : item.id;
+        historyPanel.hidden = !historyItemId;
+        render();
+        if (historyItemId) loadHistory(item.id);
+        break;
     }
   });
   byId('inventoryAddButton').addEventListener('click', () => openEditor());
@@ -315,6 +339,7 @@
   window.loadInventoryPage = load;
   window.clearInventoryPage = () => {
     loadToken++; items = []; historyItemId = null; changeItemId = null;
+    historyPanel.hidden = true;
     tableBody.replaceChildren(); history.textContent = '자재의 이력 버튼을 누르면 기록을 볼 수 있습니다.';
     if (editor.open) editor.close(); if (changeDialog.open) changeDialog.close();
     setStatus('');
