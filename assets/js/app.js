@@ -73,7 +73,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   const floor3DHeights = {
     'IDF': 5.00, '1층': 8.14, '2층': 11.50, '2.5층': 14.50, '3층': 17.50,
     '3.1/3층': 20.50, '3.2/3층': 23.50, '4층': 26.50, '4.5층': 29.50,
-    '5층': 32.50, '5.5층': 35.50, '6층': 38.50, '7층': 44.80
+    '5층': 32.50, '5.5층': 35.50, '6층': 38.50, '7층': 41.20, '7.5층': 44.80
   };
 
   const floorCorners2D = {
@@ -89,7 +89,8 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     '5층':     { c1: { x: 535, y: 187 }, c4: { x: 962,  y: 816 } },
     '5.5층':   { c1: { x: 591, y: 174 }, c4: { x: 1044, y: 844 } },
     '6층':     { c1: { x: 554, y: 170 }, c4: { x: 993,  y: 822 } },
-    '7층':     { c1: { x: 132, y: 242 }, c4: { x: 569,  y: 855 } }
+    '7층':     { c1: { x: 425, y: 192 }, c4: { x: 947,  y: 924 } },
+    '7.5층':   { c1: { x: 390, y: 192 }, c4: { x: 950,  y: 924 } }
   };
 
     
@@ -1821,6 +1822,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
         <button class="floor-btn" onclick="openFloorRoom('5.5층', 'assets/floor-plans/boiler/floor_5_5f.jpg', this)">5.5층</button>
         <button class="floor-btn" onclick="openFloorRoom('6층', 'assets/floor-plans/boiler/floor_6f.jpg', this)">6층</button>
         <button class="floor-btn" onclick="openFloorRoom('7층', 'assets/floor-plans/boiler/floor_7f.jpg', this)">7층</button>
+        <button class="floor-btn" onclick="openFloorRoom('7.5층', 'assets/floor-plans/boiler/floor_7f.jpg', this)">7.5층</button>
       `);
     } else if (selectedSection === '탈질') {
       bar.insertAdjacentHTML('beforeend', `
@@ -4061,6 +4063,25 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     }
   }
 
+  function floorPlanBackground(img, floor, imgFile) {
+    if (imgFile !== 'assets/floor-plans/boiler/floor_7f.jpg' || !['7층', '7.5층'].includes(floor)) {
+      return `url('./${imgFile}')`;
+    }
+    // 원본 한 장의 좌측 EL 41200/41700, 우측 EL 44800 도면을 픽셀 손실 없이 분리한다.
+    // 가운데 주석이 잘리지 않도록 두 영역은 50px가량 겹친다.
+    const leftEnd = Math.round(img.naturalWidth * 620 / 1198);
+    const rightStart = Math.round(img.naturalWidth * 570 / 1198);
+    const cropX = floor === '7층' ? 0 : rightStart;
+    const cropWidth = floor === '7층' ? leftEnd : img.naturalWidth - rightStart;
+    const canvas = document.createElement('canvas');
+    canvas.width = cropWidth;
+    canvas.height = img.naturalHeight;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('7층 도면을 분리할 수 없습니다.');
+    context.drawImage(img, cropX, 0, cropWidth, img.naturalHeight, 0, 0, cropWidth, img.naturalHeight);
+    return `url("${canvas.toDataURL('image/png')}")`;
+  }
+
   window.openFloorRoom = function(floor, imgFile, btn) {
     selectedViewMode = 'floor';
     const managedButton = document.getElementById('btnToggleManagedEquipment');
@@ -4077,17 +4098,27 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     document.getElementById('overall-3d-view').style.display = 'none';
     document.getElementById('floor-room-view').style.display = 'block';
     updateFloorTitle();
+    const requestedFloor = selectedFloor;
+    document.getElementById('floor-plan-background').style.backgroundImage = 'none';
     const testImg = new Image();
-    testImg.src = `./${imgFile}`;
     testImg.onload = () => {
-      document.getElementById('floor-plan-background').style.backgroundImage = `url('./${imgFile}')`;
-      notice.style.display = 'none';
+      if (selectedFloor !== requestedFloor) return;
+      try {
+        document.getElementById('floor-plan-background').style.backgroundImage = floorPlanBackground(testImg, requestedFloor, imgFile);
+        notice.style.display = 'none';
+      } catch (error) {
+        console.error('층별 도면 분리 오류:', error);
+        notice.textContent = '⚠️ 도면을 표시하지 못했습니다.';
+        notice.style.display = 'block';
+      }
     };
     testImg.onerror = () => {
+      if (selectedFloor !== requestedFloor) return;
       document.getElementById('floor-plan-background').style.backgroundImage = 'none';
       notice.innerText = `⚠️ [${imgFile}] 파일 부재`;
       notice.style.display = 'block';
     };
+    testImg.src = `./${imgFile}`;
     resetCanvasView();
     renderFloorPins();
     renderManagedEquipment();
@@ -4852,7 +4883,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       '1층': 'assets/floor-plans/boiler/floor_1f.jpg', '2층': 'assets/floor-plans/boiler/floor_2f.jpg', '2.5층': 'assets/floor-plans/boiler/floor_2_5f.jpg',
       '3층': 'assets/floor-plans/boiler/floor_3f.jpg', '3.1/3층': 'assets/floor-plans/boiler/floor_3_1_3f.jpg', '3.2/3층': 'assets/floor-plans/boiler/floor_3_2_3f.jpg',
       '4층': 'assets/floor-plans/boiler/floor_4f.jpg', '4.5층': 'assets/floor-plans/boiler/floor_4_5f.jpg', '5층': 'assets/floor-plans/boiler/floor_5f.jpg',
-      '5.5층': 'assets/floor-plans/boiler/floor_5_5f.jpg', '6층': 'assets/floor-plans/boiler/floor_6f.jpg', '7층': 'assets/floor-plans/boiler/floor_7f.jpg',
+      '5.5층': 'assets/floor-plans/boiler/floor_5_5f.jpg', '6층': 'assets/floor-plans/boiler/floor_6f.jpg', '7층': 'assets/floor-plans/boiler/floor_7f.jpg', '7.5층': 'assets/floor-plans/boiler/floor_7f.jpg',
       '탈질 1층': 'assets/floor-plans/denitrification/am_floor_1f.jpg', '탈질 3층': 'assets/floor-plans/denitrification/am_floor_3f.jpg',
       '탈질 3.1/3층': 'assets/floor-plans/denitrification/am_floor_3_1_3f.jpg', '탈질 4.5층': 'assets/floor-plans/denitrification/am_4_5f.jpg',
       '암모니아 탱크 구역': 'assets/floor-plans/ammonia-tank/am_tank_floor.jpg', '연료펌프 1층': 'assets/floor-plans/fuel-pump-room/fuel_floor_1f.jpg'
