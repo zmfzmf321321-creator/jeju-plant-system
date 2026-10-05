@@ -25,7 +25,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   let selectedSubTab = '2호기';
   let selectedSection = '보일러';
   let selectedFloor = 'ALL';
-  let selectedViewMode = '3d';
+  let selectedViewMode = 'floor';
   let selectedMainMenu = '홈';
   let selectedTodoFilter = '전체';
   let currentTodoRecords = [];
@@ -50,6 +50,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   let instrumentEditOpenedFromHistory = false;
   let calibrationEditOpenedFromHistory = false;
   let selectedHistorySource = '전체';
+  let historyQuickFilter = 'work';
   let selectedHistoryZone = '전체';
   let currentInspectionId = null;
   let currentInspectionItems = [];
@@ -672,6 +673,8 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     const remaining = records.filter(record => !record.completed_at).length;
     badge.textContent = String(remaining);
     badge.style.display = remaining > 0 ? 'inline-block' : 'none';
+    const homeCount = document.getElementById('homeTodoCount');
+    if (homeCount) homeCount.textContent = String(remaining);
   }
 
   function renderHomeTodos(records = currentTodoRecords) {
@@ -737,10 +740,69 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     return currentTodoRecords;
   }
 
+  function renderHomeCompactList(id, rows, emptyMessage, onOpen) {
+    const list = document.getElementById(id);
+    if (!list) return;
+    list.replaceChildren();
+    if (!rows.length) {
+      const empty = document.createElement('div');
+      empty.className = 'home-empty';
+      empty.textContent = emptyMessage;
+      list.appendChild(empty);
+      return;
+    }
+    rows.forEach(({ title, meta }) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'home-compact-item';
+      const name = document.createElement('strong');
+      name.textContent = title;
+      const detail = document.createElement('span');
+      detail.textContent = meta;
+      button.append(name, detail);
+      button.addEventListener('click', onOpen);
+      list.appendChild(button);
+    });
+  }
+
+  async function loadHomeDashboard() {
+    if (!currentUserInfo.id) return;
+    const epoch = securityEpoch;
+    await loadTodoOverview();
+    const inventoryResult = await supabaseClient.from('inventory')
+      .select('item_name,item_code,stock_qty,standard_qty,is_archived')
+      .eq('is_archived', false);
+    if (epoch !== securityEpoch || !currentUserInfo.id) return;
+    if (inventoryResult.error) {
+      document.getElementById('homeInventoryCount').textContent = '—';
+      renderHomeCompactList('homeInventoryList', [], '자재 현황을 불러오지 못했습니다.', () => switchMainMenu('자재관리'));
+    } else {
+      const low = (inventoryResult.data || []).filter(item => Number(item.standard_qty) > 0
+        && Number(item.stock_qty || 0) <= Math.ceil(Number(item.standard_qty) * 0.2));
+      document.getElementById('homeInventoryCount').textContent = String(low.length);
+      renderHomeCompactList('homeInventoryList', low.slice(0, 4).map(item => ({
+        title: item.item_name || item.item_code || '자재',
+        meta: `현재 ${item.stock_qty ?? 0} / 정수 ${item.standard_qty ?? 0}`
+      })), '확인이 필요한 자재가 없습니다.', () => switchMainMenu('자재관리'));
+    }
+    await loadUnifiedData();
+    if (epoch !== securityEpoch || !currentUserInfo.id) return;
+    const workRows = buildUnifiedHistoryRows().filter(row => ['점검·정비', '교정정보'].includes(row.source));
+    document.getElementById('homeHistoryCount').textContent = String(workRows.length);
+    renderHomeCompactList('homeHistoryList', workRows.slice(0, 4).map(row => ({
+      title: `${row.tag && row.tag !== '-' ? `${row.tag} · ` : ''}${row.name}`,
+      meta: `${row.source} · ${row.date}`
+    })), '아직 등록된 점검·정비 또는 교정 기록이 없습니다.', () => switchMainMenu('정비이력'));
+  }
+
   function renderTodos(records) {
     const list = document.getElementById('todoList');
     list.replaceChildren();
     const filteredRecords = records.filter(todoMatchesFilter);
+    const openRecords = filteredRecords.filter(record => !record.completed_at);
+    const completedRecords = filteredRecords.filter(record => record.completed_at);
+    const heading = document.getElementById('todoOpenHeading');
+    if (heading) heading.textContent = `진행 중 ${openRecords.length}건`;
 
     if (!filteredRecords.length) {
       const empty = document.createElement('div');
@@ -752,7 +814,12 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       return;
     }
 
-    filteredRecords.forEach(record => {
+    const completedDetails = document.createElement('details');
+    completedDetails.className = 'todo-completed-section';
+    const completedSummary = document.createElement('summary');
+    completedSummary.textContent = `완료 ${completedRecords.length}건 보기`;
+    completedDetails.appendChild(completedSummary);
+    [...openRecords, ...completedRecords].forEach(record => {
       const item = document.createElement('div');
       const isCompleted = Boolean(record.completed_at);
       item.className = `todo-item${isCompleted ? ' completed' : ''}`;
@@ -893,7 +960,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       });
       progressPanel.append(progressHeading, progressList, progressForm);
       item.append(checkbox, main, progressPanel);
-      list.appendChild(item);
+      (isCompleted ? completedDetails : list).appendChild(item);
 
       checkbox.addEventListener('change', async () => {
         const willComplete = checkbox.checked;
@@ -932,6 +999,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
         setTodoStatus(willComplete ? '완료 항목에 취소선을 표시했습니다.' : '다시 할 일로 되돌렸습니다.', 'success');
       });
     });
+    if (completedRecords.length) list.appendChild(completedDetails);
   }
 
   async function loadTodos() {
@@ -1067,13 +1135,43 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       '정비이력': 'main-menu-history',
       '자재관리': 'main-menu-inventory',
       '자료실': 'main-menu-materials',
+      '전문업무': 'main-menu-professional',
       '비밀번호': 'main-menu-password',
     };
     Object.entries(map).forEach(([key, id]) => {
       const el = document.getElementById(id);
       if (el) el.classList.toggle('active', key === menu);
     });
+    document.querySelectorAll('[data-mobile-menu]').forEach(button => {
+      button.classList.toggle('active', button.dataset.mobileMenu === menu);
+    });
   }
+
+  function closeMobileNav() {
+    document.body.classList.remove('mobile-nav-open');
+    document.getElementById('btnMobileNav')?.setAttribute('aria-expanded', 'false');
+  }
+
+  document.getElementById('btnMobileNav')?.addEventListener('click', () => {
+    const open = document.body.classList.toggle('mobile-nav-open');
+    document.getElementById('btnMobileNav').setAttribute('aria-expanded', String(open));
+  });
+  document.getElementById('btnMobileMore')?.addEventListener('click', () => {
+    document.body.classList.add('mobile-nav-open');
+    document.getElementById('btnMobileNav').setAttribute('aria-expanded', 'true');
+  });
+
+  window.switchProfessionalTab = function(tab) {
+    switchSubTab(tab);
+    selectedMainMenu = '전문업무';
+    setMainMenuActive('전문업무');
+    setEquipmentNavVisible(false);
+    document.getElementById('professional-nav').hidden = false;
+    document.getElementById('professional-tms').classList.toggle('active', tab === 'TMS(환경)');
+    document.getElementById('professional-logic').classList.toggle('active', tab === '로직관리');
+    document.body.dataset.activeMenu = 'professional';
+    updateFloorTitle();
+  };
 
   function setEquipmentNavVisible(visible) {
     const kicker = document.getElementById('equipment-nav-kicker');
@@ -1112,7 +1210,11 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   }
 
   window.switchMainMenu = function(menu) {
+    closeMobileNav();
+    document.querySelector('.account-menu')?.removeAttribute('open');
     selectedMainMenu = menu;
+    document.body.dataset.activeMenu = menu === '설비' ? 'equipment' : menu === '전문업무' ? 'professional' : 'other';
+    document.getElementById('professional-nav').hidden = true;
     setMainMenuActive(menu);
     measurePoints = [];
     clearAllMeasureVisuals();
@@ -1121,7 +1223,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     if (menu === '홈') {
       setEquipmentNavVisible(false);
       document.getElementById('home-dashboard-view').style.display = 'block';
-      loadTodoOverview();
+      loadHomeDashboard();
       updateFloorTitle();
       return;
     }
@@ -1129,6 +1231,11 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     if (menu === '설비') {
       setEquipmentNavVisible(true);
       switchSubTab(lastEquipmentUnit[selectedMajor] || (selectedMajor === '내연' ? '1호기' : '2호기'));
+      return;
+    }
+
+    if (menu === '전문업무') {
+      switchProfessionalTab('TMS(환경)');
       return;
     }
 
@@ -1148,11 +1255,13 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       loadTodos();
     } else if (menu === '정비이력') {
       selectedSubTab = '관리이력';
+      historyQuickFilter = 'work';
       selectedHistorySource = '전체';
       selectedHistoryZone = '전체';
       document.getElementById('history-table-view').style.display = 'block';
       document.getElementById('tableFilterInput').value = '';
       updateHistoryFilterButtons();
+      updateHistoryQuickButtons();
       renderHistoryTable();
     } else if (menu === '자재관리') {
       selectedSubTab = '자재관리';
@@ -1584,13 +1693,13 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       switchViewMode('floor');
     } else if (selectedMajor === '기력') {
       setEquipmentViewToolbar(true);
-      selectedViewMode = '3d';
+      selectedViewMode = 'floor';
       switchSection(selectedSection || '보일러');
     } else {
       setEquipmentViewToolbar(true);
       renderFloorBar();
-      selectedViewMode = '3d';
-      switchViewMode('3d');
+      selectedViewMode = 'floor';
+      switchViewMode('floor');
     }
     updateFloorTitle();
   };
@@ -1843,6 +1952,21 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
 
   window.setHistorySourceFilter = function(source) {
     selectedHistorySource = source;
+    historyQuickFilter = 'all';
+    updateHistoryQuickButtons();
+    updateHistoryFilterButtons();
+    renderHistoryTable();
+  };
+
+  function updateHistoryQuickButtons() {
+    document.getElementById('historyQuickWork')?.classList.toggle('active', historyQuickFilter === 'work');
+    document.getElementById('historyQuickAll')?.classList.toggle('active', historyQuickFilter === 'all');
+  }
+
+  window.setHistoryQuickFilter = function(filter) {
+    historyQuickFilter = filter === 'all' ? 'all' : 'work';
+    selectedHistorySource = '전체';
+    updateHistoryQuickButtons();
     updateHistoryFilterButtons();
     renderHistoryTable();
   };
@@ -2130,13 +2254,14 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     await loadUnifiedData();
     let rows = buildUnifiedHistoryRows();
     if (selectedMainMenu !== '정비이력') rows = rows.filter(row => row.major === selectedMajor);
+    if (historyQuickFilter === 'work') rows = rows.filter(row => ['점검·정비', '교정정보'].includes(row.source));
     if (selectedHistorySource !== '전체') rows = rows.filter(row => row.source === selectedHistorySource);
     if (selectedHistoryZone !== '전체') rows = rows.filter(row => row.zone === selectedHistoryZone);
     if (filterText) {
       rows = rows.filter(row => [row.source, row.major, row.zone, row.date, row.tag, row.name, row.author, row.content]
         .some(value => String(value || '').toLowerCase().includes(filterText)));
     }
-    const sourceLabel = selectedHistorySource === '전체' ? '전체 데이터' : selectedHistorySource;
+    const sourceLabel = historyQuickFilter === 'work' ? '점검·정비 / 교정' : selectedHistorySource === '전체' ? '전체 데이터' : selectedHistorySource;
     const zoneLabel = selectedHistoryZone === '전체' ? '전체 구역' : selectedHistoryZone;
     const scopeLabel = selectedMainMenu === '정비이력' ? '전체 발전소' : `${selectedMajor}발전`;
     document.getElementById('historyTableTitle').innerText = `📋 [${scopeLabel}] ${sourceLabel} · ${zoneLabel} (${rows.length}건)`;
@@ -2238,8 +2363,27 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     });
   }
 
-  document.getElementById('btnOpenGemini').addEventListener('click', async () => {
-    switchMainMenu('AI점검');
+  window.closeAiDrawer = function() {
+    document.getElementById('gemini-modal').style.display = 'none';
+    document.getElementById('ai-drawer-backdrop').hidden = true;
+  };
+  document.getElementById('btnOpenGemini').addEventListener('click', () => {
+    document.getElementById('gemini-modal').style.display = 'block';
+    document.getElementById('ai-drawer-backdrop').hidden = false;
+    switchAiTab('chat');
+  });
+  document.getElementById('btnCloseGemini').addEventListener('click', closeAiDrawer);
+  document.getElementById('ai-drawer-backdrop').addEventListener('click', closeAiDrawer);
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') closeAiDrawer();
+  });
+
+  const materialUploadToggle = document.getElementById('btnToggleMaterialUpload');
+  materialUploadToggle.addEventListener('click', () => {
+    const form = document.getElementById('materialsUploadForm');
+    form.hidden = !form.hidden;
+    materialUploadToggle.setAttribute('aria-expanded', String(!form.hidden));
+    if (!form.hidden) document.getElementById('materialTitle').focus();
   });
 
   async function fetchMaterialMetadata() {
@@ -4204,6 +4348,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       currentInstruments = (data || []).map(normalizeInstrumentRecord);
       renderFloorPins();
       render3DHotspots();
+      if (selectedMainMenu === '홈') loadHomeDashboard();
       if (selectedSubTab === '관리이력') renderHistoryTable();
     }
   }

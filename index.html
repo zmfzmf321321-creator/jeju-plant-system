@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>제주발전본부 보일러 계측제어 3D/2D 시스템</title>
+  <title>제주 발전 계측관리</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0/dist/umd/supabase.js"></script>
   <script src="./assets/vendor/xlsx.full.min.js"></script>
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon.png">
   <link rel="apple-touch-icon" href="./assets/icons/icon.png">
-  <link rel="stylesheet" href="./assets/css/styles.css?v=20261003-inline-history">
+  <link rel="stylesheet" href="./assets/css/styles.css?v=20261005-ui-review">
 </head>
 <body>
 
@@ -45,24 +45,34 @@
   </div>
   <div class="header-btns">
     <span id="loginUserBadge" style="font-size:11px; color:#38bdf8; font-weight:bold; margin-right:4px; flex-shrink:0;"></span>
-    <button class="btn-search-top" id="btnOpenSearch" title="계측기 검색">🔍 <span class="tool-label">검색</span></button>
-    <button class="btn-ai-top" id="btnOpenGemini" title="AI 점검">🤖 <span class="tool-label">AI 점검</span></button>
+    <button class="btn-search-top" id="btnOpenSearch" title="전체 검색">🔍 <span class="tool-label">전체 검색</span></button>
+    <button class="btn-ai-top" id="btnOpenGemini" title="AI 도우미">✨ <span class="tool-label">AI 도우미</span></button>
     <button class="btn-measure" id="btnToggleMeasure" title="3D 거리 계측">📐 <span class="tool-label">계측</span></button>
-    <button class="btn-passkey-reg" id="btnRegisterPasskey" title="이 기기에 패스키 등록">🔐 <span class="tool-label">지문등록</span></button>
-    <button class="btn-logout" id="btnLogout" title="로그아웃">↪ <span class="tool-label">로그아웃</span></button>
+    <details class="account-menu">
+      <summary title="내 계정">👤 <span class="tool-label">내 계정</span></summary>
+      <div class="account-menu-panel">
+        <button type="button" onclick="switchMainMenu('비밀번호')">비밀번호 변경</button>
+        <button class="btn-passkey-reg" id="btnRegisterPasskey" title="이 기기에 패스키 등록">지문·패스키 등록</button>
+        <button class="btn-logout" id="btnLogout" title="로그아웃">로그아웃</button>
+      </div>
+    </details>
+    <button type="button" id="btnMobileNav" class="mobile-nav-trigger" aria-label="전체 메뉴 열기" aria-expanded="false">☰</button>
   </div>
 </div>
 
 <div id="unit-selector-bar">
+  <div class="nav-brand">작업 공간 <span>JEJU PLANT</span></div>
+  <div class="nav-group-label">매일 쓰는 메뉴</div>
   <div class="main-menu-row" id="main-menu-row">
-    <button class="main-menu-btn active" id="main-menu-home" onclick="switchMainMenu('홈')">홈</button>
-    <button class="main-menu-btn" id="main-menu-equipment" onclick="switchMainMenu('설비')">설비</button>
-    <button class="main-menu-btn" id="main-menu-ai" onclick="switchMainMenu('AI점검')">AI점검</button>
+    <button class="main-menu-btn active" id="main-menu-home" onclick="switchMainMenu('홈')">⌂ &nbsp;오늘</button>
+    <button class="main-menu-btn" id="main-menu-equipment" onclick="switchMainMenu('설비')">▦ &nbsp;설비</button>
     <button class="main-menu-btn todo-main" id="main-menu-todo" onclick="switchMainMenu('할일')">✅ 할 일 <span class="todo-badge" id="todoBadge">0</span></button>
-    <button class="main-menu-btn" id="main-menu-history" onclick="switchMainMenu('정비이력')">정비이력</button>
-    <button class="main-menu-btn" id="main-menu-inventory" onclick="switchMainMenu('자재관리')">자재관리</button>
-    <button class="main-menu-btn" id="main-menu-materials" onclick="switchMainMenu('자료실')">자료실</button>
-    <button class="main-menu-btn" id="main-menu-password" onclick="switchMainMenu('비밀번호')">비밀번호</button>
+    <button class="main-menu-btn" id="main-menu-history" onclick="switchMainMenu('정비이력')">▤ &nbsp;관리이력</button>
+    <button class="main-menu-btn" id="main-menu-inventory" onclick="switchMainMenu('자재관리')">▣ &nbsp;자재</button>
+    <button class="main-menu-btn" id="main-menu-materials" onclick="switchMainMenu('자료실')">▤ &nbsp;자료실</button>
+    <button class="main-menu-btn" id="main-menu-professional" onclick="switchMainMenu('전문업무')">⚙ &nbsp;전문업무</button>
+    <button class="main-menu-btn nav-hidden" id="main-menu-ai" onclick="switchMainMenu('AI점검')">AI점검</button>
+    <button class="main-menu-btn nav-hidden" id="main-menu-password" onclick="switchMainMenu('비밀번호')">비밀번호</button>
   </div>
   <div class="nav-kicker" id="equipment-nav-kicker">발전 구분</div>
   <div class="selector-row" id="major-selector-row">
@@ -75,16 +85,16 @@
     <button class="sub-tab-btn" id="sub-steam-3" onclick="switchSubTab('3호기')">3호기</button>
     <button class="sub-tab-btn" id="sub-steam-fuel" onclick="switchSubTab('연료펌프룸')">⛽ 연료펌프룸</button>
     <button class="sub-tab-btn" id="sub-steam-am" onclick="switchSubTab('암모니아탱크')">🧪 암모니아 탱크</button>
-    <button class="sub-tab-btn nav-work" id="sub-steam-tms" onclick="switchSubTab('TMS(환경)')">🌿 TMS(환경)</button>
-    <button class="sub-tab-btn nav-work" id="sub-steam-logic" onclick="switchSubTab('로직관리')">🧩 로직관리</button>
+    <button class="sub-tab-btn nav-work nav-hidden" id="sub-steam-tms" onclick="switchSubTab('TMS(환경)')">🌿 TMS(환경)</button>
+    <button class="sub-tab-btn nav-work nav-hidden" id="sub-steam-logic" onclick="switchSubTab('로직관리')">🧩 로직관리</button>
     <button class="sub-tab-btn nav-todo" id="sub-steam-todo" onclick="switchSubTab('할일')">☑ 할 일</button>
   </div>
   
   <div class="selector-row" id="sub-tabs-engine" style="display: none;">
     <button class="sub-tab-btn active" id="sub-engine-1" onclick="switchSubTab('1호기')">1호기</button>
     <button class="sub-tab-btn" id="sub-engine-2" onclick="switchSubTab('2호기')">2호기</button>
-    <button class="sub-tab-btn nav-work" id="sub-engine-tms" onclick="switchSubTab('TMS(환경)')">🌿 TMS(환경)</button>
-    <button class="sub-tab-btn nav-work" id="sub-engine-logic" onclick="switchSubTab('로직관리')">🧩 로직관리</button>
+    <button class="sub-tab-btn nav-work nav-hidden" id="sub-engine-tms" onclick="switchSubTab('TMS(환경)')">🌿 TMS(환경)</button>
+    <button class="sub-tab-btn nav-work nav-hidden" id="sub-engine-logic" onclick="switchSubTab('로직관리')">🧩 로직관리</button>
     <button class="sub-tab-btn nav-todo" id="sub-engine-todo" onclick="switchSubTab('할일')">☑ 할 일</button>
   </div>
 
@@ -92,7 +102,21 @@
     <button class="sec-tab-btn active" id="sec-boiler" onclick="switchSection('보일러')">🏭 보일러</button>
     <button class="sec-tab-btn" id="sec-am" onclick="switchSection('탈질')">🌿 탈질설비 (AM)</button>
   </div>
+  <div class="professional-nav" id="professional-nav" hidden>
+    <div class="nav-group-label">전문업무</div>
+    <div class="selector-row">
+      <button class="sub-tab-btn" id="professional-tms" type="button" onclick="switchProfessionalTab('TMS(환경)')">🌿 환경 TMS</button>
+      <button class="sub-tab-btn" id="professional-logic" type="button" onclick="switchProfessionalTab('로직관리')">🧩 로직관리</button>
+    </div>
+  </div>
 </div>
+<nav id="mobile-quick-nav" aria-label="빠른 메뉴">
+  <button type="button" data-mobile-menu="홈" onclick="switchMainMenu('홈')">⌂<span>오늘</span></button>
+  <button type="button" data-mobile-menu="설비" onclick="switchMainMenu('설비')">▦<span>설비</span></button>
+  <button type="button" data-mobile-menu="할일" onclick="switchMainMenu('할일')">✓<span>할 일</span></button>
+  <button type="button" data-mobile-menu="자재관리" onclick="switchMainMenu('자재관리')">▣<span>자재</span></button>
+  <button type="button" id="btnMobileMore">☰<span>더보기</span></button>
+</nav>
 
 <div id="measure-info-hud">📐 모델 위 모서리를 터치하면 좌표가 자동 측정됩니다.</div>
 
@@ -100,9 +124,15 @@
   <div id="home-dashboard-view">
     <div class="home-shell">
       <section class="home-hero">
-        <div class="home-title">제주 발전 계측관리</div>
-        <div class="home-desc">오늘 확인할 일과 설비·정비이력·자료를 한 곳에서 이어서 관리합니다.</div>
+        <div class="home-eyebrow">TODAY · 작업 현황</div>
+        <div class="home-title">오늘 필요한 일을 바로 확인하세요</div>
+        <div class="home-desc">남은 작업, 부족한 자재, 최근 설비 기록을 한 화면에서 확인합니다.</div>
       </section>
+      <div class="home-summary-grid">
+        <button type="button" class="home-summary" onclick="switchMainMenu('할일')"><span>진행 중인 할 일</span><strong id="homeTodoCount">—</strong><small>할 일 보기 →</small></button>
+        <button type="button" class="home-summary" onclick="switchMainMenu('자재관리')"><span>확인이 필요한 자재</span><strong id="homeInventoryCount">—</strong><small>자재 보기 →</small></button>
+        <button type="button" class="home-summary" onclick="switchMainMenu('정비이력')"><span>점검·교정 기록</span><strong id="homeHistoryCount">—</strong><small>최근 기록 보기 →</small></button>
+      </div>
       <section class="home-card">
         <div class="home-card-head">
           <div class="home-card-title">오늘 할 일</div>
@@ -115,6 +145,14 @@
           <button type="button" class="home-action-btn" onclick="switchMainMenu('할일')">+ 할 일 추가</button>
           <button type="button" class="home-action-btn" onclick="switchMainMenu('설비')">설비 보기</button>
         </div>
+      </section>
+      <section class="home-card">
+        <div class="home-card-head"><div class="home-card-title">부족한 자재</div><button type="button" class="home-link-btn" onclick="switchMainMenu('자재관리')">자재 전체보기 &gt;</button></div>
+        <div class="home-compact-list" id="homeInventoryList"><div class="home-empty">로그인 후 자재 현황을 불러옵니다.</div></div>
+      </section>
+      <section class="home-card">
+        <div class="home-card-head"><div class="home-card-title">최근 관리이력</div><button type="button" class="home-link-btn" onclick="switchMainMenu('정비이력')">이력 전체보기 &gt;</button></div>
+        <div class="home-compact-list" id="homeHistoryList"><div class="home-empty">로그인 후 기록을 불러옵니다.</div></div>
       </section>
     </div>
   </div>
@@ -173,7 +211,7 @@
 
   <div id="history-table-view">
     <div class="history-table-header">
-      <div class="history-table-title" id="historyTableTitle">📋 [기력발전] 통합 점검 및 관리이력</div>
+      <div class="history-table-title" id="historyTableTitle">관리이력</div>
       <div class="history-table-tools">
         <input type="text" id="tableFilterInput" class="history-search-bar" placeholder="전체 정보 검색..." oninput="renderHistoryTable()">
         <button type="button" id="btnExportExcel" class="history-export-btn" title="전체 관리 자료를 Excel 파일로 다운로드">
@@ -181,7 +219,11 @@
         </button>
       </div>
     </div>
-    <div class="history-filter-panel">
+    <div class="history-quick-filters" aria-label="빠른 이력 필터">
+      <button type="button" id="historyQuickWork" class="active" onclick="setHistoryQuickFilter('work')">점검·정비 / 교정</button>
+      <button type="button" id="historyQuickAll" onclick="setHistoryQuickFilter('all')">전체 기록</button>
+    </div>
+    <details class="history-filter-details"><summary>상세 필터</summary><div class="history-filter-panel">
       <div class="history-filter-row" id="historySourceFilters">
         <span class="history-filter-label">데이터 종류</span>
         <button type="button" class="history-filter-btn active" data-history-source="전체" onclick="setHistorySourceFilter('전체')">전체</button>
@@ -204,7 +246,7 @@
         <button type="button" class="history-filter-btn" data-history-zone="내연" onclick="setHistoryZoneFilter('내연')">내연</button>
         <button type="button" class="history-filter-btn" data-history-zone="공통" onclick="setHistoryZoneFilter('공통')">공통자료</button>
       </div>
-    </div>
+    </div></details>
     <div style="overflow-x: auto;">
       <table class="custom-history-table">
         <thead>
@@ -321,6 +363,7 @@
         <button id="btnAddTodo" class="todo-add-btn" type="submit">추가</button>
       </form>
       <div class="todo-status" id="todoManagementStatus" role="status" aria-live="polite"></div>
+      <div class="todo-section-label" id="todoOpenHeading">진행 중</div>
       <div class="todo-list" id="todoList">
         <div class="todo-empty">할 일 탭을 열면 목록을 불러옵니다.</div>
       </div>
@@ -372,7 +415,8 @@
     <div class="materials-panel">
       <div class="materials-title" id="materialsManagementTitle">📁 [기력발전] 자료실</div>
       <div class="materials-desc">내부 자료는 비공개로 저장되며 로그인한 팀원만 열거나 다운로드할 수 있습니다.</div>
-      <form class="materials-form" id="materialsUploadForm">
+      <button type="button" id="btnToggleMaterialUpload" class="materials-upload-toggle" aria-expanded="false">+ 새 자료 등록</button>
+      <form class="materials-form" id="materialsUploadForm" hidden>
         <div class="materials-field">
           <label for="materialTitle">자료명</label>
           <input id="materialTitle" class="materials-input" type="text" maxlength="200" placeholder="예: 압력전송기 매뉴얼" autocomplete="off">
@@ -459,15 +503,15 @@
 </div>
 
 <div id="floor-bar"></div>
-<button type="button" class="ai-floating-btn" id="btnFloatingGemini" onclick="document.getElementById('btnOpenGemini').click()">✨ AI 점검</button>
 
 <!-- Gemini AI 어시스턴트 모달 -->
 <div id="gemini-modal">
-  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-    <h3>🤖 제미나이 정비 AI 도우미</h3>
-    <button class="major-tab-btn" style="background:#10b981; border-color:#34d399; color:#fff; max-width:110px; height:26px; font-size:11px;" onclick="startNewChat()">➕ 새 대화하기</button>
+  <div class="ai-drawer-head">
+    <div><div class="ai-drawer-eyebrow">현장 업무 지원</div><h3>✨ AI 도우미</h3></div>
+    <button type="button" id="btnCloseGemini" class="ai-drawer-close" aria-label="AI 도우미 닫기">×</button>
   </div>
-  <div style="display: flex; gap: 6px; margin-bottom: 10px;">
+  <div class="ai-drawer-action"><button type="button" onclick="switchMainMenu('AI점검'); closeAiDrawer();">점검표 만들기 →</button><button type="button" onclick="startNewChat()">+ 새 대화</button></div>
+  <div class="ai-drawer-tabs">
     <button class="major-tab-btn active" id="btnAiTabChat" onclick="switchAiTab('chat')">💬 실시간 대화</button>
     <button class="major-tab-btn" id="btnAiTabHistory" onclick="switchAiTab('history')">💾 저장된 내 질의 기록</button>
   </div>
@@ -489,10 +533,8 @@
     </div>
   </div>
 
-  <div class="btn-wrap" style="margin-top: 10px;">
-    <button class="btn-cancel" onclick="document.getElementById('gemini-modal').style.display='none'">닫기</button>
-  </div>
 </div>
+<div id="ai-drawer-backdrop" hidden></div>
 
 <!-- 검색 모달 -->
 <div id="search-modal">
@@ -732,7 +774,7 @@
     </form>
   </dialog>
 
-  <script src="./assets/js/app.js?v=20261003-inventory-import"></script>
+  <script src="./assets/js/app.js?v=20261005-ui-review"></script>
   <script src="./assets/js/inventory-life.js?v=20261003-inventory-import"></script>
   <script src="./assets/js/inventory.js?v=20261003-inline-history"></script>
 </body>
