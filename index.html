@@ -9,7 +9,7 @@
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon.png">
   <link rel="apple-touch-icon" href="./assets/icons/icon.png">
-  <link rel="stylesheet" href="./assets/css/styles.css?v=20261005-ui-review">
+  <link rel="stylesheet" href="./assets/css/styles.css?v=20261006-inventory-photos">
 </head>
 <body>
 
@@ -757,10 +757,18 @@
         <label id="inventoryInitialQtyField">초기 현재고 <input id="inventoryInitialQty" type="number" min="0" step="1" value="0" required></label>
       </div>
       <div class="inventory-life-helper"><span id="inventoryServiceLifeNote">품명을 입력하면 교체주기를 자동 판별합니다.</span><button type="button" id="inventoryAutoLifeButton">자동값 사용</button></div>
+      <label class="inventory-photo-field">사진 첨부 <input id="inventoryPhotoFiles" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple><span>JPEG·PNG·WebP·GIF, 사진당 20MB 이하 · 품목당 최대 5장</span></label>
+      <div id="inventoryEditorPhotos" class="inventory-photo-grid"></div>
       <p id="inventoryEditorHint">초기 현재고는 자동으로 ‘초기 재고 등록’ 이력에 기록됩니다.</p>
       <div id="inventoryEditorError" class="inventory-form-error" role="alert"></div>
       <div class="inventory-dialog-actions"><button type="button" id="inventoryEditorCancel">취소</button><button type="submit" class="inventory-primary-btn" id="inventoryEditorSubmit">등록</button></div>
     </form>
+  </dialog>
+
+  <dialog id="inventoryPhotoDialog" class="inventory-dialog inventory-photo-dialog">
+    <h3 id="inventoryPhotoTitle">자재 사진</h3>
+    <div id="inventoryPhotoGallery" class="inventory-photo-grid"></div>
+    <div class="inventory-dialog-actions"><button type="button" id="inventoryPhotoClose">닫기</button></div>
   </dialog>
 
   <dialog id="inventoryChangeDialog" class="inventory-dialog">
@@ -776,7 +784,7 @@
 
   <script src="./assets/js/app.js?v=20261006-floor75"></script>
   <script src="./assets/js/inventory-life.js?v=20261003-inventory-import"></script>
-  <script src="./assets/js/inventory.js?v=20261003-inline-history"></script>
+  <script src="./assets/js/inventory.js?v=20261006-inventory-photos"></script>
 </body>
 </html>
 

@@ -9,10 +9,16 @@
   const history = document.getElementById('inventoryHistoryList');
   const editor = document.getElementById('inventoryEditorDialog');
   const changeDialog = document.getElementById('inventoryChangeDialog');
+  const photoDialog = document.getElementById('inventoryPhotoDialog');
+  const photoGallery = document.getElementById('inventoryPhotoGallery');
+  const editorPhotos = document.getElementById('inventoryEditorPhotos');
+  const photoFiles = document.getElementById('inventoryPhotoFiles');
   const search = document.getElementById('inventorySearch');
   const majorFilter = document.getElementById('inventoryMajorFilter');
   const showArchived = document.getElementById('inventoryShowArchived');
   let items = [];
+  let photos = [];
+  let photosLoaded = false;
   let historyItemId = null;
   let changeItemId = null;
   let changeDirection = 1;
@@ -35,6 +41,42 @@
   }
   const emptyText = value => value == null || value === '' ? '—' : String(value);
   const itemById = id => items.find(item => item.id === id);
+  const itemPhotos = id => photos.filter(photo => photo.inventory_id === id && !photo.is_removed);
+  const photoValue = photo => photo.image_base64
+    ? `data:${photo.mime_type};base64,${photo.image_base64}` : photo.storage_url;
+  function photoImage(photo, className = '', onClick = null) {
+    const img = make('img', className);
+    img.alt = '자재 사진'; img.loading = 'lazy';
+    bindPhoto(img, photoValue(photo));
+    img.addEventListener('click', onClick || (() => openImageLightbox(photoValue(photo))));
+    return img;
+  }
+  function fillPhotoGrid(container, id, removable = false) {
+    container.replaceChildren();
+    const list = itemPhotos(id);
+    if (!list.length) { container.append(make('p', 'inventory-meta', '등록된 사진이 없습니다.')); return; }
+    list.forEach(photo => {
+      const card = make('div', 'inventory-photo-card');
+      card.append(photoImage(photo), make('span', '', photo.source === 'upload' ? '첨부 사진' : '기존 자료 사진'));
+      if (removable) {
+        const button = make('button', '', '사진 삭제'); button.type = 'button';
+        button.addEventListener('click', async () => {
+          if (!confirm('이 사진을 자재에서 삭제할까요?')) return;
+          button.disabled = true;
+          const { error } = await supabaseClient.from('inventory_photos').update({ is_removed: true }).eq('id', photo.id);
+          if (error) { button.disabled = false; byId('inventoryEditorError').textContent = errorText(error); return; }
+          photo.is_removed = true; fillPhotoGrid(editorPhotos, id, true); render();
+        });
+        card.append(button);
+      }
+      container.append(card);
+    });
+  }
+  function openPhotos(item) {
+    byId('inventoryPhotoTitle').textContent = `${item.item_name} 사진`;
+    fillPhotoGrid(photoGallery, item.id);
+    photoDialog.showModal();
+  }
   const inferredLife = () => inferInventoryServiceLife({
     item_name: field('inventoryItemName'), category: categoryForInference(),
     spec: field('inventorySpec'), model_name: field('inventoryModelName')
@@ -93,6 +135,11 @@
     visible.forEach(item => {
       const row = make('tr', item.is_archived ? 'archived' : '');
       const nameCell = make('td');
+      const attached = itemPhotos(item.id);
+      if (attached.length) {
+        const thumbnail = photoImage(attached[0], 'inventory-list-photo', () => openPhotos(item));
+        nameCell.append(thumbnail);
+      }
       nameCell.append(make('div', 'inventory-name', item.item_name),
         make('div', 'inventory-meta', [item.item_code, item.category].filter(Boolean).join(' · ') || '품목코드 없음'),
         make('div', 'inventory-major', majorLabel(item.major_category)));
@@ -108,6 +155,7 @@
       quantity.textContent = `${standard ?? '미지정'} / ${current}${item.unit || 'EA'}`;
       if (standard != null && standard > 0 && current <= Math.ceil(standard * 0.2)) quantity.classList.add('low');
       const buttons = make('td', 'inventory-actions');
+      buttons.append(action(`사진 ${attached.length}`, 'photos', item.id));
       if (!item.is_archived) {
         buttons.append(action('+ 입고', 'in', item.id), action('− 사용', 'out', item.id),
           action('수정', 'edit', item.id), action('삭제', 'archive', item.id));
@@ -142,14 +190,27 @@
     }
   }
 
+  async function fetchPhotos() {
+    const rows = [];
+    for (let offset = 0; ; offset += 1000) {
+      const { data, error } = await supabaseClient.from('inventory_photos')
+        .select('id,inventory_id,storage_url,image_base64,mime_type,source,is_removed')
+        .eq('is_removed', false).order('created_at').range(offset, offset + 999);
+      if (error) throw error;
+      rows.push(...(data || []));
+      if (!data || data.length < 1000) return rows;
+    }
+  }
+
   async function load() {
     const token = ++loadToken;
     if (!currentUserInfo.id) { setStatus('승인된 계정으로 로그인하면 자재를 볼 수 있습니다.', true); return; }
     setStatus('자재 목록을 불러오는 중입니다.');
     try {
-      const records = await fetchItems();
+      const [records, photoRecords] = await Promise.all([fetchItems(), photosLoaded ? Promise.resolve(photos) : fetchPhotos()]);
       if (token !== loadToken) return;
       items = records;
+      photos = photoRecords; photosLoaded = true;
       render();
       setStatus(`자재 ${records.filter(item => !item.is_archived).length}개`);
       if (historyItemId) await loadHistory(historyItemId);
@@ -207,6 +268,7 @@
     byId('inventoryUnit').value = item?.unit || 'EA';
     byId('inventoryStandardQty').value = item?.standard_qty ?? '';
     byId('inventoryInitialQty').value = 0;
+    fillPhotoGrid(editorPhotos, item?.id);
     editor.showModal();
   }
 
@@ -218,6 +280,11 @@
     const initial = Number(field('inventoryInitialQty'));
     const current = id ? Number(itemById(id)?.stock_qty || 0) : initial;
     const errorElement = byId('inventoryEditorError');
+    const files = [...photoFiles.files];
+    if (itemPhotos(id).length + files.length > 5) { errorElement.textContent = '사진은 품목당 최대 5장까지 첨부할 수 있습니다.'; return; }
+    if (files.some(file => !['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type) || file.size > 20 * 1024 * 1024)) {
+      errorElement.textContent = 'JPEG·PNG·WebP·GIF 사진을 장당 20MB 이하로 선택해 주세요.'; return;
+    }
     if (!['기력', '내연', '환경'].includes(field('inventoryMajorCategory'))) {
       errorElement.textContent = '대분류를 선택해 주세요.'; return;
     }
@@ -239,12 +306,30 @@
     if (!id) payload.stock_qty = initial;
     byId('inventoryEditorSubmit').disabled = true;
     const result = id
-      ? await supabaseClient.from('inventory').update(payload).eq('id', id)
-      : await supabaseClient.from('inventory').insert(payload);
+      ? await supabaseClient.from('inventory').update(payload).eq('id', id).select('id').single()
+      : await supabaseClient.from('inventory').insert(payload).select('id').single();
+    if (result.error) { byId('inventoryEditorSubmit').disabled = false; errorElement.textContent = errorText(result.error); return; }
+    const savedId = result.data.id;
+    if (!id) {
+      byId('inventoryEditId').value = savedId;
+      byId('inventoryEditorTitle').textContent = '자재 수정';
+      byId('inventoryEditorSubmit').textContent = '수정 저장';
+      byId('inventoryInitialQtyField').style.display = 'none';
+      byId('inventoryEditorHint').style.display = 'none';
+    }
+    for (const file of files) {
+      const url = await uploadImageToStorage(file);
+      if (!url) { byId('inventoryEditorSubmit').disabled = false; errorElement.textContent = '자재 정보는 저장됐지만 사진 업로드가 완료되지 않았습니다. 사진을 다시 선택해 주세요.'; await load(); return; }
+      const photoResult = await supabaseClient.from('inventory_photos').insert({
+        inventory_id: savedId, storage_url: url, mime_type: file.type,
+        source: 'upload', created_by: currentUserInfo.id
+      });
+      if (photoResult.error) { byId('inventoryEditorSubmit').disabled = false; errorElement.textContent = `자재 정보는 저장됐지만 사진 연결에 실패했습니다: ${errorText(photoResult.error)}`; await load(); return; }
+    }
     byId('inventoryEditorSubmit').disabled = false;
-    if (result.error) { errorElement.textContent = errorText(result.error); return; }
+    if (files.length) { photosLoaded = false; await load(); }
     editor.close();
-    await load();
+    if (!files.length) await load();
     setStatus(id ? '자재 정보를 수정했습니다.' : '자재를 등록했습니다.');
   }
 
@@ -315,11 +400,13 @@
         render();
         if (historyItemId) loadHistory(item.id);
         break;
+      case 'photos': openPhotos(item); break;
     }
   });
   byId('inventoryAddButton').addEventListener('click', () => openEditor());
   byId('inventoryEditorCancel').addEventListener('click', () => editor.close());
   byId('inventoryChangeCancel').addEventListener('click', () => changeDialog.close());
+  byId('inventoryPhotoClose').addEventListener('click', () => photoDialog.close());
   byId('inventoryEditorForm').addEventListener('submit', saveEditor);
   ['inventoryItemName', 'inventoryCategoryOther', 'inventorySpec', 'inventoryModelName'].forEach(id =>
     byId(id).addEventListener('input', refreshServiceLife));
@@ -338,11 +425,11 @@
   showArchived.addEventListener('change', render);
   window.loadInventoryPage = load;
   window.clearInventoryPage = () => {
-    loadToken++; items = []; historyItemId = null; changeItemId = null;
+    loadToken++; items = []; photos = []; photosLoaded = false; historyItemId = null; changeItemId = null;
     historyPanel.hidden = true;
     tableBody.replaceChildren(); history.textContent = '자재의 이력 버튼을 누르면 기록을 볼 수 있습니다.';
-    if (editor.open) editor.close(); if (changeDialog.open) changeDialog.close();
+    if (editor.open) editor.close(); if (changeDialog.open) changeDialog.close(); if (photoDialog.open) photoDialog.close();
+    editorPhotos.replaceChildren(); photoGallery.replaceChildren();
     setStatus('');
   };
 })();
-

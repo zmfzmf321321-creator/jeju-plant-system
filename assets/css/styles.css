@@ -1009,6 +1009,15 @@
     .inventory-form-error { min-height: 18px; font-size: 12px; }
     .inventory-dialog-actions { justify-content: flex-end; margin-top: 8px; }
     .inventory-dialog-actions .inventory-primary-btn { background: var(--primary-deep); color: #fff; }
+    .inventory-photo-field { margin-top: 14px; }
+    .inventory-photo-field span { font-weight: 400; }
+    .inventory-photo-grid { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+    .inventory-photo-card { display: grid; gap: 6px; width: 116px; color: var(--muted); font-size: 11px; }
+    .inventory-photo-card img { width: 116px; height: 90px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); cursor: zoom-in; background: var(--surface-raised); }
+    .inventory-photo-card button { padding: 5px 8px; border: 1px solid var(--line-strong); border-radius: 7px; background: var(--surface-raised); color: var(--text); cursor: pointer; }
+    .inventory-list-photo { float: left; width: 45px; height: 45px; object-fit: cover; border-radius: 6px; margin-right: 9px; cursor: pointer; background: var(--surface-raised); }
+    .inventory-photo-dialog { max-width: min(680px, 94vw); }
+    .inventory-photo-dialog .inventory-photo-grid { max-height: 65vh; overflow-y: auto; }
     @media (max-width: 700px) {
       #inventory-management-view { padding: 14px 10px; }
       .inventory-header h2 { font-size: 18px; }
