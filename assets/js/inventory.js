@@ -120,7 +120,7 @@
     const visible = items.filter(item => {
       if (item.is_archived && !showArchived.checked) return false;
       if (majorFilter.value !== '전체' && item.major_category !== majorFilter.value) return false;
-      return !query || [item.item_name, item.item_code, item.category, item.spec,
+      return !query || [item.item_name, item.material_number, item.item_code, item.category, item.spec,
         item.model_name, item.purpose, item.service_life, item.location, item.major_category,
         majorLabel(item.major_category)]
         .some(value => String(value || '').toLocaleLowerCase().includes(query));
@@ -141,7 +141,11 @@
         nameCell.append(thumbnail);
       }
       nameCell.append(make('div', 'inventory-name', item.item_name),
-        make('div', 'inventory-meta', [item.item_code, item.category].filter(Boolean).join(' · ') || '품목코드 없음'),
+        make('div', 'inventory-meta', [
+          item.material_number ? `자재번호 ${item.material_number}` : null,
+          item.item_code && item.item_code !== item.material_number ? `품목코드 ${item.item_code}` : null,
+          item.category
+        ].filter(Boolean).join(' · ') || '자재번호 없음'),
         make('div', 'inventory-major', majorLabel(item.major_category)));
       const specCell = make('td');
       specCell.append(make('div', '', emptyText(item.spec)), make('div', 'inventory-meta', `모델명 ${emptyText(item.model_name)}`));
@@ -182,7 +186,7 @@
     const rows = [];
     for (let offset = 0; ; offset += 1000) {
       const { data, error } = await supabaseClient.from('inventory')
-        .select('id,major_category,category,item_code,item_name,spec,model_name,purpose,service_life,stock_qty,standard_qty,unit,location,is_archived,updated_at')
+        .select('id,major_category,category,item_code,material_number,item_name,spec,model_name,purpose,service_life,stock_qty,standard_qty,unit,location,is_archived,updated_at')
         .order('item_name', { ascending: true }).range(offset, offset + 999);
       if (error) throw error;
       rows.push(...(data || []));
@@ -252,6 +256,7 @@
     byId('inventoryMajorCategory').value = item?.major_category || '';
     byId('inventoryItemName').value = item?.item_name || '';
     byId('inventoryItemCode').value = item?.item_code || '';
+    byId('inventoryMaterialNumber').value = item?.material_number || '';
     const savedCategory = item?.category || '';
     const listedCategory = inventoryCategoryOptions.some(([name]) => name === savedCategory);
     categorySelect.value = savedCategory ? (listedCategory ? savedCategory : '기타') : '';
@@ -298,6 +303,7 @@
       major_category: field('inventoryMajorCategory'), purpose: field('inventoryPurpose') || null,
       service_life: field('inventoryServiceLife') || null,
       item_name: field('inventoryItemName'), item_code: field('inventoryItemCode') || null,
+      material_number: field('inventoryMaterialNumber') || null,
       category: categoryValue(), spec: field('inventorySpec') || null,
       model_name: field('inventoryModelName') || null, location: field('inventoryLocation') || null,
       unit: field('inventoryUnit') || 'EA', standard_qty: standard,

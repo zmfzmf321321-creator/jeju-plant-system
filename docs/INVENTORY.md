@@ -28,6 +28,7 @@ Supabase Dashboard → Table Editor → `inventory` → Import data from CSV에�
 | `standard_qty` | 정수(기준 수량). 원본에 값이 없으면 빈칸 | 아니요 |
 | `stock_qty` | 시작 현재고 | 예 |
 | `item_code` | 중복되지 않는 품목코드 | 아니요 |
+| `material_number` | 원본 자료의 자재번호 | 아니요 |
 | `category` | 계측기 분류. 화면에서는 목록 또는 기타 직접 입력 | CSV에서는 아니요 |
 | `spec` | 규격 | 아니요 |
 | `model_name` | 모델명 | 아니요 |
@@ -39,6 +40,9 @@ Supabase Dashboard → Table Editor → `inventory` → Import data from CSV에�
 정수는 비어 있거나 0 이상의 정수이고, 현재고는 0 이상의 정수입니다.
 원본 자료처럼 현재고가 정수보다 많은 경우에도 원래 수량을 보존합니다.
 품목코드가 없는 행은 CSV 셀을 비워도 됩니다.
+원본 두 엑셀의 ‘자재번호’는 기존 이관 시 품목코드로 저장됐으므로,
+`20261006041024_inventory_material_number.sql` 적용 시 확인된 66건의
+자재번호에도 같은 값을 채웁니다. 이후 두 항목은 화면과 CSV에서 각각 수정할 수 있습니다.
 가져온 행의 현재고는 `초기 재고 등록` 이력으로 자동 기록됩니다.
 
 화면에서 `+ 입고` 또는 `− 사용`을 누르면 변경 수량과 사유를 입력합니다.

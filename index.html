@@ -1,790 +1,791 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>제주 발전 계측관리</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0/dist/umd/supabase.js"></script>
-  <script src="./assets/vendor/xlsx.full.min.js"></script>
-  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
-  <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon.png">
-  <link rel="apple-touch-icon" href="./assets/icons/icon.png">
-  <link rel="stylesheet" href="./assets/css/styles.css?v=20261006-inventory-photos">
-</head>
-<body>
-
-<div id="auth-overlay">
-  <div id="login-box" class="auth-box">
-    <div class="auth-title">🔐 시스템 로그인</div>
-    <div class="auth-desc">가입 신청 후 Supabase 관리자 승인 시 이용할 수 있습니다.</div>
-    <input type="text" id="loginEmail" class="auth-input" placeholder="사번(이메일: 12345@jeju.com)">
-    <input type="password" id="loginPassword" class="auth-input" placeholder="비밀번호">
-    <button class="auth-btn" id="btnMemberLogin" type="button">팀원 로그인</button>
-    <button class="auth-btn auth-btn-admin" id="btnAdminLogin" type="button">👑 최고관리자 로그인</button>
-    <div class="auth-divider"><span>또는</span></div>
-    <button class="auth-btn auth-btn-passkey" id="btnPasskeyLogin" type="button">🔐 내 아이디 지문등록·로그인</button>
-    <div id="loginMsg" class="auth-status-error"></div>
-    <div class="auth-toggle-link" id="linkToRegister">신규 팀원 계정 신청</div>
-  </div>
-
-  <div id="register-box" class="auth-box">
-    <div class="auth-title">📝 신규 팀원 가입</div>
-    <input type="text" id="regName" class="auth-input" placeholder="이름 (예: 홍길동)">
-    <input type="text" id="regEmail" class="auth-input" placeholder="사번 (12345@jeju.com)">
-    <input type="password" id="regPassword" class="auth-input" placeholder="비밀번호 (6자리 이상)">
-    <button class="auth-btn" id="btnRegisterSubmit" type="button">가입 신청</button>
-    <div id="regMsg" class="auth-status-error"></div>
-    <div class="auth-toggle-link" id="linkBackLogin2">돌아가기</div>
-  </div>
-</div>
-
-<div id="header">
-  <div class="brand">
-    <span class="brand-name">⚡ 제주 발전</span>
-    <span class="location-tag" id="currentFloorTag">기력 2호기 보일러 전체</span>
-  </div>
-  <div class="header-btns">
-    <span id="loginUserBadge" style="font-size:11px; color:#38bdf8; font-weight:bold; margin-right:4px; flex-shrink:0;"></span>
-    <button class="btn-search-top" id="btnOpenSearch" title="전체 검색">🔍 <span class="tool-label">전체 검색</span></button>
-    <button class="btn-ai-top" id="btnOpenGemini" title="AI 도우미">✨ <span class="tool-label">AI 도우미</span></button>
-    <button class="btn-measure" id="btnToggleMeasure" title="3D 거리 계측">📐 <span class="tool-label">계측</span></button>
-    <details class="account-menu">
-      <summary title="내 계정">👤 <span class="tool-label">내 계정</span></summary>
-      <div class="account-menu-panel">
-        <button type="button" onclick="switchMainMenu('비밀번호')">비밀번호 변경</button>
-        <button class="btn-passkey-reg" id="btnRegisterPasskey" title="이 기기에 패스키 등록">지문·패스키 등록</button>
-        <button class="btn-logout" id="btnLogout" title="로그아웃">로그아웃</button>
-      </div>
-    </details>
-    <button type="button" id="btnMobileNav" class="mobile-nav-trigger" aria-label="전체 메뉴 열기" aria-expanded="false">☰</button>
-  </div>
-</div>
-
-<div id="unit-selector-bar">
-  <div class="nav-brand">작업 공간 <span>JEJU PLANT</span></div>
-  <div class="nav-group-label">매일 쓰는 메뉴</div>
-  <div class="main-menu-row" id="main-menu-row">
-    <button class="main-menu-btn active" id="main-menu-home" onclick="switchMainMenu('홈')">⌂ &nbsp;오늘</button>
-    <button class="main-menu-btn" id="main-menu-equipment" onclick="switchMainMenu('설비')">▦ &nbsp;설비</button>
-    <button class="main-menu-btn todo-main" id="main-menu-todo" onclick="switchMainMenu('할일')">✅ 할 일 <span class="todo-badge" id="todoBadge">0</span></button>
-    <button class="main-menu-btn" id="main-menu-history" onclick="switchMainMenu('정비이력')">▤ &nbsp;관리이력</button>
-    <button class="main-menu-btn" id="main-menu-inventory" onclick="switchMainMenu('자재관리')">▣ &nbsp;자재</button>
-    <button class="main-menu-btn" id="main-menu-materials" onclick="switchMainMenu('자료실')">▤ &nbsp;자료실</button>
-    <button class="main-menu-btn" id="main-menu-professional" onclick="switchMainMenu('전문업무')">⚙ &nbsp;전문업무</button>
-    <button class="main-menu-btn nav-hidden" id="main-menu-ai" onclick="switchMainMenu('AI점검')">AI점검</button>
-    <button class="main-menu-btn nav-hidden" id="main-menu-password" onclick="switchMainMenu('비밀번호')">비밀번호</button>
-  </div>
-  <div class="nav-kicker" id="equipment-nav-kicker">발전 구분</div>
-  <div class="selector-row" id="major-selector-row">
-    <button class="major-tab-btn active" id="btn-major-steam" onclick="switchMajor('기력')">⚡ 기력 발전</button>
-    <button class="major-tab-btn" id="btn-major-engine" onclick="switchMajor('내연')">🔥 내연 발전</button>
-  </div>
-  
-  <div class="selector-row" id="sub-tabs-steam">
-    <button class="sub-tab-btn active" id="sub-steam-2" onclick="switchSubTab('2호기')">2호기</button>
-    <button class="sub-tab-btn" id="sub-steam-3" onclick="switchSubTab('3호기')">3호기</button>
-    <button class="sub-tab-btn" id="sub-steam-fuel" onclick="switchSubTab('연료펌프룸')">⛽ 연료펌프룸</button>
-    <button class="sub-tab-btn" id="sub-steam-am" onclick="switchSubTab('암모니아탱크')">🧪 암모니아 탱크</button>
-    <button class="sub-tab-btn nav-work nav-hidden" id="sub-steam-tms" onclick="switchSubTab('TMS(환경)')">🌿 TMS(환경)</button>
-    <button class="sub-tab-btn nav-work nav-hidden" id="sub-steam-logic" onclick="switchSubTab('로직관리')">🧩 로직관리</button>
-    <button class="sub-tab-btn nav-todo" id="sub-steam-todo" onclick="switchSubTab('할일')">☑ 할 일</button>
-  </div>
-  
-  <div class="selector-row" id="sub-tabs-engine" style="display: none;">
-    <button class="sub-tab-btn active" id="sub-engine-1" onclick="switchSubTab('1호기')">1호기</button>
-    <button class="sub-tab-btn" id="sub-engine-2" onclick="switchSubTab('2호기')">2호기</button>
-    <button class="sub-tab-btn nav-work nav-hidden" id="sub-engine-tms" onclick="switchSubTab('TMS(환경)')">🌿 TMS(환경)</button>
-    <button class="sub-tab-btn nav-work nav-hidden" id="sub-engine-logic" onclick="switchSubTab('로직관리')">🧩 로직관리</button>
-    <button class="sub-tab-btn nav-todo" id="sub-engine-todo" onclick="switchSubTab('할일')">☑ 할 일</button>
-  </div>
-
-  <div class="selector-row" id="section-selector-row">
-    <button class="sec-tab-btn active" id="sec-boiler" onclick="switchSection('보일러')">🏭 보일러</button>
-    <button class="sec-tab-btn" id="sec-am" onclick="switchSection('탈질')">🌿 탈질설비 (AM)</button>
-  </div>
-  <div class="professional-nav" id="professional-nav" hidden>
-    <div class="nav-group-label">전문업무</div>
-    <div class="selector-row">
-      <button class="sub-tab-btn" id="professional-tms" type="button" onclick="switchProfessionalTab('TMS(환경)')">🌿 환경 TMS</button>
-      <button class="sub-tab-btn" id="professional-logic" type="button" onclick="switchProfessionalTab('로직관리')">🧩 로직관리</button>
-    </div>
-  </div>
-</div>
-<nav id="mobile-quick-nav" aria-label="빠른 메뉴">
-  <button type="button" data-mobile-menu="홈" onclick="switchMainMenu('홈')">⌂<span>오늘</span></button>
-  <button type="button" data-mobile-menu="설비" onclick="switchMainMenu('설비')">▦<span>설비</span></button>
-  <button type="button" data-mobile-menu="할일" onclick="switchMainMenu('할일')">✓<span>할 일</span></button>
-  <button type="button" data-mobile-menu="자재관리" onclick="switchMainMenu('자재관리')">▣<span>자재</span></button>
-  <button type="button" id="btnMobileMore">☰<span>더보기</span></button>
-</nav>
-
-<div id="measure-info-hud">📐 모델 위 모서리를 터치하면 좌표가 자동 측정됩니다.</div>
-
-<div id="main-viewport">
-  <div id="home-dashboard-view">
-    <div class="home-shell">
-      <section class="home-hero">
-        <div class="home-eyebrow">TODAY · 작업 현황</div>
-        <div class="home-title">오늘 필요한 일을 바로 확인하세요</div>
-        <div class="home-desc">남은 작업, 부족한 자재, 최근 설비 기록을 한 화면에서 확인합니다.</div>
-      </section>
-      <div class="home-summary-grid">
-        <button type="button" class="home-summary" onclick="switchMainMenu('할일')"><span>진행 중인 할 일</span><strong id="homeTodoCount">—</strong><small>할 일 보기 →</small></button>
-        <button type="button" class="home-summary" onclick="switchMainMenu('자재관리')"><span>확인이 필요한 자재</span><strong id="homeInventoryCount">—</strong><small>자재 보기 →</small></button>
-        <button type="button" class="home-summary" onclick="switchMainMenu('정비이력')"><span>점검·교정 기록</span><strong id="homeHistoryCount">—</strong><small>최근 기록 보기 →</small></button>
-      </div>
-      <section class="home-card">
-        <div class="home-card-head">
-          <div class="home-card-title">오늘 할 일</div>
-          <button type="button" class="home-link-btn" onclick="switchMainMenu('할일')">전체보기 &gt;</button>
-        </div>
-        <div class="home-todo-list" id="homeTodoList">
-          <div class="home-empty">로그인 후 할 일을 불러옵니다.</div>
-        </div>
-        <div class="home-quick-actions">
-          <button type="button" class="home-action-btn" onclick="switchMainMenu('할일')">+ 할 일 추가</button>
-          <button type="button" class="home-action-btn" onclick="switchMainMenu('설비')">설비 보기</button>
-        </div>
-      </section>
-      <section class="home-card">
-        <div class="home-card-head"><div class="home-card-title">부족한 자재</div><button type="button" class="home-link-btn" onclick="switchMainMenu('자재관리')">자재 전체보기 &gt;</button></div>
-        <div class="home-compact-list" id="homeInventoryList"><div class="home-empty">로그인 후 자재 현황을 불러옵니다.</div></div>
-      </section>
-      <section class="home-card">
-        <div class="home-card-head"><div class="home-card-title">최근 관리이력</div><button type="button" class="home-link-btn" onclick="switchMainMenu('정비이력')">이력 전체보기 &gt;</button></div>
-        <div class="home-compact-list" id="homeHistoryList"><div class="home-empty">로그인 후 기록을 불러옵니다.</div></div>
-      </section>
-    </div>
-  </div>
-
-  <div id="overall-3d-view">
-    <model-viewer id="boilerViewer" src="./assets/models/boiler/boiler.glb"
-      interaction-prompt="none"
-      orientation="90deg 270deg 210deg"
-      camera-orbit="0deg 75deg 380m"
-      camera-target="auto auto auto"
-      camera-controls
-      touch-action="pan-y"
-      interpolation-decay="150"
-      environment-image="neutral"
-      shadow-intensity="1.5"
-      shadow-softness="0.5"
-      exposure="1.0">
-    </model-viewer>
-  </div>
-
-  <div id="floor-toolbar" style="display:none;">
-    <div id="floor-view-title">보일러 3층 설비도</div>
-    <div id="floor-floor-buttons" aria-label="3D 및 층 선택"></div>
-    <button type="button" id="btnToggleManagedEquipment" onclick="toggleManagedEquipment()">관리 설비</button>
-  </div>
-
-  <div id="floor-room-view">
-    <div id="floor-canvas-wrap">
-      <div id="floor-board">
-        <div id="floor-plan-background" aria-hidden="true"></div>
-        <div class="no-img-notice" id="noImgNotice" style="display:none;">도면 이미지 로딩 중...</div>
-      </div>
-    </div>
-
-    <div class="canvas-zoom-ctrl">
-      <button class="zoom-btn" onclick="zoomCanvas(0.25)">＋</button>
-      <button class="zoom-btn" onclick="zoomCanvas(-0.25)">－</button>
-      <button class="zoom-btn" onclick="resetCanvasView()" style="font-size: 12px;">리셋</button>
-    </div>
-
-    <aside id="managed-equipment-panel" aria-label="관리 설비 목록">
-      <div class="managed-head">
-        <div class="managed-title">관리 설비</div>
-        <div class="managed-count" id="managedEquipmentCount">0대</div>
-      </div>
-      <input id="managedEquipmentSearch" class="managed-search" type="search" placeholder="Tag 또는 기기명 검색" autocomplete="off">
-      <div id="managedEquipmentList" class="managed-list"></div>
-    </aside>
-  </div>
-
-  <div id="empty-engine-view">
-    <div style="font-size: 40px; margin-bottom: 12px;">⚙️</div>
-    <div style="font-size: 16px; font-weight: bold; color: #38bdf8;" id="emptyEngineTitle">내연 1호기 설비 공간</div>
-    <div style="margin-top: 6px;">현재 모델링 및 도면 데이터가 준비 중입니다.</div>
-  </div>
-
-  <div id="history-table-view">
-    <div class="history-table-header">
-      <div class="history-table-title" id="historyTableTitle">관리이력</div>
-      <div class="history-table-tools">
-        <input type="text" id="tableFilterInput" class="history-search-bar" placeholder="전체 정보 검색..." oninput="renderHistoryTable()">
-        <button type="button" id="btnExportExcel" class="history-export-btn" title="전체 관리 자료를 Excel 파일로 다운로드">
-          <span aria-hidden="true">↓</span> 전체 자료 엑셀
-        </button>
-      </div>
-    </div>
-    <div class="history-quick-filters" aria-label="빠른 이력 필터">
-      <button type="button" id="historyQuickWork" class="active" onclick="setHistoryQuickFilter('work')">점검·정비 / 교정</button>
-      <button type="button" id="historyQuickAll" onclick="setHistoryQuickFilter('all')">전체 기록</button>
-    </div>
-    <details class="history-filter-details"><summary>상세 필터</summary><div class="history-filter-panel">
-      <div class="history-filter-row" id="historySourceFilters">
-        <span class="history-filter-label">데이터 종류</span>
-        <button type="button" class="history-filter-btn active" data-history-source="전체" onclick="setHistorySourceFilter('전체')">전체</button>
-        <button type="button" class="history-filter-btn" data-history-source="설비 기본자료" onclick="setHistorySourceFilter('설비 기본자료')">설비 기본자료</button>
-        <button type="button" class="history-filter-btn" data-history-source="점검·정비" onclick="setHistorySourceFilter('점검·정비')">점검·정비</button>
-        <button type="button" class="history-filter-btn" data-history-source="교정정보" onclick="setHistorySourceFilter('교정정보')">교정</button>
-        <button type="button" class="history-filter-btn" data-history-source="TMS" onclick="setHistorySourceFilter('TMS')">TMS</button>
-        <button type="button" class="history-filter-btn" data-history-source="로직" onclick="setHistorySourceFilter('로직')">로직</button>
-        <button type="button" class="history-filter-btn" data-history-source="자료" onclick="setHistorySourceFilter('자료')">자료실</button>
-        <button type="button" class="history-filter-btn" data-history-source="할 일" onclick="setHistorySourceFilter('할 일')">할 일</button>
-        <button type="button" class="history-filter-btn" data-history-source="AI 점검" onclick="setHistorySourceFilter('AI 점검')">AI 점검</button>
-      </div>
-      <div class="history-filter-row" id="historyZoneFilters">
-        <span class="history-filter-label">설비 구역</span>
-        <button type="button" class="history-filter-btn active" data-history-zone="전체" onclick="setHistoryZoneFilter('전체')">전체</button>
-        <button type="button" class="history-filter-btn" data-history-zone="보일러" onclick="setHistoryZoneFilter('보일러')">보일러</button>
-        <button type="button" class="history-filter-btn" data-history-zone="탈질" onclick="setHistoryZoneFilter('탈질')">탈질</button>
-        <button type="button" class="history-filter-btn" data-history-zone="연료펌프룸" onclick="setHistoryZoneFilter('연료펌프룸')">연료펌프룸</button>
-        <button type="button" class="history-filter-btn" data-history-zone="암모니아탱크" onclick="setHistoryZoneFilter('암모니아탱크')">암모니아탱크</button>
-        <button type="button" class="history-filter-btn" data-history-zone="내연" onclick="setHistoryZoneFilter('내연')">내연</button>
-        <button type="button" class="history-filter-btn" data-history-zone="공통" onclick="setHistoryZoneFilter('공통')">공통자료</button>
-      </div>
-    </div></details>
-    <div style="overflow-x: auto;">
-      <table class="custom-history-table">
-        <thead>
-          <tr>
-            <th>구분</th>
-            <th>날짜</th>
-            <th>Tag No</th>
-            <th>기기명</th>
-            <th>작업자</th>
-            <th>등록 내용</th>
-            <th>관리</th>
-          </tr>
-        </thead>
-        <tbody id="historyTableBody"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <div id="logic-management-view">
-    <div class="logic-management-panel">
-      <div class="logic-management-title" id="logicManagementTitle">🧩 [기력발전] 로직관리</div>
-      <div class="logic-management-desc" id="logicManagementDesc">
-        설비 로직의 수정 내역을 등록하고 날짜순으로 확인합니다. 등록된 이력은 감사 기록 보존을 위해 수정하거나 삭제할 수 없습니다.
-      </div>
-      <div class="logic-form-grid">
-        <div class="logic-form-field">
-          <label for="logicEquipmentName">설비명</label>
-          <input id="logicEquipmentName" class="logic-input" type="text" maxlength="200" placeholder="예: 보일러 급수펌프" autocomplete="off">
-        </div>
-        <div class="logic-form-field">
-          <label for="logicChangeDate">수정날짜</label>
-          <input id="logicChangeDate" class="logic-input" type="date">
-        </div>
-        <div class="logic-form-field logic-wide">
-          <label for="logicChangeContent">수정내용</label>
-          <textarea id="logicChangeContent" class="logic-input" maxlength="5000" placeholder="변경한 로직 내용을 입력하세요."></textarea>
-        </div>
-        <div class="logic-form-field logic-wide">
-          <label for="logicChangeReason">수정사유</label>
-          <textarea id="logicChangeReason" class="logic-input" maxlength="5000" placeholder="변경이 필요한 이유를 입력하세요."></textarea>
-        </div>
-      </div>
-      <div class="logic-form-actions">
-        <button type="button" class="logic-save-btn" id="btnSaveLogicRecord">로직 수정이력 등록</button>
-        <span class="logic-status" id="logicManagementStatus" role="status" aria-live="polite"></span>
-      </div>
-      <div class="logic-list-section">
-        <div class="logic-list-title">최근 수정이력</div>
-        <div class="logic-table-wrap">
-          <table class="logic-table">
-            <thead>
-              <tr>
-                <th>설비명</th>
-                <th>수정내용</th>
-                <th>수정사유</th>
-                <th>수정날짜</th>
-              </tr>
-            </thead>
-            <tbody id="logicManagementBody">
-              <tr><td class="logic-empty" colspan="4">로직관리 탭을 열면 이력을 불러옵니다.</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div id="tms-management-view">
-    <div class="tms-panel">
-      <div class="tms-title" id="tmsManagementTitle">🌿 [기력발전] TMS(환경)</div>
-      <div class="tms-desc">도면과 층 구분 없이 환경 계측설비의 기본정보와 정비이력을 관리합니다.</div>
-      <form class="tms-form" id="tmsEquipmentForm">
-        <div class="tms-field">
-          <label for="tmsTagName">Tag-name</label>
-          <input id="tmsTagName" class="tms-input" type="text" maxlength="200" placeholder="예: TMS-AI-001" autocomplete="off">
-        </div>
-        <div class="tms-field">
-          <label for="tmsEquipmentName">기기명</label>
-          <input id="tmsEquipmentName" class="tms-input" type="text" maxlength="300" placeholder="예: 굴뚝 먼지 측정기" autocomplete="off">
-        </div>
-        <div class="tms-field wide">
-          <label for="tmsMaintenanceHistory">정비이력</label>
-          <textarea id="tmsMaintenanceHistory" class="tms-input" maxlength="10000" placeholder="점검일자, 점검내용, 조치사항 등을 입력하세요."></textarea>
-        </div>
-        <div class="tms-form-actions">
-          <button id="btnSaveTmsEquipment" class="tms-save-btn" type="submit">TMS 설비 추가</button>
-          <button id="btnCancelTmsEdit" class="tms-cancel-btn" type="button">수정 취소</button>
-          <span id="tmsManagementStatus" class="tms-status" role="status" aria-live="polite"></span>
-        </div>
-      </form>
-      <div class="tms-list-header">
-        <div class="tms-list-title">등록된 TMS 설비</div>
-        <div class="tms-count" id="tmsEquipmentCount">총 0대</div>
-      </div>
-      <div id="tmsEquipmentList" class="tms-list">
-        <div class="tms-empty">TMS(환경) 탭을 열면 목록을 불러옵니다.</div>
-      </div>
-    </div>
-  </div>
-
-  <div id="todo-management-view">
-    <div class="todo-panel">
-      <div class="todo-title" id="todoManagementTitle">☑ [기력발전] To Do List</div>
-      <div class="todo-desc">완료한 항목을 체크하면 취소선이 표시됩니다. 체크를 풀면 다시 할 일로 돌아옵니다.</div>
-      <div class="todo-filter-row" id="todoFilterRow">
-        <button type="button" class="todo-filter-btn active" data-todo-filter="전체" onclick="setTodoFilter('전체')">전체</button>
-        <button type="button" class="todo-filter-btn" data-todo-filter="기력" onclick="setTodoFilter('기력')">기력</button>
-        <button type="button" class="todo-filter-btn" data-todo-filter="내연" onclick="setTodoFilter('내연')">내연</button>
-        <button type="button" class="todo-filter-btn" data-todo-filter="환경" onclick="setTodoFilter('환경')">환경</button>
-        <button type="button" class="todo-filter-btn" data-todo-filter="기타" onclick="setTodoFilter('기타')">기타</button>
-      </div>
-      <form class="todo-add-form" id="todoAddForm">
-        <input id="todoTaskInput" class="todo-input" type="text" maxlength="300" placeholder="할 일을 입력하세요" autocomplete="off">
-        <button id="btnAddTodo" class="todo-add-btn" type="submit">추가</button>
-      </form>
-      <div class="todo-status" id="todoManagementStatus" role="status" aria-live="polite"></div>
-      <div class="todo-section-label" id="todoOpenHeading">진행 중</div>
-      <div class="todo-list" id="todoList">
-        <div class="todo-empty">할 일 탭을 열면 목록을 불러옵니다.</div>
-      </div>
-    </div>
-  </div>
-
-  <div id="ai-inspection-view">
-    <div class="ai-inspection-shell">
-      <div class="ai-inspection-head">
-        <div>
-          <div class="ai-inspection-title" id="aiInspectionTitle">🤖 [기력발전] AI 점검</div>
-          <div class="ai-inspection-desc">증상을 입력하면 짧은 점검표를 만들고, 상태·측정값·메모를 기록해 관리이력으로 남깁니다.</div>
-        </div>
-        <button type="button" class="inspection-secondary" id="btnNewInspection">새 점검</button>
-      </div>
-      <div class="ai-inspection-grid">
-        <section class="ai-inspection-card">
-          <h3>점검 질문</h3>
-          <textarea id="aiInspectionQuestion" class="ai-inspection-question" maxlength="1500" placeholder="예: 지멘스 포지셔너가 동작하지 않고 4mA에서 멈춰 있습니다."></textarea>
-          <div class="field" style="margin-top:10px;">
-            <label for="aiInspectionPhotos" style="display:block;color:#94a3b8;font-size:11px;margin-bottom:5px;">현장 사진 첨부 (선택)</label>
-            <input id="aiInspectionPhotos" type="file" accept="image/*" multiple style="width:100%;color:#cbd5e1;font-size:11px;">
-          </div>
-          <div class="ai-inspection-actions">
-            <button type="button" class="inspection-primary" id="btnGenerateInspection">AI 점검표 생성</button>
-            <span class="inspection-status" id="aiInspectionGenerateStatus" role="status" aria-live="polite"></span>
-          </div>
-          <div id="aiInspectionSummary"></div>
-        </section>
-        <section class="ai-inspection-card">
-          <div class="sectionbar">
-            <h3>점검 체크리스트</h3>
-            <button type="button" class="inspection-secondary" id="btnAddInspectionItem">+ 항목 추가</button>
-          </div>
-          <div id="aiInspectionList" class="inspection-list">
-            <div class="managed-empty">질문을 입력해 점검표를 생성하거나 항목을 직접 추가하세요.</div>
-          </div>
-          <div class="ai-inspection-actions">
-            <button type="button" class="inspection-secondary" id="btnSaveInspectionDraft">임시 저장</button>
-            <button type="button" class="inspection-primary" id="btnCompleteInspection">점검 완료 및 관리이력 저장</button>
-          </div>
-          <div class="inspection-status" id="aiInspectionSaveStatus" role="status" aria-live="polite"></div>
-        </section>
-      </div>
-    </div>
-  </div>
-
-  <div id="materials-management-view">
-    <div class="materials-panel">
-      <div class="materials-title" id="materialsManagementTitle">📁 [기력발전] 자료실</div>
-      <div class="materials-desc">내부 자료는 비공개로 저장되며 로그인한 팀원만 열거나 다운로드할 수 있습니다.</div>
-      <button type="button" id="btnToggleMaterialUpload" class="materials-upload-toggle" aria-expanded="false">+ 새 자료 등록</button>
-      <form class="materials-form" id="materialsUploadForm" hidden>
-        <div class="materials-field">
-          <label for="materialTitle">자료명</label>
-          <input id="materialTitle" class="materials-input" type="text" maxlength="200" placeholder="예: 압력전송기 매뉴얼" autocomplete="off">
-        </div>
-        <div class="materials-field">
-          <label for="materialType">자료 구분</label>
-          <select id="materialType" class="materials-input">
-            <option value="매뉴얼">매뉴얼</option>
-            <option value="도면">도면</option>
-            <option value="성적서">성적서</option>
-            <option value="로직">로직</option>
-            <option value="엑셀">엑셀</option>
-            <option value="사진">사진</option>
-            <option value="기타">기타</option>
-          </select>
-        </div>
-        <div class="materials-field wide">
-          <label for="materialDescription">설명 (선택)</label>
-          <textarea id="materialDescription" class="materials-input" maxlength="2000" placeholder="자료에 대한 간단한 설명을 입력하세요."></textarea>
-        </div>
-        <div class="materials-field wide">
-          <label for="materialFile">파일 선택</label>
-          <input id="materialFile" class="materials-input materials-file-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.xlsx,.xls,.csv,.doc,.docx,.ppt,.pptx,.txt,.zip,.hwp,.hwpx">
-          <div class="materials-file-help">PDF·사진·엑셀·문서·ZIP 파일, 최대 20MB</div>
-        </div>
-        <div class="materials-upload-row">
-          <button id="btnUploadMaterial" class="materials-upload-btn" type="submit">자료 업로드</button>
-          <span id="materialsManagementStatus" class="materials-status" role="status" aria-live="polite"></span>
-        </div>
-      </form>
-      <div class="materials-list-header">
-        <div class="materials-list-title">등록된 자료</div>
-        <input id="materialsSearchInput" class="materials-search" type="search" placeholder="자료 검색..." autocomplete="off">
-      </div>
-      <div id="materialsList" class="materials-list">
-        <div class="materials-empty">자료실 탭을 열면 목록을 불러옵니다.</div>
-      </div>
-    </div>
-  </div>
-
-  <div id="inventory-management-view">
-    <div class="inventory-panel">
-      <div class="inventory-header">
-        <div><h2>자재관리</h2><p>정수 / 현재고를 확인하고 입고·사용 사유를 기록합니다.</p></div>
-        <button type="button" id="inventoryAddButton" class="inventory-primary-btn">+ 자재 등록</button>
-      </div>
-      <div class="inventory-tools">
-        <label for="inventoryMajorFilter">대분류</label>
-        <select id="inventoryMajorFilter"><option value="전체">전체</option><option value="기력">제주발전본부 1발전소 보일러자재</option><option value="내연">내연</option><option value="환경">제주발전본부 1발전소 환경자재</option></select>
-        <label for="inventorySearch">자재 검색</label>
-        <input id="inventorySearch" type="search" placeholder="품명·품목코드·규격·모델명 검색" autocomplete="off">
-        <label class="inventory-archive-toggle"><input id="inventoryShowArchived" type="checkbox"> 보관 종료 항목 보기</label>
-      </div>
-      <div id="inventoryStatus" class="inventory-status" role="status" aria-live="polite"></div>
-      <div class="inventory-table-wrap">
-        <table class="inventory-table">
-          <thead><tr><th>자재</th><th>규격 / 모델명</th><th>용도 / 수명</th><th>보관 위치</th><th>정수 / 현재고</th><th>작업</th></tr></thead>
-          <tbody id="inventoryTableBody"><tr><td colspan="6">자재관리 탭을 열면 목록을 불러옵니다.</td></tr></tbody>
-        </table>
-      </div>
-      <section id="inventoryHistoryPanel" class="inventory-history-panel" aria-labelledby="inventoryHistoryTitle" hidden>
-        <h3 id="inventoryHistoryTitle">수량 변경 이력</h3>
-        <div id="inventoryHistoryList">자재의 이력 버튼을 누르면 기록을 볼 수 있습니다.</div>
-      </section>
-    </div>
-  </div>
-
-  <div id="password-management-view">
-    <div class="approval-panel">
-      <div class="approval-title">비밀번호 변경</div>
-      <div class="approval-desc">임시비밀번호로 로그인한 뒤 새 비밀번호로 변경하세요.</div>
-      <form class="password-form" id="passwordChangeForm">
-        <label class="password-label" for="newPassword">새 비밀번호</label>
-        <input id="newPassword" class="password-input" type="password" minlength="6" autocomplete="new-password" placeholder="6자리 이상">
-        <label class="password-label" for="confirmPassword">새 비밀번호 확인</label>
-        <input id="confirmPassword" class="password-input" type="password" minlength="6" autocomplete="new-password" placeholder="한 번 더 입력">
-        <div class="approval-toolbar">
-          <button type="submit" class="approval-action-btn">비밀번호 변경</button>
-          <span id="passwordChangeStatus" class="approval-status" role="status" aria-live="polite"></span>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<div id="floor-bar"></div>
-
-<!-- Gemini AI 어시스턴트 모달 -->
-<div id="gemini-modal">
-  <div class="ai-drawer-head">
-    <div><div class="ai-drawer-eyebrow">현장 업무 지원</div><h3>✨ AI 도우미</h3></div>
-    <button type="button" id="btnCloseGemini" class="ai-drawer-close" aria-label="AI 도우미 닫기">×</button>
-  </div>
-  <div class="ai-drawer-action"><button type="button" onclick="switchMainMenu('AI점검'); closeAiDrawer();">점검표 만들기 →</button><button type="button" onclick="startNewChat()">+ 새 대화</button></div>
-  <div class="ai-drawer-tabs">
-    <button class="major-tab-btn active" id="btnAiTabChat" onclick="switchAiTab('chat')">💬 실시간 대화</button>
-    <button class="major-tab-btn" id="btnAiTabHistory" onclick="switchAiTab('history')">💾 저장된 내 질의 기록</button>
-  </div>
-  
-  <div id="aiChatView">
-    <div class="ai-chat-box" id="aiChatBox">
-      <div class="ai-msg ai-msg-bot">안녕하세요! 발전제어설비 AI 어시스턴트입니다. 현장 자료를 우선 확인하고, 이 대화 안에서는 앞 질문의 맥락을 이어서 답변합니다.</div>
-    </div>
-    <div class="ai-input-wrap">
-      <input type="text" id="aiUserInput" placeholder="질문을 입력하세요..." autocomplete="off" readonly onfocus="this.removeAttribute('readonly');">
-      <button class="btn-ai-send" id="btnSendAi">전송</button>
-    </div>
-  </div>
-
-  <div id="aiHistoryView" style="display: none;">
-    <div style="font-size: 11px; color: #64748b; margin-bottom: 6px;">Supabase에 영구 저장된 본인의 과거 질의응답 기록입니다.</div>
-    <div class="ai-chat-box" id="aiSavedHistoryBox" style="height: 280px; overflow-y: auto;">
-      <div style="color: #94a3b8; font-size: 12px; text-align: center; padding: 20px;">저장된 기록을 불러오는 중...</div>
-    </div>
-  </div>
-
-</div>
-<div id="ai-drawer-backdrop" hidden></div>
-
-<!-- 검색 모달 -->
-<div id="search-modal">
-  <h3>🔍 전체 등록정보 검색 및 바로가기</h3>
-  <input type="text" id="searchInput" class="search-input-box" placeholder="Tag·기기명·정비내용·작업자·자료·할 일 검색">
-  <div class="search-help">모든 등록 항목을 찾으며 띄어쓰기·대소문자·기호·철자 차이도 보정합니다. 예: Soot Blower ↔ 슈트 블로어</div>
-  <div class="search-results-list" id="searchResultsList">
-    <div style="color: #94a3b8; font-size: 12px; text-align: center; padding: 20px;">검색어를 입력하세요.</div>
-  </div>
-  <div class="btn-wrap" style="margin-top: 14px;">
-    <button class="btn-cancel" onclick="document.getElementById('search-modal').style.display='none'">닫기</button>
-  </div>
-</div>
-
-<!-- 계측기 신규 등록 모달 -->
-<div id="modal">
-  <h3>계측기 등록 (<span id="modalUnitText" style="color:#0284c7; font-weight:bold;">기력 2호기</span> <span id="modalFloorText" style="color:#00b4d8; font-weight:bold;">1층</span>)</h3>
-  <div class="form-group">
-    <label>기기 사진 첨부 (촬영/선택 후 자동 추출 버튼 클릭)</label>
-    <div class="photo-btn-group">
-      <div class="file-input-wrapper">
-        <div class="btn-file-upload">📷 즉시 촬영</div>
-        <input type="file" id="instPhotoCam" accept="image/*" capture="environment">
-      </div>
-      <div class="file-input-wrapper">
-        <div class="btn-file-upload btn-secondary">🖼️ 앨범 선택</div>
-        <input type="file" id="instPhotoGallery" accept="image/*">
-      </div>
-    </div>
-    <img id="photoPreview" class="preview-img" title="클릭 시 전체화면">
-    <button id="btnExtractNewPhoto" type="button" class="btn-file-upload" style="background:#059669; width:100%; margin-top:8px; padding:8px; font-size:12px; display:none;" onclick="triggerNewPhotoOcr()">
-      🔍 사진에서 Tag·기기정보 자동 추출 및 반영
-    </button>
-  </div>
-  <div class="form-group"><label>Tag No.</label><input type="text" id="tagNo" placeholder="예: 20-PT-101"></div>
-  <div class="form-group"><label>기기명</label><input type="text" id="name" placeholder="예: 급수 압력 전송기"></div>
-  <div class="form-group"><label>모델명</label><input type="text" id="model"></div>
-  <div class="form-group"><label>측정범위 / 신호</label><input type="text" id="range"></div>
-  <div class="history-section" style="background:#f8fafc; padding:10px; border-radius:8px; margin-top:14px; border:1px solid #e2e8f0;">
-    <div class="history-title" style="margin-bottom:6px;">📋 최초 점검/설치 이력 작성 (선택)</div>
-    <div class="form-group"><label>작업자 성명</label><input type="text" id="initHistAuthor" placeholder="작업자 이름"></div>
-    <div class="form-group"><label>설치/점검 내용 (사진 상태·가이드 자동 기재)</label><textarea id="initHistContent" rows="4" placeholder="신규 설치 및 상태 점검 내용"></textarea></div>
-    <div class="form-group">
-      <label>조치 현장 사진</label>
-      <div class="photo-btn-group">
-        <div class="file-input-wrapper">
-          <div class="btn-file-upload">📷 즉시 촬영</div>
-          <input type="file" id="initHistPhotoCam" accept="image/*" capture="environment">
-        </div>
-        <div class="file-input-wrapper">
-          <div class="btn-file-upload btn-secondary">🖼️ 앨범 선택</div>
-          <input type="file" id="initHistPhotoGallery" accept="image/*">
-        </div>
-      </div>
-      <img id="initHistPreview" class="preview-img" title="클릭 시 전체화면">
-    </div>
-  </div>
-  <div class="btn-wrap">
-    <button class="btn-save" id="btnSaveInst">저장하기</button>
-    <button class="btn-cancel" onclick="document.getElementById('modal').style.display='none'">취소</button>
-  </div>
-</div>
-
-<!-- 상세 정보 모달 -->
-<div id="info-modal">
-  <h3 id="infoTitle">계측기 상세</h3>
-  <img id="infoMainImg" class="preview-img" style="margin-bottom:6px;" title="클릭 시 전체화면 확대">
-  <div class="photo-btn-group" style="margin-bottom: 8px;">
-    <div class="file-input-wrapper">
-      <div class="btn-file-upload" style="padding: 7px; font-size: 11px;">📷 대표사진 촬영 (즉시교체)</div>
-      <input type="file" id="updateMainPhotoCam" accept="image/*" capture="environment">
-    </div>
-    <div class="file-input-wrapper">
-      <div class="btn-file-upload btn-secondary" style="padding: 7px; font-size: 11px;">🖼️ 앨범 선택</div>
-      <input type="file" id="updateMainPhotoGallery" accept="image/*">
-    </div>
-  </div>
-  <div id="infoBody" style="font-size: 13px; line-height: 1.5;"></div>
-  
-  <button id="btnOpenEditInst" class="btn-file-upload" style="background:#0284c7; width:100%; margin-top:8px; padding:9px; font-size:12px;" onclick="openEditInstModal()">
-    ✏️ 계측기 정보/사진 직접 수정
-  </button>
-  <button id="btnOpenCalibEdit" class="btn-file-upload" style="background:#4f46e5; width:100%; margin-top:6px; padding:9px; font-size:12px;" onclick="openCalibEditModal()">
-    📋 교정 성적서(제원·RANGE) 확인 및 수정
-  </button>
-  <button id="btnExtractCurrentPhoto" class="btn-file-upload" style="background:#059669; width:100%; margin-top:6px; padding:9px; font-size:12px;" onclick="extractCurrentPhotoInfo()">
-    🔍 등록된 사진에서 Tag·기기정보 자동 추출 및 수정
-  </button>
-  
-  <div class="history-section">
-    <div class="history-title">📋 정비/점검 이력 관리</div>
-    <div class="history-list" id="infoHistoryList"></div>
-    <button class="btn-add-history-quick" id="btnAddHistBtn">+ 새 점검 이력 추가</button>
-  </div>
-  <button class="btn-delete-pin" id="btnDeletePin">🗑️ 계측기 완전히 삭제</button>
-  <div class="btn-wrap" style="margin-top: 10px;">
-    <button class="btn-cancel" onclick="document.getElementById('info-modal').style.display='none'">닫기</button>
-  </div>
-</div>
-
-<!-- 계측기 정보 및 사진 직접 수정 모달 -->
-<div id="edit-inst-modal">
-  <h3>✏️ 계측기 정보 및 사진 수정</h3>
-  <div class="form-group">
-    <label>대표 사진 변경</label>
-    <div class="photo-btn-group">
-      <div class="file-input-wrapper">
-        <div class="btn-file-upload">📷 즉시 촬영</div>
-        <input type="file" id="editInstPhotoCam" accept="image/*" capture="environment">
-      </div>
-      <div class="file-input-wrapper">
-        <div class="btn-file-upload btn-secondary">🖼️ 앨범 선택</div>
-        <input type="file" id="editInstPhotoGallery" accept="image/*">
-      </div>
-    </div>
-    <img id="editInstPhotoPreview" class="preview-img" title="클릭 시 전체화면">
-  </div>
-  <div class="form-group"><label>Tag No.</label><input type="text" id="editTagNo"></div>
-  <div class="form-group"><label>기기명</label><input type="text" id="editName"></div>
-  <div class="form-group"><label>발전 구분</label><select id="editMajor"><option value="기력">기력</option><option value="내연">내연</option></select></div>
-  <div class="form-group"><label>설비 구역</label><select id="editUnit"></select></div>
-  <div class="form-group"><label>도면 층 (예: 6층, 1층, IDF)</label><input type="text" id="editFloor"></div>
-  <div class="form-group"><label>모델명</label><input type="text" id="editModel"></div>
-  <div class="form-group"><label>측정범위 / 신호</label><input type="text" id="editRange"></div>
-  <div class="btn-wrap">
-    <button class="btn-save" id="btnSaveEditInst">수정사항 저장</button>
-    <button class="btn-cancel" onclick="document.getElementById('edit-inst-modal').style.display='none'">취소</button>
-  </div>
-</div>
-
-<!-- 교정 성적서(10개 항목) 수정 모달 -->
-<div id="edit-calib-modal">
-  <h3>📋 교정 성적서 정보 수정</h3>
-  <div style="font-size:12px; color:#64748b; margin-bottom:12px;">Supabase 교정 데이터베이스(Instrumnet_calibration)에 반영됩니다.</div>
-  <div class="form-group"><label>Tag No</label><input type="text" id="calibTagNo"></div>
-  <div class="form-group"><label>기기명</label><input type="text" id="calibName"></div>
-  <div class="form-group"><label>TYPE</label><input type="text" id="calibType" placeholder="예: PT, TT, FT"></div>
-  <div class="form-group"><label>측정범위 (RANGE)</label><input type="text" id="calibRange" placeholder="예: 0 ~ 10 Kg/cm2"></div>
-  <div class="form-group"><label>설치위치</label><input type="text" id="calibLocation" placeholder="예: 6층 서측"></div>
-  <div class="form-group"><label>제작사</label><input type="text" id="calibMaker" placeholder="예: FOXBORO, YOKOGAWA"></div>
-  <div class="form-group"><label>모델명</label><input type="text" id="calibModel"></div>
-  <div class="form-group"><label>점검일자</label><input type="text" id="calibDate" placeholder="예: 2024-05-10"></div>
-  <div class="form-group"><label>점검자</label><input type="text" id="calibInspector"></div>
-  <div class="form-group"><label>감독자</label><input type="text" id="calibSupervisor"></div>
-  <div class="btn-wrap">
-    <button class="btn-save" id="btnSaveCalibData">교정 성적서 저장</button>
-    <button class="btn-cancel" onclick="document.getElementById('edit-calib-modal').style.display='none'; document.getElementById('info-modal').style.display='block';">닫기</button>
-  </div>
-</div>
-
-<!-- AI 명판 추출 정보 검토 및 사용자 직접 수정 모달 -->
-<div id="ocr-edit-modal">
-  <h3>🔍 명판 추출 정보 확인 및 수정</h3>
-  <div style="font-size: 12px; color: #64748b; margin-bottom: 12px; line-height: 1.4;">
-    사진에서 AI가 판독한 내용입니다. 필요 시 직접 수정 후 [최종 수정 적용]을 눌러주세요.
-  </div>
-  <div class="form-group"><label>Tag No.</label><input type="text" id="ocrTagNo"></div>
-  <div class="form-group"><label>기기명</label><input type="text" id="ocrName"></div>
-  <div class="form-group"><label>모델명</label><input type="text" id="ocrModel"></div>
-  <div class="form-group"><label>측정범위 / 신호</label><input type="text" id="ocrRange"></div>
-  <div class="form-group" id="ocrStatusGroup" style="display:none;">
-    <label>디스플레이 상태 및 정비 가이드</label>
-    <textarea id="ocrStatusContent" rows="3" readonly style="background:#f1f5f9;"></textarea>
-  </div>
-  <div class="btn-wrap">
-    <button class="btn-save" id="btnApplyOcrEdit">최종 수정 적용</button>
-    <button class="btn-cancel" onclick="closeOcrEditModal()">취소</button>
-  </div>
-</div>
-
-<!-- 이력 추가 / 수정 모달 -->
-<div id="history-modal">
-  <h3 id="histModalTitle">📋 정비/점검 이력 관리</h3>
-  <div style="font-size: 13px; color: #0284c7; font-weight: bold; margin-bottom: 12px;" id="histTargetTag"></div>
-  <div class="form-group"><label>작업자 성명</label><input type="text" id="histAuthor" placeholder="홍길동"></div>
-  <div class="form-group"><label>작업일자</label><input type="date" id="histDate"></div>
-  <div class="form-group"><label>점검 내용</label><textarea id="histContent" rows="4" placeholder="점검 및 조치 내역 입력"></textarea></div>
-  <div class="form-group">
-    <label>점검/조치 현장 사진</label>
-    <div class="photo-btn-group">
-      <div class="file-input-wrapper">
-        <div class="btn-file-upload">📷 즉시 촬영</div>
-        <input type="file" id="histPhotoCam" accept="image/*" capture="environment">
-      </div>
-      <div class="file-input-wrapper">
-        <div class="btn-file-upload btn-secondary">🖼️ 앨범 선택</div>
-        <input type="file" id="histPhotoGallery" accept="image/*">
-      </div>
-    </div>
-    <img id="histPhotoPreview" class="preview-img" title="클릭 시 전체화면">
-  </div>
-  <div class="btn-wrap">
-    <button class="btn-save" id="btnSaveHist">이력 저장</button>
-    <button class="btn-cancel" onclick="closeHistoryEditor()">취소</button>
-  </div>
-</div>
-
-<div id="image-lightbox-modal" onclick="closeImageLightbox()">
-  <span class="lightbox-close-btn" onclick="closeImageLightbox()">✕</span>
-  <img id="lightbox-target-img" src="" alt="확대 사진" onclick="event.stopPropagation()">
-</div>
-
-  <dialog id="inventoryEditorDialog" class="inventory-dialog">
-    <form id="inventoryEditorForm">
-      <h3 id="inventoryEditorTitle">자재 등록</h3>
-      <input id="inventoryEditId" type="hidden">
-      <div class="inventory-form-grid">
-        <label>대분류 <select id="inventoryMajorCategory" required><option value="">선택</option><option value="기력">제주발전본부 1발전소 보일러자재</option><option value="내연">내연</option><option value="환경">제주발전본부 1발전소 환경자재</option></select></label>
-        <label>품명 <input id="inventoryItemName" type="text" maxlength="200" required></label>
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>제주 발전 계측관리</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0/dist/umd/supabase.js"></script>
+  <script src="./assets/vendor/xlsx.full.min.js"></script>
+  <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
+  <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon.png">
+  <link rel="apple-touch-icon" href="./assets/icons/icon.png">
+  <link rel="stylesheet" href="./assets/css/styles.css?v=20261006-inventory-photos">
+</head>
+<body>
+
+<div id="auth-overlay">
+  <div id="login-box" class="auth-box">
+    <div class="auth-title">🔐 시스템 로그인</div>
+    <div class="auth-desc">가입 신청 후 Supabase 관리자 승인 시 이용할 수 있습니다.</div>
+    <input type="text" id="loginEmail" class="auth-input" placeholder="사번(이메일: 12345@jeju.com)">
+    <input type="password" id="loginPassword" class="auth-input" placeholder="비밀번호">
+    <button class="auth-btn" id="btnMemberLogin" type="button">팀원 로그인</button>
+    <button class="auth-btn auth-btn-admin" id="btnAdminLogin" type="button">👑 최고관리자 로그인</button>
+    <div class="auth-divider"><span>또는</span></div>
+    <button class="auth-btn auth-btn-passkey" id="btnPasskeyLogin" type="button">🔐 내 아이디 지문등록·로그인</button>
+    <div id="loginMsg" class="auth-status-error"></div>
+    <div class="auth-toggle-link" id="linkToRegister">신규 팀원 계정 신청</div>
+  </div>
+
+  <div id="register-box" class="auth-box">
+    <div class="auth-title">📝 신규 팀원 가입</div>
+    <input type="text" id="regName" class="auth-input" placeholder="이름 (예: 홍길동)">
+    <input type="text" id="regEmail" class="auth-input" placeholder="사번 (12345@jeju.com)">
+    <input type="password" id="regPassword" class="auth-input" placeholder="비밀번호 (6자리 이상)">
+    <button class="auth-btn" id="btnRegisterSubmit" type="button">가입 신청</button>
+    <div id="regMsg" class="auth-status-error"></div>
+    <div class="auth-toggle-link" id="linkBackLogin2">돌아가기</div>
+  </div>
+</div>
+
+<div id="header">
+  <div class="brand">
+    <span class="brand-name">⚡ 제주 발전</span>
+    <span class="location-tag" id="currentFloorTag">기력 2호기 보일러 전체</span>
+  </div>
+  <div class="header-btns">
+    <span id="loginUserBadge" style="font-size:11px; color:#38bdf8; font-weight:bold; margin-right:4px; flex-shrink:0;"></span>
+    <button class="btn-search-top" id="btnOpenSearch" title="전체 검색">🔍 <span class="tool-label">전체 검색</span></button>
+    <button class="btn-ai-top" id="btnOpenGemini" title="AI 도우미">✨ <span class="tool-label">AI 도우미</span></button>
+    <button class="btn-measure" id="btnToggleMeasure" title="3D 거리 계측">📐 <span class="tool-label">계측</span></button>
+    <details class="account-menu">
+      <summary title="내 계정">👤 <span class="tool-label">내 계정</span></summary>
+      <div class="account-menu-panel">
+        <button type="button" onclick="switchMainMenu('비밀번호')">비밀번호 변경</button>
+        <button class="btn-passkey-reg" id="btnRegisterPasskey" title="이 기기에 패스키 등록">지문·패스키 등록</button>
+        <button class="btn-logout" id="btnLogout" title="로그아웃">로그아웃</button>
+      </div>
+    </details>
+    <button type="button" id="btnMobileNav" class="mobile-nav-trigger" aria-label="전체 메뉴 열기" aria-expanded="false">☰</button>
+  </div>
+</div>
+
+<div id="unit-selector-bar">
+  <div class="nav-brand">작업 공간 <span>JEJU PLANT</span></div>
+  <div class="nav-group-label">매일 쓰는 메뉴</div>
+  <div class="main-menu-row" id="main-menu-row">
+    <button class="main-menu-btn active" id="main-menu-home" onclick="switchMainMenu('홈')">⌂ &nbsp;오늘</button>
+    <button class="main-menu-btn" id="main-menu-equipment" onclick="switchMainMenu('설비')">▦ &nbsp;설비</button>
+    <button class="main-menu-btn todo-main" id="main-menu-todo" onclick="switchMainMenu('할일')">✅ 할 일 <span class="todo-badge" id="todoBadge">0</span></button>
+    <button class="main-menu-btn" id="main-menu-history" onclick="switchMainMenu('정비이력')">▤ &nbsp;관리이력</button>
+    <button class="main-menu-btn" id="main-menu-inventory" onclick="switchMainMenu('자재관리')">▣ &nbsp;자재</button>
+    <button class="main-menu-btn" id="main-menu-materials" onclick="switchMainMenu('자료실')">▤ &nbsp;자료실</button>
+    <button class="main-menu-btn" id="main-menu-professional" onclick="switchMainMenu('전문업무')">⚙ &nbsp;전문업무</button>
+    <button class="main-menu-btn nav-hidden" id="main-menu-ai" onclick="switchMainMenu('AI점검')">AI점검</button>
+    <button class="main-menu-btn nav-hidden" id="main-menu-password" onclick="switchMainMenu('비밀번호')">비밀번호</button>
+  </div>
+  <div class="nav-kicker" id="equipment-nav-kicker">발전 구분</div>
+  <div class="selector-row" id="major-selector-row">
+    <button class="major-tab-btn active" id="btn-major-steam" onclick="switchMajor('기력')">⚡ 기력 발전</button>
+    <button class="major-tab-btn" id="btn-major-engine" onclick="switchMajor('내연')">🔥 내연 발전</button>
+  </div>
+  
+  <div class="selector-row" id="sub-tabs-steam">
+    <button class="sub-tab-btn active" id="sub-steam-2" onclick="switchSubTab('2호기')">2호기</button>
+    <button class="sub-tab-btn" id="sub-steam-3" onclick="switchSubTab('3호기')">3호기</button>
+    <button class="sub-tab-btn" id="sub-steam-fuel" onclick="switchSubTab('연료펌프룸')">⛽ 연료펌프룸</button>
+    <button class="sub-tab-btn" id="sub-steam-am" onclick="switchSubTab('암모니아탱크')">🧪 암모니아 탱크</button>
+    <button class="sub-tab-btn nav-work nav-hidden" id="sub-steam-tms" onclick="switchSubTab('TMS(환경)')">🌿 TMS(환경)</button>
+    <button class="sub-tab-btn nav-work nav-hidden" id="sub-steam-logic" onclick="switchSubTab('로직관리')">🧩 로직관리</button>
+    <button class="sub-tab-btn nav-todo" id="sub-steam-todo" onclick="switchSubTab('할일')">☑ 할 일</button>
+  </div>
+  
+  <div class="selector-row" id="sub-tabs-engine" style="display: none;">
+    <button class="sub-tab-btn active" id="sub-engine-1" onclick="switchSubTab('1호기')">1호기</button>
+    <button class="sub-tab-btn" id="sub-engine-2" onclick="switchSubTab('2호기')">2호기</button>
+    <button class="sub-tab-btn nav-work nav-hidden" id="sub-engine-tms" onclick="switchSubTab('TMS(환경)')">🌿 TMS(환경)</button>
+    <button class="sub-tab-btn nav-work nav-hidden" id="sub-engine-logic" onclick="switchSubTab('로직관리')">🧩 로직관리</button>
+    <button class="sub-tab-btn nav-todo" id="sub-engine-todo" onclick="switchSubTab('할일')">☑ 할 일</button>
+  </div>
+
+  <div class="selector-row" id="section-selector-row">
+    <button class="sec-tab-btn active" id="sec-boiler" onclick="switchSection('보일러')">🏭 보일러</button>
+    <button class="sec-tab-btn" id="sec-am" onclick="switchSection('탈질')">🌿 탈질설비 (AM)</button>
+  </div>
+  <div class="professional-nav" id="professional-nav" hidden>
+    <div class="nav-group-label">전문업무</div>
+    <div class="selector-row">
+      <button class="sub-tab-btn" id="professional-tms" type="button" onclick="switchProfessionalTab('TMS(환경)')">🌿 환경 TMS</button>
+      <button class="sub-tab-btn" id="professional-logic" type="button" onclick="switchProfessionalTab('로직관리')">🧩 로직관리</button>
+    </div>
+  </div>
+</div>
+<nav id="mobile-quick-nav" aria-label="빠른 메뉴">
+  <button type="button" data-mobile-menu="홈" onclick="switchMainMenu('홈')">⌂<span>오늘</span></button>
+  <button type="button" data-mobile-menu="설비" onclick="switchMainMenu('설비')">▦<span>설비</span></button>
+  <button type="button" data-mobile-menu="할일" onclick="switchMainMenu('할일')">✓<span>할 일</span></button>
+  <button type="button" data-mobile-menu="자재관리" onclick="switchMainMenu('자재관리')">▣<span>자재</span></button>
+  <button type="button" id="btnMobileMore">☰<span>더보기</span></button>
+</nav>
+
+<div id="measure-info-hud">📐 모델 위 모서리를 터치하면 좌표가 자동 측정됩니다.</div>
+
+<div id="main-viewport">
+  <div id="home-dashboard-view">
+    <div class="home-shell">
+      <section class="home-hero">
+        <div class="home-eyebrow">TODAY · 작업 현황</div>
+        <div class="home-title">오늘 필요한 일을 바로 확인하세요</div>
+        <div class="home-desc">남은 작업, 부족한 자재, 최근 설비 기록을 한 화면에서 확인합니다.</div>
+      </section>
+      <div class="home-summary-grid">
+        <button type="button" class="home-summary" onclick="switchMainMenu('할일')"><span>진행 중인 할 일</span><strong id="homeTodoCount">—</strong><small>할 일 보기 →</small></button>
+        <button type="button" class="home-summary" onclick="switchMainMenu('자재관리')"><span>확인이 필요한 자재</span><strong id="homeInventoryCount">—</strong><small>자재 보기 →</small></button>
+        <button type="button" class="home-summary" onclick="switchMainMenu('정비이력')"><span>점검·교정 기록</span><strong id="homeHistoryCount">—</strong><small>최근 기록 보기 →</small></button>
+      </div>
+      <section class="home-card">
+        <div class="home-card-head">
+          <div class="home-card-title">오늘 할 일</div>
+          <button type="button" class="home-link-btn" onclick="switchMainMenu('할일')">전체보기 &gt;</button>
+        </div>
+        <div class="home-todo-list" id="homeTodoList">
+          <div class="home-empty">로그인 후 할 일을 불러옵니다.</div>
+        </div>
+        <div class="home-quick-actions">
+          <button type="button" class="home-action-btn" onclick="switchMainMenu('할일')">+ 할 일 추가</button>
+          <button type="button" class="home-action-btn" onclick="switchMainMenu('설비')">설비 보기</button>
+        </div>
+      </section>
+      <section class="home-card">
+        <div class="home-card-head"><div class="home-card-title">부족한 자재</div><button type="button" class="home-link-btn" onclick="switchMainMenu('자재관리')">자재 전체보기 &gt;</button></div>
+        <div class="home-compact-list" id="homeInventoryList"><div class="home-empty">로그인 후 자재 현황을 불러옵니다.</div></div>
+      </section>
+      <section class="home-card">
+        <div class="home-card-head"><div class="home-card-title">최근 관리이력</div><button type="button" class="home-link-btn" onclick="switchMainMenu('정비이력')">이력 전체보기 &gt;</button></div>
+        <div class="home-compact-list" id="homeHistoryList"><div class="home-empty">로그인 후 기록을 불러옵니다.</div></div>
+      </section>
+    </div>
+  </div>
+
+  <div id="overall-3d-view">
+    <model-viewer id="boilerViewer" src="./assets/models/boiler/boiler.glb"
+      interaction-prompt="none"
+      orientation="90deg 270deg 210deg"
+      camera-orbit="0deg 75deg 380m"
+      camera-target="auto auto auto"
+      camera-controls
+      touch-action="pan-y"
+      interpolation-decay="150"
+      environment-image="neutral"
+      shadow-intensity="1.5"
+      shadow-softness="0.5"
+      exposure="1.0">
+    </model-viewer>
+  </div>
+
+  <div id="floor-toolbar" style="display:none;">
+    <div id="floor-view-title">보일러 3층 설비도</div>
+    <div id="floor-floor-buttons" aria-label="3D 및 층 선택"></div>
+    <button type="button" id="btnToggleManagedEquipment" onclick="toggleManagedEquipment()">관리 설비</button>
+  </div>
+
+  <div id="floor-room-view">
+    <div id="floor-canvas-wrap">
+      <div id="floor-board">
+        <div id="floor-plan-background" aria-hidden="true"></div>
+        <div class="no-img-notice" id="noImgNotice" style="display:none;">도면 이미지 로딩 중...</div>
+      </div>
+    </div>
+
+    <div class="canvas-zoom-ctrl">
+      <button class="zoom-btn" onclick="zoomCanvas(0.25)">＋</button>
+      <button class="zoom-btn" onclick="zoomCanvas(-0.25)">－</button>
+      <button class="zoom-btn" onclick="resetCanvasView()" style="font-size: 12px;">리셋</button>
+    </div>
+
+    <aside id="managed-equipment-panel" aria-label="관리 설비 목록">
+      <div class="managed-head">
+        <div class="managed-title">관리 설비</div>
+        <div class="managed-count" id="managedEquipmentCount">0대</div>
+      </div>
+      <input id="managedEquipmentSearch" class="managed-search" type="search" placeholder="Tag 또는 기기명 검색" autocomplete="off">
+      <div id="managedEquipmentList" class="managed-list"></div>
+    </aside>
+  </div>
+
+  <div id="empty-engine-view">
+    <div style="font-size: 40px; margin-bottom: 12px;">⚙️</div>
+    <div style="font-size: 16px; font-weight: bold; color: #38bdf8;" id="emptyEngineTitle">내연 1호기 설비 공간</div>
+    <div style="margin-top: 6px;">현재 모델링 및 도면 데이터가 준비 중입니다.</div>
+  </div>
+
+  <div id="history-table-view">
+    <div class="history-table-header">
+      <div class="history-table-title" id="historyTableTitle">관리이력</div>
+      <div class="history-table-tools">
+        <input type="text" id="tableFilterInput" class="history-search-bar" placeholder="전체 정보 검색..." oninput="renderHistoryTable()">
+        <button type="button" id="btnExportExcel" class="history-export-btn" title="전체 관리 자료를 Excel 파일로 다운로드">
+          <span aria-hidden="true">↓</span> 전체 자료 엑셀
+        </button>
+      </div>
+    </div>
+    <div class="history-quick-filters" aria-label="빠른 이력 필터">
+      <button type="button" id="historyQuickWork" class="active" onclick="setHistoryQuickFilter('work')">점검·정비 / 교정</button>
+      <button type="button" id="historyQuickAll" onclick="setHistoryQuickFilter('all')">전체 기록</button>
+    </div>
+    <details class="history-filter-details"><summary>상세 필터</summary><div class="history-filter-panel">
+      <div class="history-filter-row" id="historySourceFilters">
+        <span class="history-filter-label">데이터 종류</span>
+        <button type="button" class="history-filter-btn active" data-history-source="전체" onclick="setHistorySourceFilter('전체')">전체</button>
+        <button type="button" class="history-filter-btn" data-history-source="설비 기본자료" onclick="setHistorySourceFilter('설비 기본자료')">설비 기본자료</button>
+        <button type="button" class="history-filter-btn" data-history-source="점검·정비" onclick="setHistorySourceFilter('점검·정비')">점검·정비</button>
+        <button type="button" class="history-filter-btn" data-history-source="교정정보" onclick="setHistorySourceFilter('교정정보')">교정</button>
+        <button type="button" class="history-filter-btn" data-history-source="TMS" onclick="setHistorySourceFilter('TMS')">TMS</button>
+        <button type="button" class="history-filter-btn" data-history-source="로직" onclick="setHistorySourceFilter('로직')">로직</button>
+        <button type="button" class="history-filter-btn" data-history-source="자료" onclick="setHistorySourceFilter('자료')">자료실</button>
+        <button type="button" class="history-filter-btn" data-history-source="할 일" onclick="setHistorySourceFilter('할 일')">할 일</button>
+        <button type="button" class="history-filter-btn" data-history-source="AI 점검" onclick="setHistorySourceFilter('AI 점검')">AI 점검</button>
+      </div>
+      <div class="history-filter-row" id="historyZoneFilters">
+        <span class="history-filter-label">설비 구역</span>
+        <button type="button" class="history-filter-btn active" data-history-zone="전체" onclick="setHistoryZoneFilter('전체')">전체</button>
+        <button type="button" class="history-filter-btn" data-history-zone="보일러" onclick="setHistoryZoneFilter('보일러')">보일러</button>
+        <button type="button" class="history-filter-btn" data-history-zone="탈질" onclick="setHistoryZoneFilter('탈질')">탈질</button>
+        <button type="button" class="history-filter-btn" data-history-zone="연료펌프룸" onclick="setHistoryZoneFilter('연료펌프룸')">연료펌프룸</button>
+        <button type="button" class="history-filter-btn" data-history-zone="암모니아탱크" onclick="setHistoryZoneFilter('암모니아탱크')">암모니아탱크</button>
+        <button type="button" class="history-filter-btn" data-history-zone="내연" onclick="setHistoryZoneFilter('내연')">내연</button>
+        <button type="button" class="history-filter-btn" data-history-zone="공통" onclick="setHistoryZoneFilter('공통')">공통자료</button>
+      </div>
+    </div></details>
+    <div style="overflow-x: auto;">
+      <table class="custom-history-table">
+        <thead>
+          <tr>
+            <th>구분</th>
+            <th>날짜</th>
+            <th>Tag No</th>
+            <th>기기명</th>
+            <th>작업자</th>
+            <th>등록 내용</th>
+            <th>관리</th>
+          </tr>
+        </thead>
+        <tbody id="historyTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="logic-management-view">
+    <div class="logic-management-panel">
+      <div class="logic-management-title" id="logicManagementTitle">🧩 [기력발전] 로직관리</div>
+      <div class="logic-management-desc" id="logicManagementDesc">
+        설비 로직의 수정 내역을 등록하고 날짜순으로 확인합니다. 등록된 이력은 감사 기록 보존을 위해 수정하거나 삭제할 수 없습니다.
+      </div>
+      <div class="logic-form-grid">
+        <div class="logic-form-field">
+          <label for="logicEquipmentName">설비명</label>
+          <input id="logicEquipmentName" class="logic-input" type="text" maxlength="200" placeholder="예: 보일러 급수펌프" autocomplete="off">
+        </div>
+        <div class="logic-form-field">
+          <label for="logicChangeDate">수정날짜</label>
+          <input id="logicChangeDate" class="logic-input" type="date">
+        </div>
+        <div class="logic-form-field logic-wide">
+          <label for="logicChangeContent">수정내용</label>
+          <textarea id="logicChangeContent" class="logic-input" maxlength="5000" placeholder="변경한 로직 내용을 입력하세요."></textarea>
+        </div>
+        <div class="logic-form-field logic-wide">
+          <label for="logicChangeReason">수정사유</label>
+          <textarea id="logicChangeReason" class="logic-input" maxlength="5000" placeholder="변경이 필요한 이유를 입력하세요."></textarea>
+        </div>
+      </div>
+      <div class="logic-form-actions">
+        <button type="button" class="logic-save-btn" id="btnSaveLogicRecord">로직 수정이력 등록</button>
+        <span class="logic-status" id="logicManagementStatus" role="status" aria-live="polite"></span>
+      </div>
+      <div class="logic-list-section">
+        <div class="logic-list-title">최근 수정이력</div>
+        <div class="logic-table-wrap">
+          <table class="logic-table">
+            <thead>
+              <tr>
+                <th>설비명</th>
+                <th>수정내용</th>
+                <th>수정사유</th>
+                <th>수정날짜</th>
+              </tr>
+            </thead>
+            <tbody id="logicManagementBody">
+              <tr><td class="logic-empty" colspan="4">로직관리 탭을 열면 이력을 불러옵니다.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="tms-management-view">
+    <div class="tms-panel">
+      <div class="tms-title" id="tmsManagementTitle">🌿 [기력발전] TMS(환경)</div>
+      <div class="tms-desc">도면과 층 구분 없이 환경 계측설비의 기본정보와 정비이력을 관리합니다.</div>
+      <form class="tms-form" id="tmsEquipmentForm">
+        <div class="tms-field">
+          <label for="tmsTagName">Tag-name</label>
+          <input id="tmsTagName" class="tms-input" type="text" maxlength="200" placeholder="예: TMS-AI-001" autocomplete="off">
+        </div>
+        <div class="tms-field">
+          <label for="tmsEquipmentName">기기명</label>
+          <input id="tmsEquipmentName" class="tms-input" type="text" maxlength="300" placeholder="예: 굴뚝 먼지 측정기" autocomplete="off">
+        </div>
+        <div class="tms-field wide">
+          <label for="tmsMaintenanceHistory">정비이력</label>
+          <textarea id="tmsMaintenanceHistory" class="tms-input" maxlength="10000" placeholder="점검일자, 점검내용, 조치사항 등을 입력하세요."></textarea>
+        </div>
+        <div class="tms-form-actions">
+          <button id="btnSaveTmsEquipment" class="tms-save-btn" type="submit">TMS 설비 추가</button>
+          <button id="btnCancelTmsEdit" class="tms-cancel-btn" type="button">수정 취소</button>
+          <span id="tmsManagementStatus" class="tms-status" role="status" aria-live="polite"></span>
+        </div>
+      </form>
+      <div class="tms-list-header">
+        <div class="tms-list-title">등록된 TMS 설비</div>
+        <div class="tms-count" id="tmsEquipmentCount">총 0대</div>
+      </div>
+      <div id="tmsEquipmentList" class="tms-list">
+        <div class="tms-empty">TMS(환경) 탭을 열면 목록을 불러옵니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="todo-management-view">
+    <div class="todo-panel">
+      <div class="todo-title" id="todoManagementTitle">☑ [기력발전] To Do List</div>
+      <div class="todo-desc">완료한 항목을 체크하면 취소선이 표시됩니다. 체크를 풀면 다시 할 일로 돌아옵니다.</div>
+      <div class="todo-filter-row" id="todoFilterRow">
+        <button type="button" class="todo-filter-btn active" data-todo-filter="전체" onclick="setTodoFilter('전체')">전체</button>
+        <button type="button" class="todo-filter-btn" data-todo-filter="기력" onclick="setTodoFilter('기력')">기력</button>
+        <button type="button" class="todo-filter-btn" data-todo-filter="내연" onclick="setTodoFilter('내연')">내연</button>
+        <button type="button" class="todo-filter-btn" data-todo-filter="환경" onclick="setTodoFilter('환경')">환경</button>
+        <button type="button" class="todo-filter-btn" data-todo-filter="기타" onclick="setTodoFilter('기타')">기타</button>
+      </div>
+      <form class="todo-add-form" id="todoAddForm">
+        <input id="todoTaskInput" class="todo-input" type="text" maxlength="300" placeholder="할 일을 입력하세요" autocomplete="off">
+        <button id="btnAddTodo" class="todo-add-btn" type="submit">추가</button>
+      </form>
+      <div class="todo-status" id="todoManagementStatus" role="status" aria-live="polite"></div>
+      <div class="todo-section-label" id="todoOpenHeading">진행 중</div>
+      <div class="todo-list" id="todoList">
+        <div class="todo-empty">할 일 탭을 열면 목록을 불러옵니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="ai-inspection-view">
+    <div class="ai-inspection-shell">
+      <div class="ai-inspection-head">
+        <div>
+          <div class="ai-inspection-title" id="aiInspectionTitle">🤖 [기력발전] AI 점검</div>
+          <div class="ai-inspection-desc">증상을 입력하면 짧은 점검표를 만들고, 상태·측정값·메모를 기록해 관리이력으로 남깁니다.</div>
+        </div>
+        <button type="button" class="inspection-secondary" id="btnNewInspection">새 점검</button>
+      </div>
+      <div class="ai-inspection-grid">
+        <section class="ai-inspection-card">
+          <h3>점검 질문</h3>
+          <textarea id="aiInspectionQuestion" class="ai-inspection-question" maxlength="1500" placeholder="예: 지멘스 포지셔너가 동작하지 않고 4mA에서 멈춰 있습니다."></textarea>
+          <div class="field" style="margin-top:10px;">
+            <label for="aiInspectionPhotos" style="display:block;color:#94a3b8;font-size:11px;margin-bottom:5px;">현장 사진 첨부 (선택)</label>
+            <input id="aiInspectionPhotos" type="file" accept="image/*" multiple style="width:100%;color:#cbd5e1;font-size:11px;">
+          </div>
+          <div class="ai-inspection-actions">
+            <button type="button" class="inspection-primary" id="btnGenerateInspection">AI 점검표 생성</button>
+            <span class="inspection-status" id="aiInspectionGenerateStatus" role="status" aria-live="polite"></span>
+          </div>
+          <div id="aiInspectionSummary"></div>
+        </section>
+        <section class="ai-inspection-card">
+          <div class="sectionbar">
+            <h3>점검 체크리스트</h3>
+            <button type="button" class="inspection-secondary" id="btnAddInspectionItem">+ 항목 추가</button>
+          </div>
+          <div id="aiInspectionList" class="inspection-list">
+            <div class="managed-empty">질문을 입력해 점검표를 생성하거나 항목을 직접 추가하세요.</div>
+          </div>
+          <div class="ai-inspection-actions">
+            <button type="button" class="inspection-secondary" id="btnSaveInspectionDraft">임시 저장</button>
+            <button type="button" class="inspection-primary" id="btnCompleteInspection">점검 완료 및 관리이력 저장</button>
+          </div>
+          <div class="inspection-status" id="aiInspectionSaveStatus" role="status" aria-live="polite"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div id="materials-management-view">
+    <div class="materials-panel">
+      <div class="materials-title" id="materialsManagementTitle">📁 [기력발전] 자료실</div>
+      <div class="materials-desc">내부 자료는 비공개로 저장되며 로그인한 팀원만 열거나 다운로드할 수 있습니다.</div>
+      <button type="button" id="btnToggleMaterialUpload" class="materials-upload-toggle" aria-expanded="false">+ 새 자료 등록</button>
+      <form class="materials-form" id="materialsUploadForm" hidden>
+        <div class="materials-field">
+          <label for="materialTitle">자료명</label>
+          <input id="materialTitle" class="materials-input" type="text" maxlength="200" placeholder="예: 압력전송기 매뉴얼" autocomplete="off">
+        </div>
+        <div class="materials-field">
+          <label for="materialType">자료 구분</label>
+          <select id="materialType" class="materials-input">
+            <option value="매뉴얼">매뉴얼</option>
+            <option value="도면">도면</option>
+            <option value="성적서">성적서</option>
+            <option value="로직">로직</option>
+            <option value="엑셀">엑셀</option>
+            <option value="사진">사진</option>
+            <option value="기타">기타</option>
+          </select>
+        </div>
+        <div class="materials-field wide">
+          <label for="materialDescription">설명 (선택)</label>
+          <textarea id="materialDescription" class="materials-input" maxlength="2000" placeholder="자료에 대한 간단한 설명을 입력하세요."></textarea>
+        </div>
+        <div class="materials-field wide">
+          <label for="materialFile">파일 선택</label>
+          <input id="materialFile" class="materials-input materials-file-input" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.gif,.xlsx,.xls,.csv,.doc,.docx,.ppt,.pptx,.txt,.zip,.hwp,.hwpx">
+          <div class="materials-file-help">PDF·사진·엑셀·문서·ZIP 파일, 최대 20MB</div>
+        </div>
+        <div class="materials-upload-row">
+          <button id="btnUploadMaterial" class="materials-upload-btn" type="submit">자료 업로드</button>
+          <span id="materialsManagementStatus" class="materials-status" role="status" aria-live="polite"></span>
+        </div>
+      </form>
+      <div class="materials-list-header">
+        <div class="materials-list-title">등록된 자료</div>
+        <input id="materialsSearchInput" class="materials-search" type="search" placeholder="자료 검색..." autocomplete="off">
+      </div>
+      <div id="materialsList" class="materials-list">
+        <div class="materials-empty">자료실 탭을 열면 목록을 불러옵니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="inventory-management-view">
+    <div class="inventory-panel">
+      <div class="inventory-header">
+        <div><h2>자재관리</h2><p>정수 / 현재고를 확인하고 입고·사용 사유를 기록합니다.</p></div>
+        <button type="button" id="inventoryAddButton" class="inventory-primary-btn">+ 자재 등록</button>
+      </div>
+      <div class="inventory-tools">
+        <label for="inventoryMajorFilter">대분류</label>
+        <select id="inventoryMajorFilter"><option value="전체">전체</option><option value="기력">제주발전본부 1발전소 보일러자재</option><option value="내연">내연</option><option value="환경">제주발전본부 1발전소 환경자재</option></select>
+        <label for="inventorySearch">자재 검색</label>
+        <input id="inventorySearch" type="search" placeholder="품명·자재번호·품목코드·규격·모델명 검색" autocomplete="off">
+        <label class="inventory-archive-toggle"><input id="inventoryShowArchived" type="checkbox"> 보관 종료 항목 보기</label>
+      </div>
+      <div id="inventoryStatus" class="inventory-status" role="status" aria-live="polite"></div>
+      <div class="inventory-table-wrap">
+        <table class="inventory-table">
+          <thead><tr><th>자재</th><th>규격 / 모델명</th><th>용도 / 수명</th><th>보관 위치</th><th>정수 / 현재고</th><th>작업</th></tr></thead>
+          <tbody id="inventoryTableBody"><tr><td colspan="6">자재관리 탭을 열면 목록을 불러옵니다.</td></tr></tbody>
+        </table>
+      </div>
+      <section id="inventoryHistoryPanel" class="inventory-history-panel" aria-labelledby="inventoryHistoryTitle" hidden>
+        <h3 id="inventoryHistoryTitle">수량 변경 이력</h3>
+        <div id="inventoryHistoryList">자재의 이력 버튼을 누르면 기록을 볼 수 있습니다.</div>
+      </section>
+    </div>
+  </div>
+
+  <div id="password-management-view">
+    <div class="approval-panel">
+      <div class="approval-title">비밀번호 변경</div>
+      <div class="approval-desc">임시비밀번호로 로그인한 뒤 새 비밀번호로 변경하세요.</div>
+      <form class="password-form" id="passwordChangeForm">
+        <label class="password-label" for="newPassword">새 비밀번호</label>
+        <input id="newPassword" class="password-input" type="password" minlength="6" autocomplete="new-password" placeholder="6자리 이상">
+        <label class="password-label" for="confirmPassword">새 비밀번호 확인</label>
+        <input id="confirmPassword" class="password-input" type="password" minlength="6" autocomplete="new-password" placeholder="한 번 더 입력">
+        <div class="approval-toolbar">
+          <button type="submit" class="approval-action-btn">비밀번호 변경</button>
+          <span id="passwordChangeStatus" class="approval-status" role="status" aria-live="polite"></span>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div id="floor-bar"></div>
+
+<!-- Gemini AI 어시스턴트 모달 -->
+<div id="gemini-modal">
+  <div class="ai-drawer-head">
+    <div><div class="ai-drawer-eyebrow">현장 업무 지원</div><h3>✨ AI 도우미</h3></div>
+    <button type="button" id="btnCloseGemini" class="ai-drawer-close" aria-label="AI 도우미 닫기">×</button>
+  </div>
+  <div class="ai-drawer-action"><button type="button" onclick="switchMainMenu('AI점검'); closeAiDrawer();">점검표 만들기 →</button><button type="button" onclick="startNewChat()">+ 새 대화</button></div>
+  <div class="ai-drawer-tabs">
+    <button class="major-tab-btn active" id="btnAiTabChat" onclick="switchAiTab('chat')">💬 실시간 대화</button>
+    <button class="major-tab-btn" id="btnAiTabHistory" onclick="switchAiTab('history')">💾 저장된 내 질의 기록</button>
+  </div>
+  
+  <div id="aiChatView">
+    <div class="ai-chat-box" id="aiChatBox">
+      <div class="ai-msg ai-msg-bot">안녕하세요! 발전제어설비 AI 어시스턴트입니다. 현장 자료를 우선 확인하고, 이 대화 안에서는 앞 질문의 맥락을 이어서 답변합니다.</div>
+    </div>
+    <div class="ai-input-wrap">
+      <input type="text" id="aiUserInput" placeholder="질문을 입력하세요..." autocomplete="off" readonly onfocus="this.removeAttribute('readonly');">
+      <button class="btn-ai-send" id="btnSendAi">전송</button>
+    </div>
+  </div>
+
+  <div id="aiHistoryView" style="display: none;">
+    <div style="font-size: 11px; color: #64748b; margin-bottom: 6px;">Supabase에 영구 저장된 본인의 과거 질의응답 기록입니다.</div>
+    <div class="ai-chat-box" id="aiSavedHistoryBox" style="height: 280px; overflow-y: auto;">
+      <div style="color: #94a3b8; font-size: 12px; text-align: center; padding: 20px;">저장된 기록을 불러오는 중...</div>
+    </div>
+  </div>
+
+</div>
+<div id="ai-drawer-backdrop" hidden></div>
+
+<!-- 검색 모달 -->
+<div id="search-modal">
+  <h3>🔍 전체 등록정보 검색 및 바로가기</h3>
+  <input type="text" id="searchInput" class="search-input-box" placeholder="Tag·기기명·정비내용·작업자·자료·할 일 검색">
+  <div class="search-help">모든 등록 항목을 찾으며 띄어쓰기·대소문자·기호·철자 차이도 보정합니다. 예: Soot Blower ↔ 슈트 블로어</div>
+  <div class="search-results-list" id="searchResultsList">
+    <div style="color: #94a3b8; font-size: 12px; text-align: center; padding: 20px;">검색어를 입력하세요.</div>
+  </div>
+  <div class="btn-wrap" style="margin-top: 14px;">
+    <button class="btn-cancel" onclick="document.getElementById('search-modal').style.display='none'">닫기</button>
+  </div>
+</div>
+
+<!-- 계측기 신규 등록 모달 -->
+<div id="modal">
+  <h3>계측기 등록 (<span id="modalUnitText" style="color:#0284c7; font-weight:bold;">기력 2호기</span> <span id="modalFloorText" style="color:#00b4d8; font-weight:bold;">1층</span>)</h3>
+  <div class="form-group">
+    <label>기기 사진 첨부 (촬영/선택 후 자동 추출 버튼 클릭)</label>
+    <div class="photo-btn-group">
+      <div class="file-input-wrapper">
+        <div class="btn-file-upload">📷 즉시 촬영</div>
+        <input type="file" id="instPhotoCam" accept="image/*" capture="environment">
+      </div>
+      <div class="file-input-wrapper">
+        <div class="btn-file-upload btn-secondary">🖼️ 앨범 선택</div>
+        <input type="file" id="instPhotoGallery" accept="image/*">
+      </div>
+    </div>
+    <img id="photoPreview" class="preview-img" title="클릭 시 전체화면">
+    <button id="btnExtractNewPhoto" type="button" class="btn-file-upload" style="background:#059669; width:100%; margin-top:8px; padding:8px; font-size:12px; display:none;" onclick="triggerNewPhotoOcr()">
+      🔍 사진에서 Tag·기기정보 자동 추출 및 반영
+    </button>
+  </div>
+  <div class="form-group"><label>Tag No.</label><input type="text" id="tagNo" placeholder="예: 20-PT-101"></div>
+  <div class="form-group"><label>기기명</label><input type="text" id="name" placeholder="예: 급수 압력 전송기"></div>
+  <div class="form-group"><label>모델명</label><input type="text" id="model"></div>
+  <div class="form-group"><label>측정범위 / 신호</label><input type="text" id="range"></div>
+  <div class="history-section" style="background:#f8fafc; padding:10px; border-radius:8px; margin-top:14px; border:1px solid #e2e8f0;">
+    <div class="history-title" style="margin-bottom:6px;">📋 최초 점검/설치 이력 작성 (선택)</div>
+    <div class="form-group"><label>작업자 성명</label><input type="text" id="initHistAuthor" placeholder="작업자 이름"></div>
+    <div class="form-group"><label>설치/점검 내용 (사진 상태·가이드 자동 기재)</label><textarea id="initHistContent" rows="4" placeholder="신규 설치 및 상태 점검 내용"></textarea></div>
+    <div class="form-group">
+      <label>조치 현장 사진</label>
+      <div class="photo-btn-group">
+        <div class="file-input-wrapper">
+          <div class="btn-file-upload">📷 즉시 촬영</div>
+          <input type="file" id="initHistPhotoCam" accept="image/*" capture="environment">
+        </div>
+        <div class="file-input-wrapper">
+          <div class="btn-file-upload btn-secondary">🖼️ 앨범 선택</div>
+          <input type="file" id="initHistPhotoGallery" accept="image/*">
+        </div>
+      </div>
+      <img id="initHistPreview" class="preview-img" title="클릭 시 전체화면">
+    </div>
+  </div>
+  <div class="btn-wrap">
+    <button class="btn-save" id="btnSaveInst">저장하기</button>
+    <button class="btn-cancel" onclick="document.getElementById('modal').style.display='none'">취소</button>
+  </div>
+</div>
+
+<!-- 상세 정보 모달 -->
+<div id="info-modal">
+  <h3 id="infoTitle">계측기 상세</h3>
+  <img id="infoMainImg" class="preview-img" style="margin-bottom:6px;" title="클릭 시 전체화면 확대">
+  <div class="photo-btn-group" style="margin-bottom: 8px;">
+    <div class="file-input-wrapper">
+      <div class="btn-file-upload" style="padding: 7px; font-size: 11px;">📷 대표사진 촬영 (즉시교체)</div>
+      <input type="file" id="updateMainPhotoCam" accept="image/*" capture="environment">
+    </div>
+    <div class="file-input-wrapper">
+      <div class="btn-file-upload btn-secondary" style="padding: 7px; font-size: 11px;">🖼️ 앨범 선택</div>
+      <input type="file" id="updateMainPhotoGallery" accept="image/*">
+    </div>
+  </div>
+  <div id="infoBody" style="font-size: 13px; line-height: 1.5;"></div>
+  
+  <button id="btnOpenEditInst" class="btn-file-upload" style="background:#0284c7; width:100%; margin-top:8px; padding:9px; font-size:12px;" onclick="openEditInstModal()">
+    ✏️ 계측기 정보/사진 직접 수정
+  </button>
+  <button id="btnOpenCalibEdit" class="btn-file-upload" style="background:#4f46e5; width:100%; margin-top:6px; padding:9px; font-size:12px;" onclick="openCalibEditModal()">
+    📋 교정 성적서(제원·RANGE) 확인 및 수정
+  </button>
+  <button id="btnExtractCurrentPhoto" class="btn-file-upload" style="background:#059669; width:100%; margin-top:6px; padding:9px; font-size:12px;" onclick="extractCurrentPhotoInfo()">
+    🔍 등록된 사진에서 Tag·기기정보 자동 추출 및 수정
+  </button>
+  
+  <div class="history-section">
+    <div class="history-title">📋 정비/점검 이력 관리</div>
+    <div class="history-list" id="infoHistoryList"></div>
+    <button class="btn-add-history-quick" id="btnAddHistBtn">+ 새 점검 이력 추가</button>
+  </div>
+  <button class="btn-delete-pin" id="btnDeletePin">🗑️ 계측기 완전히 삭제</button>
+  <div class="btn-wrap" style="margin-top: 10px;">
+    <button class="btn-cancel" onclick="document.getElementById('info-modal').style.display='none'">닫기</button>
+  </div>
+</div>
+
+<!-- 계측기 정보 및 사진 직접 수정 모달 -->
+<div id="edit-inst-modal">
+  <h3>✏️ 계측기 정보 및 사진 수정</h3>
+  <div class="form-group">
+    <label>대표 사진 변경</label>
+    <div class="photo-btn-group">
+      <div class="file-input-wrapper">
+        <div class="btn-file-upload">📷 즉시 촬영</div>
+        <input type="file" id="editInstPhotoCam" accept="image/*" capture="environment">
+      </div>
+      <div class="file-input-wrapper">
+        <div class="btn-file-upload btn-secondary">🖼️ 앨범 선택</div>
+        <input type="file" id="editInstPhotoGallery" accept="image/*">
+      </div>
+    </div>
+    <img id="editInstPhotoPreview" class="preview-img" title="클릭 시 전체화면">
+  </div>
+  <div class="form-group"><label>Tag No.</label><input type="text" id="editTagNo"></div>
+  <div class="form-group"><label>기기명</label><input type="text" id="editName"></div>
+  <div class="form-group"><label>발전 구분</label><select id="editMajor"><option value="기력">기력</option><option value="내연">내연</option></select></div>
+  <div class="form-group"><label>설비 구역</label><select id="editUnit"></select></div>
+  <div class="form-group"><label>도면 층 (예: 6층, 1층, IDF)</label><input type="text" id="editFloor"></div>
+  <div class="form-group"><label>모델명</label><input type="text" id="editModel"></div>
+  <div class="form-group"><label>측정범위 / 신호</label><input type="text" id="editRange"></div>
+  <div class="btn-wrap">
+    <button class="btn-save" id="btnSaveEditInst">수정사항 저장</button>
+    <button class="btn-cancel" onclick="document.getElementById('edit-inst-modal').style.display='none'">취소</button>
+  </div>
+</div>
+
+<!-- 교정 성적서(10개 항목) 수정 모달 -->
+<div id="edit-calib-modal">
+  <h3>📋 교정 성적서 정보 수정</h3>
+  <div style="font-size:12px; color:#64748b; margin-bottom:12px;">Supabase 교정 데이터베이스(Instrumnet_calibration)에 반영됩니다.</div>
+  <div class="form-group"><label>Tag No</label><input type="text" id="calibTagNo"></div>
+  <div class="form-group"><label>기기명</label><input type="text" id="calibName"></div>
+  <div class="form-group"><label>TYPE</label><input type="text" id="calibType" placeholder="예: PT, TT, FT"></div>
+  <div class="form-group"><label>측정범위 (RANGE)</label><input type="text" id="calibRange" placeholder="예: 0 ~ 10 Kg/cm2"></div>
+  <div class="form-group"><label>설치위치</label><input type="text" id="calibLocation" placeholder="예: 6층 서측"></div>
+  <div class="form-group"><label>제작사</label><input type="text" id="calibMaker" placeholder="예: FOXBORO, YOKOGAWA"></div>
+  <div class="form-group"><label>모델명</label><input type="text" id="calibModel"></div>
+  <div class="form-group"><label>점검일자</label><input type="text" id="calibDate" placeholder="예: 2024-05-10"></div>
+  <div class="form-group"><label>점검자</label><input type="text" id="calibInspector"></div>
+  <div class="form-group"><label>감독자</label><input type="text" id="calibSupervisor"></div>
+  <div class="btn-wrap">
+    <button class="btn-save" id="btnSaveCalibData">교정 성적서 저장</button>
+    <button class="btn-cancel" onclick="document.getElementById('edit-calib-modal').style.display='none'; document.getElementById('info-modal').style.display='block';">닫기</button>
+  </div>
+</div>
+
+<!-- AI 명판 추출 정보 검토 및 사용자 직접 수정 모달 -->
+<div id="ocr-edit-modal">
+  <h3>🔍 명판 추출 정보 확인 및 수정</h3>
+  <div style="font-size: 12px; color: #64748b; margin-bottom: 12px; line-height: 1.4;">
+    사진에서 AI가 판독한 내용입니다. 필요 시 직접 수정 후 [최종 수정 적용]을 눌러주세요.
+  </div>
+  <div class="form-group"><label>Tag No.</label><input type="text" id="ocrTagNo"></div>
+  <div class="form-group"><label>기기명</label><input type="text" id="ocrName"></div>
+  <div class="form-group"><label>모델명</label><input type="text" id="ocrModel"></div>
+  <div class="form-group"><label>측정범위 / 신호</label><input type="text" id="ocrRange"></div>
+  <div class="form-group" id="ocrStatusGroup" style="display:none;">
+    <label>디스플레이 상태 및 정비 가이드</label>
+    <textarea id="ocrStatusContent" rows="3" readonly style="background:#f1f5f9;"></textarea>
+  </div>
+  <div class="btn-wrap">
+    <button class="btn-save" id="btnApplyOcrEdit">최종 수정 적용</button>
+    <button class="btn-cancel" onclick="closeOcrEditModal()">취소</button>
+  </div>
+</div>
+
+<!-- 이력 추가 / 수정 모달 -->
+<div id="history-modal">
+  <h3 id="histModalTitle">📋 정비/점검 이력 관리</h3>
+  <div style="font-size: 13px; color: #0284c7; font-weight: bold; margin-bottom: 12px;" id="histTargetTag"></div>
+  <div class="form-group"><label>작업자 성명</label><input type="text" id="histAuthor" placeholder="홍길동"></div>
+  <div class="form-group"><label>작업일자</label><input type="date" id="histDate"></div>
+  <div class="form-group"><label>점검 내용</label><textarea id="histContent" rows="4" placeholder="점검 및 조치 내역 입력"></textarea></div>
+  <div class="form-group">
+    <label>점검/조치 현장 사진</label>
+    <div class="photo-btn-group">
+      <div class="file-input-wrapper">
+        <div class="btn-file-upload">📷 즉시 촬영</div>
+        <input type="file" id="histPhotoCam" accept="image/*" capture="environment">
+      </div>
+      <div class="file-input-wrapper">
+        <div class="btn-file-upload btn-secondary">🖼️ 앨범 선택</div>
+        <input type="file" id="histPhotoGallery" accept="image/*">
+      </div>
+    </div>
+    <img id="histPhotoPreview" class="preview-img" title="클릭 시 전체화면">
+  </div>
+  <div class="btn-wrap">
+    <button class="btn-save" id="btnSaveHist">이력 저장</button>
+    <button class="btn-cancel" onclick="closeHistoryEditor()">취소</button>
+  </div>
+</div>
+
+<div id="image-lightbox-modal" onclick="closeImageLightbox()">
+  <span class="lightbox-close-btn" onclick="closeImageLightbox()">✕</span>
+  <img id="lightbox-target-img" src="" alt="확대 사진" onclick="event.stopPropagation()">
+</div>
+
+  <dialog id="inventoryEditorDialog" class="inventory-dialog">
+    <form id="inventoryEditorForm">
+      <h3 id="inventoryEditorTitle">자재 등록</h3>
+      <input id="inventoryEditId" type="hidden">
+      <div class="inventory-form-grid">
+        <label>대분류 <select id="inventoryMajorCategory" required><option value="">선택</option><option value="기력">제주발전본부 1발전소 보일러자재</option><option value="내연">내연</option><option value="환경">제주발전본부 1발전소 환경자재</option></select></label>
+        <label>품명 <input id="inventoryItemName" type="text" maxlength="200" required></label>
         <label>품목코드 <input id="inventoryItemCode" type="text" maxlength="100" placeholder="선택 입력"></label>
-        <label>분류 <select id="inventoryCategory" required><option value="">선택</option></select></label>
-        <label id="inventoryCategoryOtherField" hidden>기타 분류 <input id="inventoryCategoryOther" type="text" maxlength="100" placeholder="분류명 직접 입력"></label>
-        <label>규격 <input id="inventorySpec" type="text" maxlength="200"></label>
-        <label>모델명 <input id="inventoryModelName" type="text" maxlength="200"></label>
-        <label>용도 <input id="inventoryPurpose" type="text" maxlength="500" placeholder="예: 압력 계측"></label>
-        <label>수명 <input id="inventoryServiceLife" type="text" maxlength="100" placeholder="타입 미확인 시 직접 입력"></label>
-        <label>보관 위치 <input id="inventoryLocation" type="text" maxlength="200"></label>
-        <label>단위 <input id="inventoryUnit" type="text" maxlength="20" value="EA" required></label>
-        <label>정수 <input id="inventoryStandardQty" type="number" min="0" step="1" placeholder="미지정 가능"></label>
-        <label id="inventoryInitialQtyField">초기 현재고 <input id="inventoryInitialQty" type="number" min="0" step="1" value="0" required></label>
-      </div>
-      <div class="inventory-life-helper"><span id="inventoryServiceLifeNote">품명을 입력하면 교체주기를 자동 판별합니다.</span><button type="button" id="inventoryAutoLifeButton">자동값 사용</button></div>
-      <label class="inventory-photo-field">사진 첨부 <input id="inventoryPhotoFiles" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple><span>JPEG·PNG·WebP·GIF, 사진당 20MB 이하 · 품목당 최대 5장</span></label>
-      <div id="inventoryEditorPhotos" class="inventory-photo-grid"></div>
-      <p id="inventoryEditorHint">초기 현재고는 자동으로 ‘초기 재고 등록’ 이력에 기록됩니다.</p>
-      <div id="inventoryEditorError" class="inventory-form-error" role="alert"></div>
-      <div class="inventory-dialog-actions"><button type="button" id="inventoryEditorCancel">취소</button><button type="submit" class="inventory-primary-btn" id="inventoryEditorSubmit">등록</button></div>
-    </form>
-  </dialog>
-
-  <dialog id="inventoryPhotoDialog" class="inventory-dialog inventory-photo-dialog">
-    <h3 id="inventoryPhotoTitle">자재 사진</h3>
-    <div id="inventoryPhotoGallery" class="inventory-photo-grid"></div>
-    <div class="inventory-dialog-actions"><button type="button" id="inventoryPhotoClose">닫기</button></div>
-  </dialog>
-
-  <dialog id="inventoryChangeDialog" class="inventory-dialog">
-    <form id="inventoryChangeForm">
-      <h3 id="inventoryChangeTitle">수량 변경</h3>
-      <p id="inventoryChangeBalance"></p>
-      <label>변경 수량 <input id="inventoryChangeAmount" type="number" min="1" step="1" required></label>
-      <label><span id="inventoryChangeReasonLabel">사유</span> <input id="inventoryChangeReason" type="text" maxlength="500" placeholder="예: 3호기 교체 작업" required></label>
-      <div id="inventoryChangeError" class="inventory-form-error" role="alert"></div>
-      <div class="inventory-dialog-actions"><button type="button" id="inventoryChangeCancel">취소</button><button type="submit" class="inventory-primary-btn" id="inventoryChangeSubmit">저장</button></div>
-    </form>
-  </dialog>
-
-  <script src="./assets/js/app.js?v=20261006-floor75"></script>
-  <script src="./assets/js/inventory-life.js?v=20261003-inventory-import"></script>
-  <script src="./assets/js/inventory.js?v=20261006-inventory-photos"></script>
-</body>
-</html>
-
+        <label>자재번호 <input id="inventoryMaterialNumber" type="text" maxlength="100" placeholder="원본 자료의 자재번호"></label>
+        <label>분류 <select id="inventoryCategory" required><option value="">선택</option></select></label>
+        <label id="inventoryCategoryOtherField" hidden>기타 분류 <input id="inventoryCategoryOther" type="text" maxlength="100" placeholder="분류명 직접 입력"></label>
+        <label>규격 <input id="inventorySpec" type="text" maxlength="200"></label>
+        <label>모델명 <input id="inventoryModelName" type="text" maxlength="200"></label>
+        <label>용도 <input id="inventoryPurpose" type="text" maxlength="500" placeholder="예: 압력 계측"></label>
+        <label>수명 <input id="inventoryServiceLife" type="text" maxlength="100" placeholder="타입 미확인 시 직접 입력"></label>
+        <label>보관 위치 <input id="inventoryLocation" type="text" maxlength="200"></label>
+        <label>단위 <input id="inventoryUnit" type="text" maxlength="20" value="EA" required></label>
+        <label>정수 <input id="inventoryStandardQty" type="number" min="0" step="1" placeholder="미지정 가능"></label>
+        <label id="inventoryInitialQtyField">초기 현재고 <input id="inventoryInitialQty" type="number" min="0" step="1" value="0" required></label>
+      </div>
+      <div class="inventory-life-helper"><span id="inventoryServiceLifeNote">품명을 입력하면 교체주기를 자동 판별합니다.</span><button type="button" id="inventoryAutoLifeButton">자동값 사용</button></div>
+      <label class="inventory-photo-field">사진 첨부 <input id="inventoryPhotoFiles" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple><span>JPEG·PNG·WebP·GIF, 사진당 20MB 이하 · 품목당 최대 5장</span></label>
+      <div id="inventoryEditorPhotos" class="inventory-photo-grid"></div>
+      <p id="inventoryEditorHint">초기 현재고는 자동으로 ‘초기 재고 등록’ 이력에 기록됩니다.</p>
+      <div id="inventoryEditorError" class="inventory-form-error" role="alert"></div>
+      <div class="inventory-dialog-actions"><button type="button" id="inventoryEditorCancel">취소</button><button type="submit" class="inventory-primary-btn" id="inventoryEditorSubmit">등록</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="inventoryPhotoDialog" class="inventory-dialog inventory-photo-dialog">
+    <h3 id="inventoryPhotoTitle">자재 사진</h3>
+    <div id="inventoryPhotoGallery" class="inventory-photo-grid"></div>
+    <div class="inventory-dialog-actions"><button type="button" id="inventoryPhotoClose">닫기</button></div>
+  </dialog>
+
+  <dialog id="inventoryChangeDialog" class="inventory-dialog">
+    <form id="inventoryChangeForm">
+      <h3 id="inventoryChangeTitle">수량 변경</h3>
+      <p id="inventoryChangeBalance"></p>
+      <label>변경 수량 <input id="inventoryChangeAmount" type="number" min="1" step="1" required></label>
+      <label><span id="inventoryChangeReasonLabel">사유</span> <input id="inventoryChangeReason" type="text" maxlength="500" placeholder="예: 3호기 교체 작업" required></label>
+      <div id="inventoryChangeError" class="inventory-form-error" role="alert"></div>
+      <div class="inventory-dialog-actions"><button type="button" id="inventoryChangeCancel">취소</button><button type="submit" class="inventory-primary-btn" id="inventoryChangeSubmit">저장</button></div>
+    </form>
+  </dialog>
+
+  <script src="./assets/js/app.js?v=20261006-floor75"></script>
+  <script src="./assets/js/inventory-life.js?v=20261003-inventory-import"></script>
+  <script src="./assets/js/inventory.js?v=20261006-material-number"></script>
+</body>
+</html>
+
