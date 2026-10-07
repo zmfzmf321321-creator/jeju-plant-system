@@ -9,7 +9,7 @@
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon.png">
   <link rel="apple-touch-icon" href="./assets/icons/icon.png">
-  <link rel="stylesheet" href="./assets/css/styles.css?v=20261007-pin-floor-filter">
+  <link rel="stylesheet" href="./assets/css/styles.css?v=20261007-direct-floor">
 </head>
 <body>
 
@@ -157,7 +157,9 @@
     </div>
   </div>
 
-  <div id="overall-3d-view">
+  <div id="overall-3d-view">
+    <div id="model-floor-rail" class="model-floor-rail" aria-label="3D 모델 층별 설비"></div>
+    <section id="model-floor-panel" class="model-floor-panel" hidden aria-live="polite"></section>
     <model-viewer id="boilerViewer" src="./assets/models/boiler/boiler.glb"
       interaction-prompt="none"
       orientation="90deg 270deg 210deg"
@@ -176,11 +178,6 @@
   <div id="floor-toolbar" style="display:none;">
     <div id="floor-view-title">보일러 3층 설비도</div>
     <div id="floor-floor-buttons" aria-label="3D 및 층 선택"></div>
-    <div id="pin-filter-wrap" class="pin-filter-wrap" hidden>
-      <label for="pin-floor-filter">3D 핀</label>
-      <select id="pin-floor-filter" aria-label="3D 핀 표시 층"></select>
-      <span id="pin-filter-count" aria-live="polite"></span>
-    </div>
     <button type="button" id="btnToggleManagedEquipment" onclick="toggleManagedEquipment()">관리 설비</button>
   </div>
 
@@ -799,9 +796,10 @@
     </form>
   </dialog>
 
-  <script src="./assets/js/app.js?v=20261007-pin-floor-filter"></script>
+  <script src="./assets/js/app.js?v=20261007-direct-floor"></script>
   <script src="./assets/js/inventory-life.js?v=20261003-inventory-import"></script>
   <script src="./assets/js/inventory.js?v=20261007-management-edit-delete"></script>
 </body>
 </html>
 
+

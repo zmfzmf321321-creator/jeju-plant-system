@@ -1961,9 +1961,6 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     const btn3d = document.getElementById('btn-view-3d');
     const managedButton = document.getElementById('btnToggleManagedEquipment');
     if (managedButton) managedButton.style.display = selectedViewMode === 'floor' ? '' : 'none';
-    const pinFilterWrap = document.getElementById('pin-filter-wrap');
-    if (pinFilterWrap) pinFilterWrap.hidden = selectedViewMode !== '3d';
-
     if (selectedViewMode === '3d') {
       selected3DPinFloor = '';
       if (btn3d) btn3d.classList.add('active');
@@ -4500,7 +4497,6 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
 
   window.openFloorRoom = function(floor, imgFile, btn) {
     selectedViewMode = 'floor';
-    document.getElementById('pin-filter-wrap').hidden = true;
     const managedButton = document.getElementById('btnToggleManagedEquipment');
     if (managedButton) managedButton.style.display = '';
     selectedFloor = normalizeFloor(floor);
@@ -4548,7 +4544,6 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   window.exitToOverall = function() {
     selectedFloor = 'ALL';
     selected3DPinFloor = '';
-    document.getElementById('pin-filter-wrap').hidden = false;
     document.querySelectorAll('.floor-btn').forEach(b => b.classList.remove('active'));
     const btnAll = document.getElementById('btn-ALL');
     if (btnAll) btnAll.classList.add('active');
@@ -4988,33 +4983,67 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   document.getElementById('managedEquipmentSearch').addEventListener('input', renderManagedEquipment);
 
   function render3DPinControls(items) {
-    const filter = document.getElementById('pin-floor-filter');
-    const count = document.getElementById('pin-filter-count');
-    if (!filter || !count) return;
+    const rail = document.getElementById('model-floor-rail');
+    const panel = document.getElementById('model-floor-panel');
+    if (!rail || !panel) return;
     const floorOrder = selectedMajor === '내연'
       ? Object.keys(engineFloor3DHeights) : Object.keys(floor3DHeights);
-    const floors = [...new Set(items.map(item => normalizeFloor(item.floor)))].sort((a, b) => {
-      const aIndex = floorOrder.indexOf(a), bIndex = floorOrder.indexOf(b);
-      return (aIndex < 0 ? floorOrder.length : aIndex) - (bIndex < 0 ? floorOrder.length : bIndex) || a.localeCompare(b, 'ko');
+    const counts = new Map();
+    items.forEach(item => {
+      const floor = normalizeFloor(item.floor);
+      counts.set(floor, (counts.get(floor) || 0) + 1);
     });
-    if (selected3DPinFloor && selected3DPinFloor !== 'ALL' && !floors.includes(selected3DPinFloor)) selected3DPinFloor = '';
-    filter.replaceChildren();
-    for (const [value, label] of [['', '핀 숨김'], ['ALL', '전체 핀'], ...floors.map(floor => [floor, floor])]) {
-      const option = document.createElement('option');
-      option.value = value;
-      option.textContent = label;
-      filter.appendChild(option);
+    const floors = [...new Set([...floorOrder, ...counts.keys()])].reverse();
+    if (selected3DPinFloor && !floors.includes(selected3DPinFloor)) selected3DPinFloor = '';
+    rail.replaceChildren();
+    const heading = document.createElement('div');
+    heading.className = 'model-floor-rail-title';
+    heading.textContent = '층별 설비';
+    rail.appendChild(heading);
+    floors.forEach(floor => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'model-floor-choice';
+      button.classList.toggle('active', floor === selected3DPinFloor);
+      button.setAttribute('aria-pressed', String(floor === selected3DPinFloor));
+      button.setAttribute('aria-label', `${floor} 설비 ${counts.get(floor) || 0}대`);
+      const label = document.createElement('span');
+      label.textContent = floor;
+      const count = document.createElement('strong');
+      count.textContent = String(counts.get(floor) || 0);
+      button.append(label, count);
+      button.addEventListener('click', () => {
+        selected3DPinFloor = selected3DPinFloor === floor ? '' : floor;
+        render3DHotspots();
+      });
+      rail.appendChild(button);
+    });
+    panel.replaceChildren();
+    panel.hidden = !selected3DPinFloor;
+    if (selected3DPinFloor) {
+      const floorItems = items.filter(item => normalizeFloor(item.floor) === selected3DPinFloor);
+      const title = document.createElement('h3');
+      title.textContent = `${selected3DPinFloor} 설비 · ${floorItems.length}대`;
+      const hint = document.createElement('p');
+      hint.textContent = floorItems.length ? '설비를 누르면 상세 정보를 볼 수 있습니다.' : '이 층에 등록된 설비가 없습니다.';
+      panel.append(title, hint);
+      const list = document.createElement('div');
+      list.className = 'model-floor-list';
+      floorItems.forEach(item => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'model-floor-item';
+        const tag = document.createElement('strong');
+        tag.textContent = item.tag_no || item.name || '설비';
+        const name = document.createElement('span');
+        name.textContent = item.name || item.tag_no || '';
+        button.append(tag, name);
+        button.addEventListener('click', () => showDetail(item));
+        list.appendChild(button);
+      });
+      panel.appendChild(list);
     }
-    filter.value = selected3DPinFloor;
-    const shown = selected3DPinFloor === 'ALL' ? items.length
-      : selected3DPinFloor ? items.filter(item => normalizeFloor(item.floor) === selected3DPinFloor).length : 0;
-    count.textContent = `${shown}/${items.length}대`;
   }
-
-  document.getElementById('pin-floor-filter').addEventListener('change', event => {
-    selected3DPinFloor = event.target.value;
-    render3DHotspots();
-  });
 
   function render3DHotspots() {
     viewer.querySelectorAll('.hotspot-pin').forEach(el => el.remove());
@@ -5023,8 +5052,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     render3DPinControls(items);
     if (!selected3DPinFloor) return;
 
-    items.forEach(item => {
-      if (selected3DPinFloor !== 'ALL' && normalizeFloor(item.floor) !== selected3DPinFloor) return;
+    items.filter(item => normalizeFloor(item.floor) === selected3DPinFloor).slice(0, 8).forEach(item => {
       let pos = item.model_position;
       // 내연은 도면 좌표를 X/Z에, 층 EL을 Y에 매핑해 과거의 잘못된 3D 좌표도 자동 보정한다.
       if (selectedMajor === '내연') {
@@ -5389,3 +5417,4 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     if (!profile) return;
     unlock(savedName, email, data.user);
   });
+
