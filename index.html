@@ -9,7 +9,7 @@
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon.png">
   <link rel="apple-touch-icon" href="./assets/icons/icon.png">
-  <link rel="stylesheet" href="./assets/css/styles.css?v=20261006-inventory-photos">
+  <link rel="stylesheet" href="./assets/css/styles.css?v=20261007-pin-floor-filter">
 </head>
 <body>
 
@@ -176,6 +176,11 @@
   <div id="floor-toolbar" style="display:none;">
     <div id="floor-view-title">보일러 3층 설비도</div>
     <div id="floor-floor-buttons" aria-label="3D 및 층 선택"></div>
+    <div id="pin-filter-wrap" class="pin-filter-wrap" hidden>
+      <label for="pin-floor-filter">3D 핀</label>
+      <select id="pin-floor-filter" aria-label="3D 핀 표시 층"></select>
+      <span id="pin-filter-count" aria-live="polite"></span>
+    </div>
     <button type="button" id="btnToggleManagedEquipment" onclick="toggleManagedEquipment()">관리 설비</button>
   </div>
 
@@ -269,7 +274,7 @@
     <div class="logic-management-panel">
       <div class="logic-management-title" id="logicManagementTitle">🧩 [기력발전] 로직관리</div>
       <div class="logic-management-desc" id="logicManagementDesc">
-        설비 로직의 수정 내역을 등록하고 날짜순으로 확인합니다. 등록된 이력은 감사 기록 보존을 위해 수정하거나 삭제할 수 없습니다.
+        설비 로직의 변경 내역을 등록하고 날짜순으로 확인합니다. 등록한 자료는 수정하거나 삭제할 수 있습니다.
       </div>
       <div class="logic-form-grid">
         <div class="logic-form-field">
@@ -291,6 +296,7 @@
       </div>
       <div class="logic-form-actions">
         <button type="button" class="logic-save-btn" id="btnSaveLogicRecord">로직 수정이력 등록</button>
+        <button type="button" class="history-action-btn" id="btnCancelLogicEdit" hidden>수정 취소</button>
         <span class="logic-status" id="logicManagementStatus" role="status" aria-live="polite"></span>
       </div>
       <div class="logic-list-section">
@@ -303,10 +309,11 @@
                 <th>수정내용</th>
                 <th>수정사유</th>
                 <th>수정날짜</th>
+                <th>작업</th>
               </tr>
             </thead>
             <tbody id="logicManagementBody">
-              <tr><td class="logic-empty" colspan="4">로직관리 탭을 열면 이력을 불러옵니다.</td></tr>
+              <tr><td class="logic-empty" colspan="5">로직관리 탭을 열면 이력을 불러옵니다.</td></tr>
             </tbody>
           </table>
         </div>
@@ -386,6 +393,7 @@
           <div class="field" style="margin-top:10px;">
             <label for="aiInspectionPhotos" style="display:block;color:#94a3b8;font-size:11px;margin-bottom:5px;">현장 사진 첨부 (선택)</label>
             <input id="aiInspectionPhotos" type="file" accept="image/*" multiple style="width:100%;color:#cbd5e1;font-size:11px;">
+            <div id="aiInspectionSavedPhotos" class="record-photo-list"></div>
           </div>
           <div class="ai-inspection-actions">
             <button type="button" class="inspection-primary" id="btnGenerateInspection">AI 점검표 생성</button>
@@ -408,6 +416,10 @@
           <div class="inspection-status" id="aiInspectionSaveStatus" role="status" aria-live="polite"></div>
         </section>
       </div>
+      <section class="ai-inspection-card" style="margin-top:12px;">
+        <h3>저장된 AI 점검</h3>
+        <div id="aiInspectionRecords" class="inspection-list">목록을 불러오는 중입니다.</div>
+      </section>
     </div>
   </div>
 
@@ -444,6 +456,7 @@
         </div>
         <div class="materials-upload-row">
           <button id="btnUploadMaterial" class="materials-upload-btn" type="submit">자료 업로드</button>
+          <button id="btnCancelMaterialEdit" class="history-action-btn" type="button" hidden>수정 취소</button>
           <span id="materialsManagementStatus" class="materials-status" role="status" aria-live="polite"></span>
         </div>
       </form>
@@ -651,6 +664,7 @@
       </div>
     </div>
     <img id="editInstPhotoPreview" class="preview-img" title="클릭 시 전체화면">
+    <button type="button" class="history-action-btn" id="btnRemoveInstPhoto">대표 사진 삭제</button>
   </div>
   <div class="form-group"><label>Tag No.</label><input type="text" id="editTagNo"></div>
   <div class="form-group"><label>기기명</label><input type="text" id="editName"></div>
@@ -681,6 +695,7 @@
   <div class="form-group"><label>감독자</label><input type="text" id="calibSupervisor"></div>
   <div class="btn-wrap">
     <button class="btn-save" id="btnSaveCalibData">교정 성적서 저장</button>
+    <button class="btn-cancel" id="btnDeleteCalibData" type="button" hidden>교정정보 삭제</button>
     <button class="btn-cancel" onclick="document.getElementById('edit-calib-modal').style.display='none'; document.getElementById('info-modal').style.display='block';">닫기</button>
   </div>
 </div>
@@ -725,6 +740,7 @@
       </div>
     </div>
     <img id="histPhotoPreview" class="preview-img" title="클릭 시 전체화면">
+    <button type="button" class="history-action-btn" id="btnRemoveHistPhoto">현장 사진 삭제</button>
   </div>
   <div class="btn-wrap">
     <button class="btn-save" id="btnSaveHist">이력 저장</button>
@@ -783,9 +799,9 @@
     </form>
   </dialog>
 
-  <script src="./assets/js/app.js?v=20261006-floor75"></script>
+  <script src="./assets/js/app.js?v=20261007-pin-floor-filter"></script>
   <script src="./assets/js/inventory-life.js?v=20261003-inventory-import"></script>
-  <script src="./assets/js/inventory.js?v=20261006-material-number"></script>
+  <script src="./assets/js/inventory.js?v=20261007-management-edit-delete"></script>
 </body>
 </html>
 

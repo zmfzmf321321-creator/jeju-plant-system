@@ -18,12 +18,12 @@
   const showArchived = document.getElementById('inventoryShowArchived');
   let items = [];
   let photos = [];
-  let photosLoaded = false;
   let historyItemId = null;
   let changeItemId = null;
   let changeDirection = 1;
   let loadToken = 0;
   let lifeMode = 'auto';
+  let movementEditor = null;
 
   const byId = id => document.getElementById(id);
   const field = id => byId(id).value.trim();
@@ -42,6 +42,36 @@
   const emptyText = value => value == null || value === '' ? '—' : String(value);
   const itemById = id => items.find(item => item.id === id);
   const itemPhotos = id => photos.filter(photo => photo.inventory_id === id && !photo.is_removed);
+  const storagePrefix = '/storage/v1/object/public/instrument-photos/';
+  const cleanupKey = `inventory-photo-cleanup:${SUPABASE_URL}`;
+  function pendingPhotoUrls() {
+    try {
+      const saved = JSON.parse(localStorage.getItem(cleanupKey) || '[]');
+      return Array.isArray(saved) ? saved.filter(url => typeof url === 'string') : [];
+    } catch { return []; }
+  }
+  function savePendingPhotoUrls(urls) {
+    try { localStorage.setItem(cleanupKey, JSON.stringify([...new Set(urls)])); return true; }
+    catch { return false; }
+  }
+  function queuePhotoCleanup(url) {
+    return savePendingPhotoUrls([...pendingPhotoUrls(), url]);
+  }
+  function finishPhotoCleanup(url) {
+    savePendingPhotoUrls(pendingPhotoUrls().filter(entry => entry !== url));
+  }
+  function photoStoragePath(url) {
+    if (!url) return null;
+    const parsed = new URL(url, SUPABASE_URL);
+    if (parsed.origin !== SUPABASE_URL || parsed.username || parsed.password || !parsed.pathname.startsWith(storagePrefix)) {
+      throw new Error('허용되지 않은 사진 주소입니다.');
+    }
+    const path = decodeURIComponent(parsed.pathname.slice(storagePrefix.length));
+    if (path.includes('\\') || path.includes('\0') || path.split('/').some(part => !part || part === '.' || part === '..')) {
+      throw new Error('허용되지 않은 사진 경로입니다.');
+    }
+    return path;
+  }
   const photoValue = photo => photo.image_base64
     ? `data:${photo.mime_type};base64,${photo.image_base64}` : photo.storage_url;
   function photoImage(photo, className = '', onClick = null) {
@@ -61,11 +91,21 @@
       if (removable) {
         const button = make('button', '', '사진 삭제'); button.type = 'button';
         button.addEventListener('click', async () => {
-          if (!confirm('이 사진을 자재에서 삭제할까요?')) return;
+          if (!confirm('이 사진을 영구 삭제할까요? 복원할 수 없습니다.')) return;
           button.disabled = true;
-          const { error } = await supabaseClient.from('inventory_photos').update({ is_removed: true }).eq('id', photo.id);
-          if (error) { button.disabled = false; byId('inventoryEditorError').textContent = errorText(error); return; }
-          photo.is_removed = true; fillPhotoGrid(editorPhotos, id, true); render();
+          try {
+            const path = photoStoragePath(photo.storage_url);
+            const { data: removed, error } = await supabaseClient.from('inventory_photos')
+              .delete().eq('id', photo.id).select('id').single();
+            if (error || !removed) throw error || new Error('사진 삭제 권한을 확인해 주세요.');
+            if (path) queuePhotoCleanup(photo.storage_url);
+            photos = photos.filter(entry => entry.id !== photo.id);
+            fillPhotoGrid(editorPhotos, id, true); render();
+            const warning = path ? await removeUnreferencedPhoto(photo.storage_url, path) : '';
+            byId('inventoryEditorError').textContent = warning || '사진을 영구 삭제했습니다.';
+          } catch (error) {
+            byId('inventoryEditorError').textContent = errorText(error);
+          } finally { button.disabled = false; }
         });
         card.append(button);
       }
@@ -96,7 +136,9 @@
     ? '같은 품목코드가 이미 있습니다.'
     : (error?.message || '요청을 처리하지 못했습니다.');
   const setStatus = (message, isError = false) => {
-    status.textContent = message;
+    const pending = pendingPhotoUrls().length;
+    status.textContent = pending && message
+      ? `${message} · 사진 파일 정리 대기 ${pending}건 (다음 자재 조회 때 재시도)` : message;
     status.classList.toggle('error', isError);
   };
   const make = (tag, className, content) => {
@@ -162,8 +204,9 @@
       buttons.append(action(`사진 ${attached.length}`, 'photos', item.id));
       if (!item.is_archived) {
         buttons.append(action('+ 입고', 'in', item.id), action('− 사용', 'out', item.id),
-          action('수정', 'edit', item.id), action('삭제', 'archive', item.id));
-      } else buttons.append(action('복원', 'restore', item.id));
+          action('수정', 'edit', item.id));
+      } else buttons.append(action('수정', 'edit', item.id), action('복원', 'restore', item.id));
+      buttons.append(action('영구 삭제', 'delete', item.id));
       const historyButton = action('이력', 'history', item.id);
       historyButton.setAttribute('aria-expanded', String(historyItemId === item.id));
       if (historyItemId === item.id) historyButton.setAttribute('aria-controls', 'inventoryHistoryPanel');
@@ -206,18 +249,21 @@
     }
   }
 
-  async function load() {
+  async function load(retryCleanup = true) {
     const token = ++loadToken;
     if (!currentUserInfo.id) { setStatus('승인된 계정으로 로그인하면 자재를 볼 수 있습니다.', true); return; }
     setStatus('자재 목록을 불러오는 중입니다.');
     try {
-      const [records, photoRecords] = await Promise.all([fetchItems(), photosLoaded ? Promise.resolve(photos) : fetchPhotos()]);
+      const [records, photoRecords] = await Promise.all([fetchItems(), fetchPhotos()]);
       if (token !== loadToken) return;
       items = records;
-      photos = photoRecords; photosLoaded = true;
+      photos = photoRecords;
       render();
       setStatus(`자재 ${records.filter(item => !item.is_archived).length}개`);
       if (historyItemId) await loadHistory(historyItemId);
+      const cleanupWarning = retryCleanup ? await retryPendingPhotoCleanup() : '';
+      if (cleanupWarning) setStatus(cleanupWarning, true);
+      else if (retryCleanup) setStatus(`자재 ${records.filter(item => !item.is_archived).length}개`);
     } catch (error) {
       if (token !== loadToken) return;
       console.error('자재 조회 오류:', error);
@@ -230,18 +276,32 @@
     if (!item || historyItemId !== id) return;
     historyTitle.textContent = `${item.item_name} 수량 변경 이력`;
     history.textContent = '이력을 불러오는 중입니다.';
-    const { data, error } = await supabaseClient.from('inventory_movements')
-      .select('id,change_qty,before_qty,after_qty,reason,changed_by_name,created_at')
-      .eq('inventory_id', id).order('created_at', { ascending: false }).limit(100);
+    const data = [];
+    let error = null;
+    for (let offset = 0; ; offset += 1000) {
+      const result = await supabaseClient.from('inventory_movements')
+        .select('id,change_qty,before_qty,after_qty,reason,changed_by_name,created_at,occurred_at')
+        .eq('inventory_id', id).order('occurred_at', { ascending: false })
+        .order('id', { ascending: false }).range(offset, offset + 999);
+      if (result.error) { error = result.error; break; }
+      data.push(...(result.data || []));
+      if (!result.data || result.data.length < 1000) break;
+    }
     if (historyItemId !== id) return;
-    if (error) { history.textContent = '이력을 불러오지 못했습니다.'; return; }
+    if (error) { history.textContent = `이력을 불러오지 못했습니다: ${errorText(error)}`; return; }
     history.replaceChildren();
     if (!data?.length) { history.textContent = '수량 변경 기록이 없습니다.'; return; }
     data.forEach(entry => {
-      const date = new Date(entry.created_at).toLocaleString('ko-KR');
+      const date = new Date(entry.occurred_at || entry.created_at).toLocaleString('ko-KR');
       const sign = entry.change_qty > 0 ? '+' : '';
-      history.append(make('div', 'inventory-history-entry',
-        `${date} · ${sign}${entry.change_qty} (${entry.before_qty} → ${entry.after_qty}) · ${entry.reason} · ${entry.changed_by_name}`));
+      const row = make('div', 'inventory-history-entry');
+      row.append(make('span', '', `${date} · ${sign}${entry.change_qty} (${entry.before_qty} → ${entry.after_qty}) · ${entry.reason} · ${entry.changed_by_name}`));
+      const editButton = make('button', '', '수정'); editButton.type = 'button';
+      editButton.addEventListener('click', () => openMovementEditor(entry));
+      const deleteButton = make('button', '', '삭제'); deleteButton.type = 'button';
+      deleteButton.addEventListener('click', () => deleteMovement(entry, deleteButton));
+      row.append(' ', editButton, ' ', deleteButton);
+      history.append(row);
     });
   }
 
@@ -333,7 +393,7 @@
       if (photoResult.error) { byId('inventoryEditorSubmit').disabled = false; errorElement.textContent = `자재 정보는 저장됐지만 사진 연결에 실패했습니다: ${errorText(photoResult.error)}`; await load(); return; }
     }
     byId('inventoryEditorSubmit').disabled = false;
-    if (files.length) { photosLoaded = false; await load(); }
+    if (files.length) await load();
     editor.close();
     if (!files.length) await load();
     setStatus(id ? '자재 정보를 수정했습니다.' : '자재를 등록했습니다.');
@@ -379,14 +439,138 @@
     setStatus(`${item.item_name} 현재고를 변경하고 사유를 기록했습니다.`);
   }
 
+  const localDateTime = value => {
+    const date = new Date(value);
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 16);
+  };
+
+  function openMovementEditor(entry) {
+    if (movementEditor?.open) movementEditor.close();
+    movementEditor?.remove();
+    const dialog = make('dialog', 'inventory-dialog');
+    const form = make('form');
+    const title = make('h3', '', '수량 변경 이력 수정');
+    const balance = make('p', '', `현재 기록: ${entry.before_qty} → ${entry.after_qty}`);
+    const quantityLabel = make('label', '', '변경 수량 (+ 입고 / − 사용) ');
+    const quantity = make('input'); quantity.type = 'number'; quantity.step = '1'; quantity.required = true;
+    quantity.value = entry.change_qty;
+    quantityLabel.append(quantity);
+    const reasonLabel = make('label', '', '사유 ');
+    const reason = make('input'); reason.type = 'text'; reason.maxLength = 500; reason.required = true;
+    reason.value = entry.reason || '';
+    reasonLabel.append(reason);
+    const dateLabel = make('label', '', '작업일시 ');
+    const date = make('input'); date.type = 'datetime-local'; date.required = true;
+    date.value = localDateTime(entry.occurred_at || entry.created_at);
+    dateLabel.append(date);
+    const errorBox = make('div', 'inventory-form-error'); errorBox.setAttribute('role', 'alert');
+    const actions = make('div', 'inventory-dialog-actions');
+    const cancel = make('button', '', '취소'); cancel.type = 'button'; cancel.addEventListener('click', () => dialog.close());
+    const submit = make('button', 'inventory-primary-btn', '수정 저장'); submit.type = 'submit';
+    actions.append(cancel, submit);
+    form.append(title, balance, quantityLabel, reasonLabel, dateLabel, errorBox, actions);
+    dialog.append(form); document.body.append(dialog); movementEditor = dialog;
+    dialog.addEventListener('close', () => { dialog.remove(); if (movementEditor === dialog) movementEditor = null; });
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      const amount = Number(quantity.value);
+      const when = new Date(date.value);
+      if (!Number.isSafeInteger(amount) || !reason.value.trim() || Number.isNaN(when.getTime())) {
+        errorBox.textContent = '정수 수량, 사유와 작업일시를 확인해 주세요.'; return;
+      }
+      submit.disabled = true;
+      const { error } = await supabaseClient.rpc('update_inventory_movement', {
+        p_movement_id: entry.id, p_change_qty: amount,
+        p_reason: reason.value.trim(), p_created_at: when.toISOString()
+      });
+      submit.disabled = false;
+      if (error) { errorBox.textContent = errorText(error); return; }
+      dialog.close(); await load(); setStatus('수량 변경 이력을 수정하고 잔량을 다시 계산했습니다.');
+    });
+    dialog.showModal();
+  }
+
+  async function deleteMovement(entry, button) {
+    if (!confirm(`${new Date(entry.occurred_at || entry.created_at).toLocaleString('ko-KR')}의 ${entry.change_qty}개 수량 변경 이력을 영구 삭제할까요? 이후 잔량도 다시 계산됩니다. 복원할 수 없습니다.`)) return;
+    button.disabled = true;
+    const { error } = await supabaseClient.rpc('delete_inventory_movement', { p_movement_id: entry.id });
+    button.disabled = false;
+    if (error) { setStatus('이력 삭제 실패: ' + errorText(error), true); return; }
+    await load(); setStatus('수량 변경 이력을 영구 삭제하고 잔량을 다시 계산했습니다.');
+  }
+
+  async function removeUnreferencedPhoto(url, path) {
+    const queued = queuePhotoCleanup(url);
+    try {
+      const { data: canRemove, error: checkError } = await supabaseClient.rpc('can_delete_inventory_photo_object', {
+        p_storage_url: url
+      });
+      if (checkError) throw checkError;
+      if (!canRemove) { finishPhotoCleanup(url); return ''; }
+      const { error } = await supabaseClient.storage.from('instrument-photos').remove([path]);
+      if (error) throw error;
+      finishPhotoCleanup(url);
+      return '';
+    } catch (error) {
+      return `DB 기록은 삭제됐지만 사진 파일 정리에 실패했습니다: ${errorText(error)}${queued ? ' 다음 조회 때 다시 정리합니다.' : ' 자동 재시도를 저장하지 못했습니다.'}`;
+    }
+  }
+
+  async function retryPendingPhotoCleanup() {
+    const warnings = [];
+    for (const url of pendingPhotoUrls().slice(0, 20)) {
+      try {
+        const path = photoStoragePath(url);
+        if (!path) { finishPhotoCleanup(url); continue; }
+        const warning = await removeUnreferencedPhoto(url, path);
+        if (warning) warnings.push(warning);
+      } catch (error) {
+        finishPhotoCleanup(url);
+        warnings.push(`사진 파일 정리 항목을 건너뛰었습니다: ${errorText(error)}`);
+      }
+    }
+    return warnings[0] || '';
+  }
+
+  async function deleteItem(item, button) {
+    if (!confirm(`${item.item_name} 자재와 모든 수량 이력·사진 기록을 영구 삭제할까요? 복원할 수 없습니다.`)) return;
+    button.disabled = true;
+    try {
+      const objectPaths = new Map();
+      for (let offset = 0; ; offset += 1000) {
+        const { data: itemPhotoRows, error: photoError } = await supabaseClient.from('inventory_photos')
+          .select('id,storage_url').eq('inventory_id', item.id).order('id').range(offset, offset + 999);
+        if (photoError) throw photoError;
+        for (const photo of itemPhotoRows || []) {
+          if (photo.storage_url) objectPaths.set(photo.storage_url, photoStoragePath(photo.storage_url));
+        }
+        if (!itemPhotoRows || itemPhotoRows.length < 1000) break;
+      }
+      const { error } = await supabaseClient.rpc('delete_inventory_item', { p_inventory_id: item.id });
+      if (error) throw error;
+      for (const url of objectPaths.keys()) queuePhotoCleanup(url);
+      if (historyItemId === item.id) { historyItemId = null; historyPanel.hidden = true; }
+      const warnings = [];
+      for (const [url, path] of objectPaths) {
+        const warning = await removeUnreferencedPhoto(url, path);
+        if (warning) warnings.push(warning);
+      }
+      await load(false);
+      setStatus(warnings.length ? `${item.item_name} 자재는 삭제됐습니다. ${warnings.join(' ')}`
+        : `${item.item_name} 자재와 관련 기록을 영구 삭제했습니다.`, warnings.length > 0);
+    } catch (error) {
+      setStatus('자재 삭제 실패: ' + errorText(error), true);
+    } finally { button.disabled = false; }
+  }
+
   async function setArchived(item, archived) {
-    if (archived && !confirm(`${item.item_name}을 자재 목록에서 삭제할까요? 과거 수량 이력은 보존됩니다.`)) return;
     const { error } = await supabaseClient.from('inventory')
       .update({ is_archived: archived, updated_by: currentUserInfo.name || '작업자', updated_at: new Date().toISOString() })
       .eq('id', item.id);
     if (error) { setStatus(errorText(error), true); return; }
     await load();
-    setStatus(archived ? '자재를 목록에서 삭제했습니다. 이력은 보존됩니다.' : '자재를 복원했습니다.');
+    setStatus(archived ? '자재를 보관 종료했습니다.' : '자재를 복원했습니다.');
   }
 
   tableBody.addEventListener('click', event => {
@@ -398,7 +582,7 @@
       case 'in': openChange(item, 1); break;
       case 'out': openChange(item, -1); break;
       case 'edit': openEditor(item); break;
-      case 'archive': setArchived(item, true); break;
+      case 'delete': deleteItem(item, button); break;
       case 'restore': setArchived(item, false); break;
       case 'history':
         historyItemId = historyItemId === item.id ? null : item.id;
@@ -431,10 +615,12 @@
   showArchived.addEventListener('change', render);
   window.loadInventoryPage = load;
   window.clearInventoryPage = () => {
-    loadToken++; items = []; photos = []; photosLoaded = false; historyItemId = null; changeItemId = null;
+    loadToken++; items = []; photos = []; historyItemId = null; changeItemId = null;
     historyPanel.hidden = true;
     tableBody.replaceChildren(); history.textContent = '자재의 이력 버튼을 누르면 기록을 볼 수 있습니다.';
     if (editor.open) editor.close(); if (changeDialog.open) changeDialog.close(); if (photoDialog.open) photoDialog.close();
+    if (movementEditor?.open) movementEditor.close();
+    movementEditor?.remove(); movementEditor = null;
     editorPhotos.replaceChildren(); photoGallery.replaceChildren();
     setStatus('');
   };

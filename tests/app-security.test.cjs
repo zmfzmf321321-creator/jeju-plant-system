@@ -61,7 +61,7 @@ test('retry after a conflict keeps the original editor index and equipment snaps
   const context = vm.createContext({
     structuredClone, activeTargetId:'B', editingHistoryIndex:1,
     historyEditorSnapshot:{targetId:'A',index:1,original}, currentInstruments:[target],
-    pendingHistPhotoFile:null, document:{getElementById:id=>elements[id]},
+    pendingHistPhotoFile:null, removeHistoryPhoto:false, document:{getElementById:id=>elements[id]},
     localStorage:{setItem(){}}, currentUserInfo:{}, uploadImageToStorage:async()=>null,
     saveHistoryConditionally:async(t,before,after)=>{captured={t,before,after}; return false;}, alert(){}
   });
