@@ -9,7 +9,7 @@
 - `assets/js/app.js`: Supabase 연동, 메뉴 전환, 설비 도면, 이력, AI 점검, 검색 등 동작 로직
 - `assets/js/inventory.js`: 자재 등록·수정·영구 삭제·보관 종료, 정수/현재고 표시, 입출고 및 이력 정정·삭제
 - `assets/js/inventory-life.js`: 계측기 타입별 고정 교체주기 판별
-- `assets/floor-plans/`: 보일러, 탈질, 내연, 연료펌프룸, 암모니아탱크 도면 이미지
+- `assets/floor-plans/`: 보일러(7층·7.5층 분리), IDF, 탈질, 내연, 연료펌프룸, 암모니아탱크의 축척 없는 공개용 모식도 PNG 24장
 - `assets/models/`: 3D 모델 파일
 - `assets/icons/`: 앱 아이콘
 - `supabase/migrations/`: 데이터베이스 마이그레이션
