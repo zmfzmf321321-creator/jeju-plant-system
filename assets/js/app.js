@@ -1409,7 +1409,9 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
 
     if (menu === '설비') {
       setEquipmentNavVisible(true);
-      switchSubTab(lastEquipmentUnit[selectedMajor] || (selectedMajor === '내연' ? '1호기' : '2호기'));
+      const unit = lastEquipmentUnit[selectedMajor] || (selectedMajor === '내연' ? '1호기' : '2호기');
+      if (selectedMajor === '기력' && (unit === '2호기' || unit === '3호기')) selectedSection = '보일러';
+      switchSubTab(unit);
       return;
     }
 
@@ -1910,13 +1912,13 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       switchViewMode('floor');
     } else if (selectedMajor === '기력') {
       setEquipmentViewToolbar(true);
-      selectedViewMode = 'floor';
+      selectedViewMode = '3d';
       switchSection(selectedSection || '보일러');
     } else {
       setEquipmentViewToolbar(true);
       renderFloorBar();
-      selectedViewMode = 'floor';
-      switchViewMode('floor');
+      selectedViewMode = '3d';
+      switchViewMode('3d');
     }
     updateFloorTitle();
   };
@@ -1927,7 +1929,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     document.getElementById('sec-am').classList.toggle('active', section === '탈질');
     renderFloorBar();
 
-    if (section !== '보일러') selectedViewMode = 'floor';
+    selectedViewMode = section === '보일러' ? '3d' : 'floor';
     switchViewMode(selectedViewMode);
     updateFloorTitle();
   };
@@ -1962,6 +1964,8 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     const managedButton = document.getElementById('btnToggleManagedEquipment');
     if (managedButton) managedButton.style.display = selectedViewMode === 'floor' ? '' : 'none';
     if (selectedViewMode === '3d') {
+      btnMeasure.disabled = false;
+      btnMeasure.title = '3D 거리 계측';
       selected3DPinFloor = '';
       if (btn3d) btn3d.classList.add('active');
       viewFloor.style.display = 'none';
