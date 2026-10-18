@@ -5230,6 +5230,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       document.getElementById('histModalTitle').innerText = '📋 새 점검/정비 이력 추가';
       document.getElementById('histTargetTag').innerText = `[${item.tag_no}] ${item.name}`;
       document.getElementById('histDate').value = getLocalDateValue();
+      document.getElementById('histType').value = 'routine';
       document.getElementById('histAuthor').value = currentUserInfo.name || localStorage.getItem('jeju_worker_name') || '';
       document.getElementById('histContent').value = '';
       pendingHistPhotoFile = null;
@@ -5293,6 +5294,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     document.getElementById('histModalTitle').innerText = '✏️ 점검/정비 이력 수정';
     document.getElementById('histTargetTag').innerText = `[${target.tag_no}] ${target.name}`;
     document.getElementById('histDate').value = h.date || getLocalDateValue();
+    document.getElementById('histType').value = normalizeHistoryType(h.inspection_type || h.type || h.category);
     document.getElementById('histAuthor').value = h.author || '';
     document.getElementById('histContent').value = h.content || '';
     pendingHistPhotoFile = null;
@@ -5348,18 +5350,17 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       finalPhotoUrl = logs[editIndex].photo;
     }
     const existingEntry = editIndex !== null && logs[editIndex] && typeof logs[editIndex] === 'object' ? logs[editIndex] : {};
+    const selectedInspectionType = String(document.getElementById('histType')?.value || existingEntry.inspection_type || existingEntry.type || existingEntry.category || '').trim().toLowerCase().replace(/[-\s]+/g, '_');
+    const inspectionType = ['planned_preventive', 'preventive', 'planned', '계획예방점검'].includes(selectedInspectionType)
+      ? 'planned_preventive'
+      : ['special', '특별점검', '특별'].includes(selectedInspectionType) ? 'special' : 'routine';
     const entryData = {
       ...existingEntry,
       date,
       author: workerName,
       content: text,
       photo: finalPhotoUrl,
-      inspection_type: (() => {
-        const rawType = String(existingEntry.inspection_type || existingEntry.type || existingEntry.category || '').trim().toLowerCase().replace(/[-\s]+/g, '_');
-        return ['planned_preventive', 'preventive', 'planned', '계획예방점검'].includes(rawType)
-          ? 'planned_preventive'
-          : ['special', '특별점검', '특별'].includes(rawType) ? 'special' : 'routine';
-      })()
+      inspection_type: inspectionType
     };
     if (editIndex !== null) logs[editIndex] = entryData;
     else logs.unshift(entryData);
