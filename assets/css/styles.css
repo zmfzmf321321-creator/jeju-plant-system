@@ -1332,20 +1332,20 @@
       display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin: 0 0 14px;
       padding: 5px; border: 1px solid var(--line); border-radius: 11px; background: var(--surface-soft);
     }
-    #historyTypeAll, #historyTypeDaily, #historyTypePreventive, #historyTypeSpecial {
+    #historyTypeAll, #historyTypeDaily, #historyTypePreventive, #historyTypeSpecial, #historyTypeTodo {
       min-height: 34px; padding: 0 12px; border: 1px solid transparent; border-radius: 8px;
       background: transparent; color: var(--muted); font-size: 12px; font-weight: 800; cursor: pointer;
       transition: background .16s ease, border-color .16s ease, color .16s ease;
     }
-    #historyTypeAll:hover, #historyTypeDaily:hover, #historyTypePreventive:hover, #historyTypeSpecial:hover,
-    #historyTypeAll.active, #historyTypeDaily.active, #historyTypePreventive.active, #historyTypeSpecial.active,
+    #historyTypeAll:hover, #historyTypeDaily:hover, #historyTypePreventive:hover, #historyTypeSpecial:hover, #historyTypeTodo:hover,
+    #historyTypeAll.active, #historyTypeDaily.active, #historyTypePreventive.active, #historyTypeSpecial.active, #historyTypeTodo.active,
     #historyTypeAll[aria-selected="true"], #historyTypeDaily[aria-selected="true"],
-    #historyTypePreventive[aria-selected="true"], #historyTypeSpecial[aria-selected="true"] {
+    #historyTypePreventive[aria-selected="true"], #historyTypeSpecial[aria-selected="true"], #historyTypeTodo[aria-selected="true"] {
       border-color: rgba(56,189,248,.65); background: rgba(8,124,168,.28); color: #e6f8ff;
       box-shadow: inset 0 0 0 1px rgba(56,189,248,.1);
     }
     #historyTypeAll:focus-visible, #historyTypeDaily:focus-visible, #historyTypePreventive:focus-visible,
-    #historyTypeSpecial:focus-visible, #historyDetailBackBtn:focus-visible {
+    #historyTypeSpecial:focus-visible, #historyTypeTodo:focus-visible, #historyDetailBackBtn:focus-visible {
       outline: 2px solid #7dd3fc; outline-offset: 2px;
     }
     .history-date-group { margin: 18px 0 0; }
@@ -1567,7 +1567,7 @@
 
     @media (max-width: 760px) {
       #history-table-view .history-type-tabs { overflow-x: auto; flex-wrap: nowrap; }
-      #historyTypeAll, #historyTypeDaily, #historyTypePreventive, #historyTypeSpecial { flex: 0 0 auto; }
+      #historyTypeAll, #historyTypeDaily, #historyTypePreventive, #historyTypeSpecial, #historyTypeTodo { flex: 0 0 auto; }
       #history-table-view .custom-history-table { min-width: 680px; }
       #history-table-view .history-table-scroll { width: 100%; overflow-x: auto; }
       #historyDetailView, #history-detail-view { padding: 16px 10px 24px; }
