@@ -1356,6 +1356,71 @@
     }
     .history-date-group-title::after { content: ""; flex: 1; height: 1px; background: var(--line); }
     .history-date-group-count { color: var(--muted); font-size: 10px; font-weight: 700; }
+      /* Monthly history summaries stay visually separate from their date rows. */
+      .custom-history-table tr.history-month-group {
+        cursor: pointer;
+        background: var(--surface-soft);
+        border-top: 1px solid var(--line-strong);
+      }
+      .custom-history-table tr.history-month-group > td {
+        position: relative;
+        padding: 11px 12px 9px 30px;
+        border-bottom: 1px solid var(--line);
+        color: #b8e8f7;
+        font-size: 13px;
+        font-weight: 900;
+        letter-spacing: .01em;
+      }
+      .custom-history-table .history-month-toggle {
+        display: block;
+        width: 100%;
+        padding: 0;
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+      }
+      .custom-history-table tr.history-month-group > td::before {
+        content: "⌄";
+        position: absolute;
+        left: 11px;
+        top: 50%;
+        color: #7dd3fc;
+        font-size: 15px;
+        line-height: 1;
+        transform: translateY(-55%);
+        transition: transform .16s ease, color .16s ease;
+      }
+      .custom-history-table tr.history-month-group:hover > td {
+        background: rgba(14,165,233,.08);
+        color: #e0f7ff;
+      }
+      .custom-history-table tr.history-month-group:focus-visible {
+        outline: 2px solid #7dd3fc;
+        outline-offset: -2px;
+      }
+      .custom-history-table tr.history-month-group.is-collapsed > td::before,
+      .custom-history-table tr.history-month-group[data-expanded="false"] > td::before,
+      .custom-history-table tr.history-month-group[aria-expanded="false"] > td::before {
+        transform: translateY(-55%) rotate(-90deg);
+      }
+      .custom-history-table tr.history-month-group.is-expanded > td::before,
+      .custom-history-table tr.history-month-group[data-expanded="true"] > td::before,
+      .custom-history-table tr.history-month-group[aria-expanded="true"] > td::before {
+        color: #bae6fd;
+      }
+      .custom-history-table tr.history-record-row > td:first-child {
+        padding-left: 24px;
+      }
+      .custom-history-table tr.history-record-row {
+        border-left: 2px solid transparent;
+      }
+      .custom-history-table tr.history-record-row:hover,
+      .custom-history-table tr.history-record-row:focus-within {
+        border-left-color: #38bdf8;
+      }
     .history-table-row, .custom-history-table tbody tr[data-history-id] {
       cursor: pointer; transition: background .16s ease, box-shadow .16s ease;
     }

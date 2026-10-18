@@ -2786,6 +2786,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     monthGroups.forEach((groupItems, month) => {
       const groupRow = document.createElement('tr');
       groupRow.className = 'history-month-group';
+      groupRow.dataset.expanded = 'false';
       const groupCell = document.createElement('td');
       groupCell.colSpan = 7;
       const monthButton = document.createElement('button');
@@ -2801,6 +2802,9 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       monthButton.addEventListener('click', () => {
         expanded = !expanded;
         monthButton.setAttribute('aria-expanded', String(expanded));
+        groupRow.dataset.expanded = String(expanded);
+        groupRow.classList.toggle('is-expanded', expanded);
+        groupRow.classList.toggle('is-collapsed', !expanded);
         if (expanded) {
           appendRecordRows(groupRow, groupItems);
         } else {
