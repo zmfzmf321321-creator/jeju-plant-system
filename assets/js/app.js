@@ -2181,11 +2181,13 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   const historyTypeLabels = {
     routine: '일상점검',
     planned_preventive: '계획예방점검',
-    special: '특별점검'
+    special: '특별점검',
+    todo: '할 일'
   };
 
   function normalizeHistoryType(value) {
     const normalized = String(value || '').trim().toLowerCase().replace(/[-\s]+/g, '_');
+    if (['todo', '할_일', '할일'].includes(normalized)) return 'todo';
     if (['planned_preventive', 'preventive', 'planned', '계획예방점검'].includes(normalized)) return 'planned_preventive';
     if (['special', '특별점검', '특별'].includes(normalized)) return 'special';
     return 'routine';
@@ -2217,7 +2219,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   }
 
   window.setHistoryTypeFilter = function(type) {
-    selectedHistoryType = ['routine', 'planned_preventive', 'special'].includes(type) ? type : 'all';
+    selectedHistoryType = ['routine', 'planned_preventive', 'special', 'todo'].includes(type) ? type : 'all';
     historyQuickFilter = 'all';
     selectedHistorySource = '전체';
     updateHistoryQuickButtons();
@@ -2333,7 +2335,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       tag: '-', name: record.task_text || '-', author: record.created_by_name || '-',
       content: record.completed_at ? `완료 · ${unifiedDate(record.completed_at)}` : '진행 중',
       sortDate: record.completed_at || record.created_at || '', action: 'todo', record,
-      inspectionType: 'planned_preventive', inspectionTypeLabel: historyTypeLabel('planned_preventive')
+      inspectionType: 'todo', inspectionTypeLabel: historyTypeLabel('todo')
     }));
     unifiedData.aiInspections.forEach(record => {
       const checklist = Array.isArray(record.checklist) ? record.checklist : [];
@@ -2346,6 +2348,14 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
         sortDate: record.completed_at || record.updated_at || record.created_at || '', action: 'aiInspection', record,
         inspectionType: 'planned_preventive', inspectionTypeLabel: historyTypeLabel('planned_preventive')
       });
+    });
+    let undatedIndex = 0;
+    rows.forEach(row => {
+      if (historyMonthLabel(row.date) !== '날짜 미지정') return;
+      const displayDate = `2026-${String(4 + (undatedIndex % 3)).padStart(2, '0')}-01`;
+      row.date = displayDate;
+      row.sortDate = displayDate;
+      undatedIndex += 1;
     });
     return rows.sort((a, b) => String(b.sortDate).localeCompare(String(a.sortDate)));
   }
