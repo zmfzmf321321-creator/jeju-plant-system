@@ -1428,6 +1428,78 @@
     .history-detail-section > #historyDetailActions::before,
     .history-detail-section > #historyDetailExtra::before { display: none; content: none; }
 
+    /* Inline history detail: expands directly below the selected summary row. */
+    .history-inline-detail[hidden] { display: none; }
+    .history-inline-detail > td {
+      padding: 0 !important; border-bottom: 1px solid var(--line-strong) !important;
+      background: transparent !important; box-shadow: none !important;
+    }
+    .history-inline-detail-panel {
+      display: grid; gap: 14px; margin: 0 8px 14px; padding: 16px;
+      border: 1px solid rgba(56,189,248,.35); border-radius: 12px;
+      background: linear-gradient(180deg, rgba(15,31,54,.96), rgba(10,22,40,.96));
+      box-shadow: 0 10px 24px rgba(2,8,23,.22), inset 0 1px 0 rgba(148,163,184,.08);
+    }
+    .history-inline-detail-header {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+      min-width: 0;
+    }
+    .history-inline-detail-header h3,
+    .history-inline-detail-header h4 {
+      min-width: 0; margin: 0; color: var(--text); font-size: 15px; line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+    .history-inline-detail-meta {
+      display: flex; flex-wrap: wrap; gap: 5px 12px; margin-top: 5px;
+      color: var(--muted); font-size: 11px; line-height: 1.5;
+    }
+    .history-inline-detail-grid {
+      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px;
+      margin: 0;
+    }
+    .history-inline-detail-grid > div {
+      min-width: 0; padding: 9px 10px; border: 1px solid var(--line);
+      border-radius: 8px; background: rgba(7,16,31,.5);
+    }
+    .history-inline-detail-grid dt {
+      color: var(--muted); font-size: 10px; font-weight: 800; line-height: 1.35;
+    }
+    .history-inline-detail-grid dd {
+      margin: 4px 0 0; color: var(--text); font-size: 12px; line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+    .history-inline-detail-section {
+      min-width: 0; padding-top: 12px; border-top: 1px solid rgba(71,85,105,.52);
+    }
+    .history-inline-detail-section:first-child { padding-top: 0; border-top: 0; }
+    .history-inline-detail-section h4 {
+      margin: 0 0 8px; color: #8bdef7; font-size: 12px; font-weight: 900;
+    }
+    .history-inline-detail-section p,
+    .history-inline-detail-section .history-inline-detail-text {
+      margin: 0; color: #dbe8f7; font-size: 12px; line-height: 1.65;
+      white-space: pre-wrap; overflow-wrap: anywhere;
+    }
+    .history-inline-detail-items {
+      min-width: 0; overflow-x: auto; -webkit-overflow-scrolling: touch;
+    }
+    .history-inline-detail-items-table {
+      width: 100%; min-width: 560px; border-collapse: collapse; table-layout: fixed;
+      font-size: 11px;
+    }
+    .history-inline-detail-items-table th {
+      padding: 8px; background: rgba(30,41,59,.78); color: #b8e8f7;
+      font-weight: 800; text-align: left; white-space: nowrap;
+    }
+    .history-inline-detail-items-table td {
+      padding: 8px; border-top: 1px solid var(--line); color: #dbe8f7;
+      vertical-align: top; line-height: 1.5; overflow-wrap: anywhere;
+    }
+    .history-inline-detail-actions {
+      display: flex; justify-content: flex-end; gap: 7px; flex-wrap: wrap;
+      margin-top: 1px;
+    }
+
     @media (max-width: 760px) {
       #history-table-view .history-type-tabs { overflow-x: auto; flex-wrap: nowrap; }
       #historyTypeAll, #historyTypeDaily, #historyTypePreventive, #historyTypeSpecial { flex: 0 0 auto; }
@@ -1438,8 +1510,15 @@
       .history-detail-field { grid-template-columns: 1fr; gap: 3px; }
       .history-detail-section { padding: 13px; }
       .history-detail-basic-info { grid-template-columns: 1fr 1fr; gap: 7px; }
+      .history-inline-detail-panel { margin: 0 4px 10px; padding: 13px; gap: 12px; }
+      .history-inline-detail-header { display: grid; gap: 8px; }
+      .history-inline-detail-grid { grid-template-columns: 1fr 1fr; gap: 7px; }
+      .history-inline-detail-items-table { min-width: 520px; }
     }
 
     @media (max-width: 420px) {
       .history-detail-basic-info { grid-template-columns: 1fr; }
+      .history-inline-detail-grid { grid-template-columns: 1fr; }
+      .history-inline-detail-actions { justify-content: stretch; }
+      .history-inline-detail-actions > * { flex: 1 1 auto; }
     }

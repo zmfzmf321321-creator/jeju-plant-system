@@ -58,6 +58,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   let selectedHistoryZone = '전체';
   let selectedHistoryType = 'all';
   let currentHistoryDetailRow = null;
+  let currentHistoryDetailTr = null;
   let currentInspectionId = null;
   let currentInspectionUnit = null;
   let currentInspectionItems = [];
@@ -1293,7 +1294,6 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       'floor-room-view',
       'empty-engine-view',
       'history-table-view',
-      'historyDetailView',
       'logic-management-view',
       'tms-management-view',
       'todo-management-view',
@@ -1440,7 +1440,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       loadTodos();
     } else if (menu === '정비이력') {
       selectedSubTab = '관리이력';
-      historyQuickFilter = 'work';
+      historyQuickFilter = 'all';
       selectedHistorySource = '전체';
       selectedHistoryZone = '전체';
       selectedHistoryType = 'all';
@@ -2217,6 +2217,8 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
 
   window.setHistoryTypeFilter = function(type) {
     selectedHistoryType = ['routine', 'planned_preventive', 'special'].includes(type) ? type : 'all';
+    historyQuickFilter = 'all';
+    updateHistoryQuickButtons();
     updateHistoryTypeButtons();
     renderHistoryTable();
   };
@@ -2268,7 +2270,8 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
         source: '설비 기본자료', major, zone, date: unifiedDate(item.updated_at || item.created_at), tag: item.tag_no || '-',
         name: item.name || '-', author: '-',
         content: [`모델 ${item.model || '-'}`, `범위 ${item.signal_range || '-'}`, `위치 ${item.unit || '-'} ${item.floor || '-'}`].join(' · '),
-        sortDate: item.updated_at || item.created_at || '', action: 'instrument', instrumentId: item.id
+        sortDate: item.updated_at || item.created_at || '', action: 'instrument', instrumentId: item.id,
+        inspectionType: 'planned_preventive', inspectionTypeLabel: historyTypeLabel('planned_preventive')
       });
       (item.history_logs || []).forEach((log, historyIndex) => {
         const inspectionType = normalizeHistoryType(log.inspection_type || log.type || log.category);
@@ -2297,7 +2300,8 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
         source: '교정정보', major, zone, date: unifiedDate(record['점검일자']), tag, name: record['기기명'] || instrument?.name || '-',
         author: [record['점검자'], record['감독자']].filter(Boolean).join(' / ') || '-',
         content: [`TYPE ${record.TYPE || '-'}`, `RANGE ${record.RANGE || '-'}`, `제작사 ${record['제작사'] || '-'}`, `모델 ${record['모델명'] || '-'}`, `위치 ${location || '-'}`].join(' · '),
-        sortDate: record['점검일자'] || '', action: 'calibration', instrumentId: instrument?.id, record
+        sortDate: record['점검일자'] || '', action: 'calibration', instrumentId: instrument?.id, record,
+        inspectionType: 'planned_preventive', inspectionTypeLabel: historyTypeLabel('planned_preventive')
       });
     });
 
@@ -2305,25 +2309,28 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       source: 'TMS', major: record.major_category || '기력', zone: '공통', date: unifiedDate(record.updated_at || record.created_at),
       tag: record.tag_name || '-', name: record.equipment_name || '-', author: '-',
       content: record.maintenance_history || '등록된 정비이력 없음', sortDate: record.updated_at || record.created_at || '',
-      action: 'tms', record
+      action: 'tms', record, inspectionType: 'planned_preventive', inspectionTypeLabel: historyTypeLabel('planned_preventive')
     }));
     unifiedData.logic.forEach(record => rows.push({
       source: '로직', major: record.major_category || '기력', zone: '공통', date: unifiedDate(record.change_date || record.created_at),
       tag: '-', name: record.equipment_name || '-', author: '-',
       content: `수정내용 ${record.change_content || '-'} · 수정사유 ${record.change_reason || '-'}`,
-      sortDate: record.change_date || record.created_at || '', action: 'logic', record
+      sortDate: record.change_date || record.created_at || '', action: 'logic', record,
+      inspectionType: 'planned_preventive', inspectionTypeLabel: historyTypeLabel('planned_preventive')
     }));
     unifiedData.materials.forEach(record => rows.push({
       source: '자료', major: record.major_category || '기력', zone: '공통', date: unifiedDate(record.created_at), tag: '-',
       name: record.title || '-', author: record.uploaded_by_name || '-',
       content: [record.description, record.material_type, record.original_file_name].filter(Boolean).join(' · ') || '-',
-      sortDate: record.created_at || '', action: 'materials', record
+      sortDate: record.created_at || '', action: 'materials', record,
+      inspectionType: 'planned_preventive', inspectionTypeLabel: historyTypeLabel('planned_preventive')
     }));
     unifiedData.todos.forEach(record => rows.push({
       source: '할 일', major: record.major_category || '기력', zone: '공통', date: unifiedDate(record.completed_at || record.created_at),
       tag: '-', name: record.task_text || '-', author: record.created_by_name || '-',
       content: record.completed_at ? `완료 · ${unifiedDate(record.completed_at)}` : '진행 중',
-      sortDate: record.completed_at || record.created_at || '', action: 'todo', record
+      sortDate: record.completed_at || record.created_at || '', action: 'todo', record,
+      inspectionType: 'planned_preventive', inspectionTypeLabel: historyTypeLabel('planned_preventive')
     }));
     unifiedData.aiInspections.forEach(record => {
       const checklist = Array.isArray(record.checklist) ? record.checklist : [];
@@ -2333,7 +2340,8 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
         date: unifiedDate(record.completed_at || record.updated_at || record.created_at), tag: '-', name: record.title || 'AI 점검표',
         author: record.created_by_name || '-',
         content: [record.status, `${completedCount}/${checklist.length}개 확인`, record.result_summary || record.ai_summary].filter(Boolean).join(' · '),
-        sortDate: record.completed_at || record.updated_at || record.created_at || '', action: 'aiInspection', record
+        sortDate: record.completed_at || record.updated_at || record.created_at || '', action: 'aiInspection', record,
+        inspectionType: 'planned_preventive', inspectionTypeLabel: historyTypeLabel('planned_preventive')
       });
     });
     return rows.sort((a, b) => String(b.sortDate).localeCompare(String(a.sortDate)));
@@ -2601,7 +2609,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   function renderHistoryDetailItems(container, items) {
     container.replaceChildren();
     const table = document.createElement('table');
-    table.className = 'history-detail-items-table';
+    table.className = 'history-inline-detail-items-table';
     const head = document.createElement('thead');
     const headRow = document.createElement('tr');
     ['항목명', '기준', '측정값', '단위', '결과', '비고'].forEach(label => {
@@ -2626,41 +2634,92 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     table.appendChild(body); container.appendChild(table);
   }
 
-  function openHistoryDetail(row) {
-    if (!row) return;
-    currentHistoryDetailRow = row;
-    const listView = document.getElementById('history-table-view');
-    const detailView = document.getElementById('historyDetailView');
-    if (!detailView) return;
-    listView.style.display = 'none';
-    detailView.removeAttribute('hidden');
-    detailView.style.display = 'block';
-    const title = row.title || row.name || '관리이력 상세';
-    document.getElementById('historyDetailTitle').textContent = title;
-    document.getElementById('historyDetailMeta').textContent = `${row.inspectionTypeLabel || row.source || '관리이력'} · ${historyText(row.date)}`;
-    const fieldValues = {
-      date: row.date, type: row.inspectionTypeLabel || row.source, equipment: row.equipment || row.name,
-      unit: row.unit || row.zone, inspector: row.inspector || row.author, status: row.result || '기록됨'
-    };
-    document.querySelectorAll('#historyDetailBasicInfo [data-history-field]').forEach(field => {
-      field.textContent = historyText(fieldValues[field.dataset.historyField]);
-    });
-    renderHistoryDetailItems(document.getElementById('historyDetailItems'), row.items || []);
-    const actions = [row.issue ? `이슈: ${row.issue}` : '', row.actionText ? `조치: ${row.actionText}` : '', row.followUp ? `후속: ${row.followUp}` : '']
-      .filter(Boolean).join('\n');
-    document.getElementById('historyDetailActions').textContent = actions || '등록된 조치 내용이 없습니다.';
-    document.getElementById('historyDetailExtra').textContent = historyText(row.extra, '추가 내용이 없습니다.');
-  }
-
-  function closeHistoryDetail() {
-    const detailView = document.getElementById('historyDetailView');
-    if (detailView) { detailView.style.display = 'none'; detailView.setAttribute('hidden', ''); }
-    const listView = document.getElementById('history-table-view');
-    if (listView) listView.style.display = 'block';
+  function closeInlineHistoryDetail() {
+    document.querySelectorAll('.history-inline-detail-row').forEach(detailRow => detailRow.remove());
+    if (currentHistoryDetailTr) currentHistoryDetailTr.classList.remove('is-detail-open');
     currentHistoryDetailRow = null;
+    currentHistoryDetailTr = null;
   }
 
-  document.getElementById('historyDetailBackBtn')?.addEventListener('click', closeHistoryDetail);
+  function appendHistoryDetailText(parent, label, value) {
+    const block = document.createElement('div');
+    block.className = 'history-inline-detail-field';
+    const heading = document.createElement('strong');
+    heading.textContent = label;
+    const text = document.createElement('span');
+    text.textContent = historyText(value);
+    block.append(heading, text);
+    parent.appendChild(block);
+  }
+
+  function openHistoryDetail(row, tr) {
+    if (!row || !tr) return;
+    if (currentHistoryDetailTr === tr) {
+      closeInlineHistoryDetail();
+      return;
+    }
+    closeInlineHistoryDetail();
+    currentHistoryDetailRow = row;
+    currentHistoryDetailTr = tr;
+    tr.classList.add('is-detail-open');
+
+    const detailRow = document.createElement('tr');
+    detailRow.className = 'history-inline-detail-row';
+    const detailCell = document.createElement('td');
+    detailCell.colSpan = 7;
+    const detail = document.createElement('div');
+    detail.className = 'history-inline-detail-panel';
+
+    const title = document.createElement('h3');
+    title.textContent = row.title || row.name || '관리이력 상세';
+    const meta = document.createElement('p');
+    meta.className = 'history-inline-detail-meta';
+    meta.textContent = `${historyText(row.date)} · ${row.inspectionTypeLabel || row.source || '관리이력'}`;
+    detail.append(title, meta);
+
+    const basic = document.createElement('div');
+    basic.className = 'history-inline-detail-grid';
+    appendHistoryDetailText(basic, '점검 유형', row.inspectionTypeLabel || row.source);
+    appendHistoryDetailText(basic, '설비', row.equipment || row.name);
+    appendHistoryDetailText(basic, '위치', row.unit || row.zone);
+    appendHistoryDetailText(basic, '점검자', row.inspector || row.author);
+    appendHistoryDetailText(basic, '결과', row.result || row.content || '기록됨');
+    detail.appendChild(basic);
+
+    const actions = document.createElement('div');
+    actions.className = 'history-inline-detail-section';
+    const actionsHeading = document.createElement('h4');
+    actionsHeading.textContent = '이슈·조치';
+    const actionsText = document.createElement('p');
+    actionsText.textContent = [row.issue ? `이슈: ${row.issue}` : '', row.actionText ? `조치: ${row.actionText}` : '', row.followUp ? `후속: ${row.followUp}` : '']
+      .filter(Boolean).join('\n') || '등록된 이슈·조치 내용이 없습니다.';
+    actions.append(actionsHeading, actionsText);
+    detail.appendChild(actions);
+
+    const itemsSection = document.createElement('div');
+    itemsSection.className = 'history-inline-detail-section';
+    const itemsHeading = document.createElement('h4');
+    itemsHeading.textContent = '점검항목';
+    itemsSection.appendChild(itemsHeading);
+    const itemsContainer = document.createElement('div');
+    renderHistoryDetailItems(itemsContainer, row.items || []);
+    itemsSection.appendChild(itemsContainer);
+    detail.appendChild(itemsSection);
+
+    const extraSection = document.createElement('div');
+    extraSection.className = 'history-inline-detail-section';
+    const extraHeading = document.createElement('h4');
+    extraHeading.textContent = '추가내용';
+    const extraText = document.createElement('p');
+    extraText.textContent = historyText(row.extra, '추가 내용이 없습니다.');
+    extraSection.append(extraHeading, extraText);
+    detail.appendChild(extraSection);
+
+    detailCell.appendChild(detail);
+    detailRow.appendChild(detailCell);
+    tr.insertAdjacentElement('afterend', detailRow);
+  }
+
   document.querySelectorAll('[data-history-type]').forEach(button => {
     button.addEventListener('click', () => setHistoryTypeFilter(button.dataset.historyType));
   });
@@ -2713,8 +2772,8 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
         deleteButton.addEventListener('click', event => { event.stopPropagation(); deleteUnifiedHistoryRecord(row); }); actionCell.appendChild(deleteButton);
       } else actionCell.textContent = '-';
       tr.appendChild(actionCell);
-      tr.addEventListener('click', () => openHistoryDetail(row));
-      tr.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openHistoryDetail(row); } });
+      tr.addEventListener('click', () => openHistoryDetail(row, tr));
+      tr.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openHistoryDetail(row, tr); } });
       tbody.appendChild(tr);
     });
   };
