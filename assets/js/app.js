@@ -1894,6 +1894,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     } else if (sub === '관리이력') {
       floorBar.style.display = 'none';
       viewHist.style.display = 'block';
+      historyQuickFilter = 'all';
       selectedHistorySource = '전체';
       selectedHistoryZone = '전체';
       selectedHistoryType = 'all';
@@ -2218,7 +2219,9 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   window.setHistoryTypeFilter = function(type) {
     selectedHistoryType = ['routine', 'planned_preventive', 'special'].includes(type) ? type : 'all';
     historyQuickFilter = 'all';
+    selectedHistorySource = '전체';
     updateHistoryQuickButtons();
+    updateHistoryFilterButtons();
     updateHistoryTypeButtons();
     renderHistoryTable();
   };
