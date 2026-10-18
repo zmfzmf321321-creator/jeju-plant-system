@@ -2749,35 +2749,79 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#64748b;">조건에 맞는 등록 정보가 없습니다.</td></tr>';
       return;
     }
-    let currentMonth = null;
+    const monthGroups = new Map();
     rows.forEach((row, rowIndex) => {
       const month = historyMonthLabel(row.date);
-      if (month !== currentMonth) {
-        currentMonth = month;
-        const groupRow = document.createElement('tr'); groupRow.className = 'history-month-group';
-        const groupCell = document.createElement('td'); groupCell.colSpan = 7; groupCell.textContent = month;
-        groupRow.appendChild(groupCell); tbody.appendChild(groupRow);
-      }
-      const tr = document.createElement('tr');
-      tr.className = 'history-record-row';
-      tr.tabIndex = 0;
-      const values = [row.date, row.title || row.name, row.equipment || row.name, row.unit || row.zone, row.inspector || row.author, row.result || row.content];
-      values.forEach((value, index) => {
-        const td = document.createElement('td'); td.textContent = historyText(value);
-        if (index === 0 || index === 3 || index === 4) td.style.whiteSpace = 'nowrap';
-        tr.appendChild(td);
+      if (!monthGroups.has(month)) monthGroups.set(month, []);
+      monthGroups.get(month).push({ row, rowIndex });
+    });
+
+    const appendRecordRows = (groupRow, groupItems) => {
+      let insertAfter = groupRow;
+      groupItems.forEach(({ row, rowIndex }) => {
+        const tr = document.createElement('tr');
+        tr.className = 'history-record-row';
+        tr.tabIndex = 0;
+        const values = [row.date, row.title || row.name, row.equipment || row.name, row.unit || row.zone, row.inspector || row.author, row.result || row.content];
+        values.forEach((value, index) => {
+          const td = document.createElement('td'); td.textContent = historyText(value);
+          if (index === 0 || index === 3 || index === 4) td.style.whiteSpace = 'nowrap';
+          tr.appendChild(td);
+        });
+        const actionCell = document.createElement('td');
+        if (row.action !== 'none') {
+          const button = document.createElement('button'); button.type = 'button'; button.className = 'history-action-btn'; button.textContent = '수정';
+          button.addEventListener('click', event => { event.stopPropagation(); openUnifiedHistoryRecord(rowIndex); }); actionCell.appendChild(button);
+          const deleteButton = document.createElement('button'); deleteButton.type = 'button'; deleteButton.className = 'history-action-btn'; deleteButton.textContent = '삭제';
+          deleteButton.addEventListener('click', event => { event.stopPropagation(); deleteUnifiedHistoryRecord(row); }); actionCell.appendChild(deleteButton);
+        } else actionCell.textContent = '-';
+        tr.appendChild(actionCell);
+        tr.addEventListener('click', () => openHistoryDetail(row, tr));
+        tr.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openHistoryDetail(row, tr); } });
+        insertAfter.insertAdjacentElement('afterend', tr);
+        insertAfter = tr;
       });
-      const actionCell = document.createElement('td');
-      if (row.action !== 'none') {
-        const button = document.createElement('button'); button.type = 'button'; button.className = 'history-action-btn'; button.textContent = '수정';
-        button.addEventListener('click', event => { event.stopPropagation(); openUnifiedHistoryRecord(rowIndex); }); actionCell.appendChild(button);
-        const deleteButton = document.createElement('button'); deleteButton.type = 'button'; deleteButton.className = 'history-action-btn'; deleteButton.textContent = '삭제';
-        deleteButton.addEventListener('click', event => { event.stopPropagation(); deleteUnifiedHistoryRecord(row); }); actionCell.appendChild(deleteButton);
-      } else actionCell.textContent = '-';
-      tr.appendChild(actionCell);
-      tr.addEventListener('click', () => openHistoryDetail(row, tr));
-      tr.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openHistoryDetail(row, tr); } });
-      tbody.appendChild(tr);
+    };
+
+    monthGroups.forEach((groupItems, month) => {
+      const groupRow = document.createElement('tr');
+      groupRow.className = 'history-month-group';
+      const groupCell = document.createElement('td');
+      groupCell.colSpan = 7;
+      const monthButton = document.createElement('button');
+      monthButton.type = 'button';
+      monthButton.className = 'history-month-toggle';
+      monthButton.setAttribute('aria-expanded', 'false');
+      monthButton.textContent = `${month} · ${groupItems.length}건`;
+      groupCell.appendChild(monthButton);
+      groupRow.appendChild(groupCell);
+      tbody.appendChild(groupRow);
+
+      let expanded = false;
+      monthButton.addEventListener('click', () => {
+        expanded = !expanded;
+        monthButton.setAttribute('aria-expanded', String(expanded));
+        if (expanded) {
+          appendRecordRows(groupRow, groupItems);
+        } else {
+          let nextRow = groupRow.nextElementSibling;
+          while (nextRow?.classList.contains('history-record-row') || nextRow?.classList.contains('history-inline-detail-row')) {
+            const rowToRemove = nextRow;
+            nextRow = rowToRemove.nextElementSibling;
+            rowToRemove.remove();
+          }
+          if (currentHistoryDetailTr && !currentHistoryDetailTr.isConnected) {
+            currentHistoryDetailRow = null;
+            currentHistoryDetailTr = null;
+          }
+        }
+      });
+      monthButton.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          monthButton.click();
+        }
+      });
     });
   };
 
