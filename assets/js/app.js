@@ -56,6 +56,8 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
   let selectedHistorySource = '전체';
   let historyQuickFilter = 'work';
   let selectedHistoryZone = '전체';
+  let selectedHistoryType = 'all';
+  let currentHistoryDetailRow = null;
   let currentInspectionId = null;
   let currentInspectionUnit = null;
   let currentInspectionItems = [];
@@ -1291,6 +1293,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       'floor-room-view',
       'empty-engine-view',
       'history-table-view',
+      'historyDetailView',
       'logic-management-view',
       'tms-management-view',
       'todo-management-view',
@@ -1440,8 +1443,11 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       historyQuickFilter = 'work';
       selectedHistorySource = '전체';
       selectedHistoryZone = '전체';
+      selectedHistoryType = 'all';
       document.getElementById('history-table-view').style.display = 'block';
+      document.getElementById('historyDetailView')?.setAttribute('hidden', '');
       document.getElementById('tableFilterInput').value = '';
+      updateHistoryTypeButtons();
       updateHistoryFilterButtons();
       updateHistoryQuickButtons();
       renderHistoryTable();
@@ -1845,6 +1851,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     const viewFloor = document.getElementById('floor-room-view');
     const viewEmpty = document.getElementById('empty-engine-view');
     const viewHist = document.getElementById('history-table-view');
+    const viewHistoryDetail = document.getElementById('historyDetailView');
     const viewLogic = document.getElementById('logic-management-view');
     const viewTms = document.getElementById('tms-management-view');
     const viewTodo = document.getElementById('todo-management-view');
@@ -1857,6 +1864,10 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     viewFloor.style.display = 'none';
     viewEmpty.style.display = 'none';
     viewHist.style.display = 'none';
+    if (viewHistoryDetail) {
+      viewHistoryDetail.style.display = 'none';
+      viewHistoryDetail.setAttribute('hidden', '');
+    }
     viewLogic.style.display = 'none';
     viewTms.style.display = 'none';
     viewTodo.style.display = 'none';
@@ -1885,8 +1896,11 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       viewHist.style.display = 'block';
       selectedHistorySource = '전체';
       selectedHistoryZone = '전체';
+      selectedHistoryType = 'all';
       document.getElementById('tableFilterInput').value = '';
       updateHistoryFilterButtons();
+      updateHistoryTypeButtons();
+      document.getElementById('historyDetailView')?.setAttribute('hidden', '');
       document.getElementById('historyTableTitle').innerText = `📋 [${selectedMajor}발전] 데이터별 통합 관리이력`;
       renderHistoryTable();
     } else if (sub === '로직관리') {
@@ -2163,6 +2177,50 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     return text ? '보일러' : '공통';
   }
 
+  const historyTypeLabels = {
+    routine: '일상점검',
+    planned_preventive: '계획예방점검',
+    special: '특별점검'
+  };
+
+  function normalizeHistoryType(value) {
+    const normalized = String(value || '').trim().toLowerCase().replace(/[-\s]+/g, '_');
+    if (['planned_preventive', 'preventive', 'planned', '계획예방점검'].includes(normalized)) return 'planned_preventive';
+    if (['special', '특별점검', '특별'].includes(normalized)) return 'special';
+    return 'routine';
+  }
+
+  function historyTypeLabel(type) {
+    return historyTypeLabels[normalizeHistoryType(type)] || historyTypeLabels.routine;
+  }
+
+  function historyItemsFromLog(log = {}) {
+    const rawItems = log.items ?? log.checklist ?? log.check_items ?? [];
+    if (!Array.isArray(rawItems)) return [];
+    return rawItems.map(item => {
+      if (typeof item === 'string') return { name: item };
+      return item && typeof item === 'object' ? item : { name: String(item || '') };
+    });
+  }
+
+  function historyResultFromLog(log = {}) {
+    return log.result ?? log.result_summary ?? log.status ?? log.outcome ?? '';
+  }
+
+  function updateHistoryTypeButtons() {
+    document.querySelectorAll('[data-history-type]').forEach(button => {
+      const active = button.dataset.historyType === selectedHistoryType;
+      button.classList.toggle('active', active);
+      button.setAttribute('aria-selected', String(active));
+    });
+  }
+
+  window.setHistoryTypeFilter = function(type) {
+    selectedHistoryType = ['routine', 'planned_preventive', 'special'].includes(type) ? type : 'all';
+    updateHistoryTypeButtons();
+    renderHistoryTable();
+  };
+
   function updateHistoryFilterButtons() {
     document.querySelectorAll('[data-history-source]').forEach(button => {
       button.classList.toggle('active', button.dataset.historySource === selectedHistorySource);
@@ -2212,11 +2270,21 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
         content: [`모델 ${item.model || '-'}`, `범위 ${item.signal_range || '-'}`, `위치 ${item.unit || '-'} ${item.floor || '-'}`].join(' · '),
         sortDate: item.updated_at || item.created_at || '', action: 'instrument', instrumentId: item.id
       });
-      (item.history_logs || []).forEach((log, historyIndex) => rows.push({
-        source: '점검·정비', major, zone, date: unifiedDate(log.date), tag: item.tag_no || '-', name: item.name || '-',
-        author: log.author || '-', content: log.content || '-', photo: log.photo || null,
-        sortDate: log.date || '', action: 'maintenance', instrumentId: item.id, historyIndex
-      }));
+      (item.history_logs || []).forEach((log, historyIndex) => {
+        const inspectionType = normalizeHistoryType(log.inspection_type || log.type || log.category);
+        const result = historyResultFromLog(log);
+        rows.push({
+          source: '점검·정비', major, zone, date: unifiedDate(log.date), tag: item.tag_no || '-', name: item.name || '-',
+          title: log.title || `${historyTypeLabel(inspectionType)} 기록`, equipment: item.name || item.tag_no || '-',
+          unit: item.unit || item.floor || '-', inspector: log.author || '-', author: log.author || '-',
+          result: result || log.content || '-', content: log.content || '-', photo: log.photo || null,
+          inspectionType, inspectionTypeLabel: historyTypeLabel(inspectionType), items: historyItemsFromLog(log),
+          issue: log.issue || log.issues || '', actionText: log.action || log.action_taken || '',
+          followUp: log.followUp || log.follow_up || '', extra: log.extra || log.additional || '',
+          status: result || '', log,
+          sortDate: log.date || '', action: 'maintenance', instrumentId: item.id, historyIndex
+        });
+      });
     });
 
     unifiedData.calibrations.forEach(record => {
@@ -2518,69 +2586,135 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     invalidateUnifiedData(); await renderHistoryTable();
   }
 
+  function historyMonthLabel(value) {
+    const match = String(value || '').match(/^(\d{4})[-./](\d{1,2})/);
+    return match ? `${match[1]}년 ${String(match[2]).padStart(2, '0')}월` : '날짜 미지정';
+  }
+
+  function historyText(value, fallback = '-') {
+    if (value === null || value === undefined || value === '') return fallback;
+    if (Array.isArray(value)) return value.map(item => historyText(item, '')).filter(Boolean).join(', ');
+    if (typeof value === 'object') return JSON.stringify(value);
+    return String(value);
+  }
+
+  function renderHistoryDetailItems(container, items) {
+    container.replaceChildren();
+    const table = document.createElement('table');
+    table.className = 'history-detail-items-table';
+    const head = document.createElement('thead');
+    const headRow = document.createElement('tr');
+    ['항목명', '기준', '측정값', '단위', '결과', '비고'].forEach(label => {
+      const th = document.createElement('th'); th.textContent = label; headRow.appendChild(th);
+    });
+    head.appendChild(headRow); table.appendChild(head);
+    const body = document.createElement('tbody');
+    if (!items.length) {
+      const tr = document.createElement('tr'); const td = document.createElement('td');
+      td.colSpan = 6; td.textContent = '등록된 점검항목이 없습니다.'; tr.appendChild(td); body.appendChild(tr);
+    } else {
+      items.forEach(item => {
+        const tr = document.createElement('tr');
+        [item.name || item.title || item.task || item.content, item.standard || item.criteria || item.reference,
+          item.value ?? item.measurement ?? item.measurement_value, item.unit, item.result || item.status,
+          item.note || item.memo || item.remark].forEach(value => {
+          const td = document.createElement('td'); td.textContent = historyText(value); tr.appendChild(td);
+        });
+        body.appendChild(tr);
+      });
+    }
+    table.appendChild(body); container.appendChild(table);
+  }
+
+  function openHistoryDetail(row) {
+    if (!row) return;
+    currentHistoryDetailRow = row;
+    const listView = document.getElementById('history-table-view');
+    const detailView = document.getElementById('historyDetailView');
+    if (!detailView) return;
+    listView.style.display = 'none';
+    detailView.removeAttribute('hidden');
+    detailView.style.display = 'block';
+    const title = row.title || row.name || '관리이력 상세';
+    document.getElementById('historyDetailTitle').textContent = title;
+    document.getElementById('historyDetailMeta').textContent = `${row.inspectionTypeLabel || row.source || '관리이력'} · ${historyText(row.date)}`;
+    const fieldValues = {
+      date: row.date, type: row.inspectionTypeLabel || row.source, equipment: row.equipment || row.name,
+      unit: row.unit || row.zone, inspector: row.inspector || row.author, status: row.result || '기록됨'
+    };
+    document.querySelectorAll('#historyDetailBasicInfo [data-history-field]').forEach(field => {
+      field.textContent = historyText(fieldValues[field.dataset.historyField]);
+    });
+    renderHistoryDetailItems(document.getElementById('historyDetailItems'), row.items || []);
+    const actions = [row.issue ? `이슈: ${row.issue}` : '', row.actionText ? `조치: ${row.actionText}` : '', row.followUp ? `후속: ${row.followUp}` : '']
+      .filter(Boolean).join('\n');
+    document.getElementById('historyDetailActions').textContent = actions || '등록된 조치 내용이 없습니다.';
+    document.getElementById('historyDetailExtra').textContent = historyText(row.extra, '추가 내용이 없습니다.');
+  }
+
+  function closeHistoryDetail() {
+    const detailView = document.getElementById('historyDetailView');
+    if (detailView) { detailView.style.display = 'none'; detailView.setAttribute('hidden', ''); }
+    const listView = document.getElementById('history-table-view');
+    if (listView) listView.style.display = 'block';
+    currentHistoryDetailRow = null;
+  }
+
+  document.getElementById('historyDetailBackBtn')?.addEventListener('click', closeHistoryDetail);
+  document.querySelectorAll('[data-history-type]').forEach(button => {
+    button.addEventListener('click', () => setHistoryTypeFilter(button.dataset.historyType));
+  });
+
   window.renderHistoryTable = async function() {
     const tbody = document.getElementById('historyTableBody');
-    const filterText = (document.getElementById('tableFilterInput').value || '').trim().toLowerCase();
+    const filterText = (document.getElementById('tableFilterInput')?.value || '').trim().toLowerCase();
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#64748b;">통합 관리이력을 불러오는 중입니다.</td></tr>';
     await loadUnifiedData();
     let rows = buildUnifiedHistoryRows();
     if (selectedMainMenu !== '정비이력') rows = rows.filter(row => row.major === selectedMajor);
     if (historyQuickFilter === 'work') rows = rows.filter(row => ['점검·정비', '교정정보'].includes(row.source));
+    if (selectedHistoryType !== 'all') rows = rows.filter(row => row.inspectionType === selectedHistoryType);
     if (selectedHistorySource !== '전체') rows = rows.filter(row => row.source === selectedHistorySource);
     if (selectedHistoryZone !== '전체') rows = rows.filter(row => row.zone === selectedHistoryZone);
-    if (filterText) {
-      rows = rows.filter(row => [row.source, row.major, row.zone, row.date, row.tag, row.name, row.author, row.content]
-        .some(value => String(value || '').toLowerCase().includes(filterText)));
-    }
-    const sourceLabel = historyQuickFilter === 'work' ? '점검·정비 / 교정' : selectedHistorySource === '전체' ? '전체 데이터' : selectedHistorySource;
-    const zoneLabel = selectedHistoryZone === '전체' ? '전체 구역' : selectedHistoryZone;
+    if (filterText) rows = rows.filter(row => [row.source, row.major, row.zone, row.date, row.tag, row.name, row.title, row.equipment, row.unit, row.author, row.result, row.content, row.inspectionTypeLabel]
+      .some(value => historyText(value, '').toLowerCase().includes(filterText)));
     const scopeLabel = selectedMainMenu === '정비이력' ? '전체 발전소' : `${selectedMajor}발전`;
-    document.getElementById('historyTableTitle').innerText = `📋 [${scopeLabel}] ${sourceLabel} · ${zoneLabel} (${rows.length}건)`;
+    const typeLabel = selectedHistoryType === 'all' ? '전체 유형' : historyTypeLabel(selectedHistoryType);
+    document.getElementById('historyTableTitle').innerText = `📋 [${scopeLabel}] ${typeLabel} (${rows.length}건)`;
     window.currentUnifiedHistoryRows = rows;
     tbody.replaceChildren();
     if (rows.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 24px; color: #64748b;">조건에 맞는 등록 정보가 없습니다.</td></tr>`;
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:24px;color:#64748b;">조건에 맞는 등록 정보가 없습니다.</td></tr>';
       return;
     }
+    let currentMonth = null;
     rows.forEach((row, rowIndex) => {
+      const month = historyMonthLabel(row.date);
+      if (month !== currentMonth) {
+        currentMonth = month;
+        const groupRow = document.createElement('tr'); groupRow.className = 'history-month-group';
+        const groupCell = document.createElement('td'); groupCell.colSpan = 7; groupCell.textContent = month;
+        groupRow.appendChild(groupCell); tbody.appendChild(groupRow);
+      }
       const tr = document.createElement('tr');
-      const values = [row.source, row.date, row.tag, row.name, row.author, row.content];
+      tr.className = 'history-record-row';
+      tr.tabIndex = 0;
+      const values = [row.date, row.title || row.name, row.equipment || row.name, row.unit || row.zone, row.inspector || row.author, row.result || row.content];
       values.forEach((value, index) => {
-        const td = document.createElement('td');
-        if (index === 0) {
-          const badge = document.createElement('span');
-          badge.className = `badge-category ${row.major === '내연' ? 'badge-engine' : 'badge-steam'}`;
-          badge.textContent = row.source;
-          const major = document.createElement('div');
-          major.className = 'history-source';
-          major.textContent = `${row.major}발전 · ${row.zone || '공통'}`;
-          td.append(badge, major);
-        } else {
-          td.textContent = value || '-';
-          if ([1, 2, 3, 4].includes(index)) td.style.whiteSpace = 'nowrap';
-          if (index === 2) {
-            td.style.fontWeight = 'bold';
-            td.style.color = '#38bdf8';
-          }
-        }
+        const td = document.createElement('td'); td.textContent = historyText(value);
+        if (index === 0 || index === 3 || index === 4) td.style.whiteSpace = 'nowrap';
         tr.appendChild(td);
       });
       const actionCell = document.createElement('td');
       if (row.action !== 'none') {
-        const button = document.createElement('button');
-        button.type = 'button';
-        button.className = 'history-action-btn';
-        button.textContent = '수정';
-        button.addEventListener('click', () => openUnifiedHistoryRecord(rowIndex));
-        actionCell.appendChild(button);
-        const deleteButton = document.createElement('button');
-        deleteButton.type = 'button'; deleteButton.className = 'history-action-btn'; deleteButton.textContent = '삭제';
-        deleteButton.addEventListener('click', () => deleteUnifiedHistoryRecord(row));
-        actionCell.appendChild(deleteButton);
-      } else {
-        actionCell.textContent = '-';
-      }
+        const button = document.createElement('button'); button.type = 'button'; button.className = 'history-action-btn'; button.textContent = '수정';
+        button.addEventListener('click', event => { event.stopPropagation(); openUnifiedHistoryRecord(rowIndex); }); actionCell.appendChild(button);
+        const deleteButton = document.createElement('button'); deleteButton.type = 'button'; deleteButton.className = 'history-action-btn'; deleteButton.textContent = '삭제';
+        deleteButton.addEventListener('click', event => { event.stopPropagation(); deleteUnifiedHistoryRecord(row); }); actionCell.appendChild(deleteButton);
+      } else actionCell.textContent = '-';
       tr.appendChild(actionCell);
+      tr.addEventListener('click', () => openHistoryDetail(row));
+      tr.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openHistoryDetail(row); } });
       tbody.appendChild(tr);
     });
   };
@@ -5213,11 +5347,19 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     if (!finalPhotoUrl && !removeHistoryPhoto && editIndex !== null && logs[editIndex]) {
       finalPhotoUrl = logs[editIndex].photo;
     }
+    const existingEntry = editIndex !== null && logs[editIndex] && typeof logs[editIndex] === 'object' ? logs[editIndex] : {};
     const entryData = {
+      ...existingEntry,
       date,
       author: workerName,
       content: text,
-      photo: finalPhotoUrl
+      photo: finalPhotoUrl,
+      inspection_type: (() => {
+        const rawType = String(existingEntry.inspection_type || existingEntry.type || existingEntry.category || '').trim().toLowerCase().replace(/[-\s]+/g, '_');
+        return ['planned_preventive', 'preventive', 'planned', '계획예방점검'].includes(rawType)
+          ? 'planned_preventive'
+          : ['special', '특별점검', '특별'].includes(rawType) ? 'special' : 'routine';
+      })()
     };
     if (editIndex !== null) logs[editIndex] = entryData;
     else logs.unshift(entryData);

@@ -9,7 +9,7 @@
   <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.4.0/model-viewer.min.js"></script>
   <link rel="icon" type="image/png" sizes="192x192" href="./assets/icons/icon.png">
   <link rel="apple-touch-icon" href="./assets/icons/icon.png">
-  <link rel="stylesheet" href="./assets/css/styles.css?v=20261008-equipment-3d">
+  <link rel="stylesheet" href="./assets/css/styles.css?v=20261008-equipment-3d">
 </head>
 <body>
 
@@ -157,9 +157,9 @@
     </div>
   </div>
 
-  <div id="overall-3d-view">
-    <div id="model-floor-rail" class="model-floor-rail" aria-label="3D 모델 층별 설비"></div>
-    <section id="model-floor-panel" class="model-floor-panel" hidden aria-live="polite"></section>
+  <div id="overall-3d-view">
+    <div id="model-floor-rail" class="model-floor-rail" aria-label="3D 모델 층별 설비"></div>
+    <section id="model-floor-panel" class="model-floor-panel" hidden aria-live="polite"></section>
     <model-viewer id="boilerViewer" src="./assets/models/boiler/boiler.glb"
       interaction-prompt="none"
       orientation="90deg 270deg 210deg"
@@ -227,6 +227,12 @@
       <button type="button" id="historyQuickWork" class="active" onclick="setHistoryQuickFilter('work')">점검·정비 / 교정</button>
       <button type="button" id="historyQuickAll" onclick="setHistoryQuickFilter('all')">전체 기록</button>
     </div>
+    <div class="history-type-tabs" role="tablist" aria-label="점검 유형">
+      <button type="button" id="historyTypeAll" class="history-type-tab active" role="tab" aria-selected="true" data-history-type="all">전체</button>
+      <button type="button" id="historyTypeDaily" class="history-type-tab" role="tab" aria-selected="false" data-history-type="routine">일상점검</button>
+      <button type="button" id="historyTypePreventive" class="history-type-tab" role="tab" aria-selected="false" data-history-type="planned_preventive">계획예방점검</button>
+      <button type="button" id="historyTypeSpecial" class="history-type-tab" role="tab" aria-selected="false" data-history-type="special">특별점검</button>
+    </div>
     <details class="history-filter-details"><summary>상세 필터</summary><div class="history-filter-panel">
       <div class="history-filter-row" id="historySourceFilters">
         <span class="history-filter-label">데이터 종류</span>
@@ -255,12 +261,12 @@
       <table class="custom-history-table">
         <thead>
           <tr>
-            <th>구분</th>
-            <th>날짜</th>
-            <th>Tag No</th>
-            <th>기기명</th>
-            <th>작업자</th>
-            <th>등록 내용</th>
+            <th data-history-column="date">점검일</th>
+            <th data-history-column="title">점검제목</th>
+            <th data-history-column="equipment">설비</th>
+            <th data-history-column="unit">호기</th>
+            <th data-history-column="inspector">점검자</th>
+            <th data-history-column="result">결과</th>
             <th>관리</th>
           </tr>
         </thead>
@@ -269,11 +275,57 @@
     </div>
   </div>
 
+  <section id="historyDetailView" hidden aria-labelledby="historyDetailTitle">    <div class="history-detail-header">
+      <button type="button" id="historyDetailBackBtn" class="history-back-btn" aria-label="관리이력 목록으로 돌아가기">← 목록으로</button>
+      <div>
+        <div class="history-detail-kicker">점검 상세</div>
+        <h2 id="historyDetailTitle">점검 기록</h2>
+        <div id="historyDetailMeta" class="history-detail-meta" aria-live="polite"></div>
+      </div>
+    </div>
+
+    <div class="history-detail-content">
+      <section class="history-detail-section" aria-labelledby="historyDetailBasicHeading">
+        <h3 id="historyDetailBasicHeading">기본정보</h3>
+        <dl id="historyDetailBasicInfo" class="history-detail-basic-info">
+          <div><dt>점검일</dt><dd data-history-field="date">-</dd></div>
+          <div><dt>점검 유형</dt><dd data-history-field="type">-</dd></div>
+          <div><dt>설비</dt><dd data-history-field="equipment">-</dd></div>
+          <div><dt>호기</dt><dd data-history-field="unit">-</dd></div>
+          <div><dt>점검자</dt><dd data-history-field="inspector">-</dd></div>
+          <div><dt>처리 상태</dt><dd data-history-field="status">-</dd></div>
+        </dl>
+      </section>
+
+      <section class="history-detail-section" aria-labelledby="historyDetailItemsHeading">
+        <h3 id="historyDetailItemsHeading">점검항목별 결과</h3>
+        <div id="historyDetailItems" class="history-detail-items">
+          <table class="history-detail-items-table">
+            <thead>
+              <tr><th>항목명</th><th>기준</th><th>측정값</th><th>단위</th><th>결과</th><th>비고</th></tr>
+            </thead>
+            <tbody><tr><td colspan="6">점검항목을 불러오는 중입니다.</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="history-detail-section" aria-labelledby="historyDetailActionsHeading">
+        <h3 id="historyDetailActionsHeading">조치 내용</h3>
+        <div id="historyDetailActions" class="history-detail-actions-content">등록된 조치 내용이 없습니다.</div>
+      </section>
+
+      <section class="history-detail-section" aria-labelledby="historyDetailExtraHeading">
+        <h3 id="historyDetailExtraHeading">추가 내용</h3>
+        <div id="historyDetailExtra" class="history-detail-extra-content">추가 내용이 없습니다.</div>
+      </section>
+    </div>
+  </section>
+
   <div id="logic-management-view">
     <div class="logic-management-panel">
       <div class="logic-management-title" id="logicManagementTitle">🧩 [기력발전] 로직관리</div>
       <div class="logic-management-desc" id="logicManagementDesc">
-        설비 로직의 변경 내역을 등록하고 날짜순으로 확인합니다. 등록한 자료는 수정하거나 삭제할 수 있습니다.
+        설비 로직의 변경 내역을 등록하고 날짜순으로 확인합니다. 등록한 자료는 수정하거나 삭제할 수 있습니다.
       </div>
       <div class="logic-form-grid">
         <div class="logic-form-field">
@@ -295,7 +347,7 @@
       </div>
       <div class="logic-form-actions">
         <button type="button" class="logic-save-btn" id="btnSaveLogicRecord">로직 수정이력 등록</button>
-        <button type="button" class="history-action-btn" id="btnCancelLogicEdit" hidden>수정 취소</button>
+        <button type="button" class="history-action-btn" id="btnCancelLogicEdit" hidden>수정 취소</button>
         <span class="logic-status" id="logicManagementStatus" role="status" aria-live="polite"></span>
       </div>
       <div class="logic-list-section">
@@ -308,11 +360,11 @@
                 <th>수정내용</th>
                 <th>수정사유</th>
                 <th>수정날짜</th>
-                <th>작업</th>
+                <th>작업</th>
               </tr>
             </thead>
             <tbody id="logicManagementBody">
-              <tr><td class="logic-empty" colspan="5">로직관리 탭을 열면 이력을 불러옵니다.</td></tr>
+              <tr><td class="logic-empty" colspan="5">로직관리 탭을 열면 이력을 불러옵니다.</td></tr>
             </tbody>
           </table>
         </div>
@@ -392,7 +444,7 @@
           <div class="field" style="margin-top:10px;">
             <label for="aiInspectionPhotos" style="display:block;color:#94a3b8;font-size:11px;margin-bottom:5px;">현장 사진 첨부 (선택)</label>
             <input id="aiInspectionPhotos" type="file" accept="image/*" multiple style="width:100%;color:#cbd5e1;font-size:11px;">
-            <div id="aiInspectionSavedPhotos" class="record-photo-list"></div>
+            <div id="aiInspectionSavedPhotos" class="record-photo-list"></div>
           </div>
           <div class="ai-inspection-actions">
             <button type="button" class="inspection-primary" id="btnGenerateInspection">AI 점검표 생성</button>
@@ -415,10 +467,10 @@
           <div class="inspection-status" id="aiInspectionSaveStatus" role="status" aria-live="polite"></div>
         </section>
       </div>
-      <section class="ai-inspection-card" style="margin-top:12px;">
-        <h3>저장된 AI 점검</h3>
-        <div id="aiInspectionRecords" class="inspection-list">목록을 불러오는 중입니다.</div>
-      </section>
+      <section class="ai-inspection-card" style="margin-top:12px;">
+        <h3>저장된 AI 점검</h3>
+        <div id="aiInspectionRecords" class="inspection-list">목록을 불러오는 중입니다.</div>
+      </section>
     </div>
   </div>
 
@@ -455,7 +507,7 @@
         </div>
         <div class="materials-upload-row">
           <button id="btnUploadMaterial" class="materials-upload-btn" type="submit">자료 업로드</button>
-          <button id="btnCancelMaterialEdit" class="history-action-btn" type="button" hidden>수정 취소</button>
+          <button id="btnCancelMaterialEdit" class="history-action-btn" type="button" hidden>수정 취소</button>
           <span id="materialsManagementStatus" class="materials-status" role="status" aria-live="polite"></span>
         </div>
       </form>
@@ -663,7 +715,7 @@
       </div>
     </div>
     <img id="editInstPhotoPreview" class="preview-img" title="클릭 시 전체화면">
-    <button type="button" class="history-action-btn" id="btnRemoveInstPhoto">대표 사진 삭제</button>
+    <button type="button" class="history-action-btn" id="btnRemoveInstPhoto">대표 사진 삭제</button>
   </div>
   <div class="form-group"><label>Tag No.</label><input type="text" id="editTagNo"></div>
   <div class="form-group"><label>기기명</label><input type="text" id="editName"></div>
@@ -694,7 +746,7 @@
   <div class="form-group"><label>감독자</label><input type="text" id="calibSupervisor"></div>
   <div class="btn-wrap">
     <button class="btn-save" id="btnSaveCalibData">교정 성적서 저장</button>
-    <button class="btn-cancel" id="btnDeleteCalibData" type="button" hidden>교정정보 삭제</button>
+    <button class="btn-cancel" id="btnDeleteCalibData" type="button" hidden>교정정보 삭제</button>
     <button class="btn-cancel" onclick="document.getElementById('edit-calib-modal').style.display='none'; document.getElementById('info-modal').style.display='block';">닫기</button>
   </div>
 </div>
@@ -739,7 +791,7 @@
       </div>
     </div>
     <img id="histPhotoPreview" class="preview-img" title="클릭 시 전체화면">
-    <button type="button" class="history-action-btn" id="btnRemoveHistPhoto">현장 사진 삭제</button>
+    <button type="button" class="history-action-btn" id="btnRemoveHistPhoto">현장 사진 삭제</button>
   </div>
   <div class="btn-wrap">
     <button class="btn-save" id="btnSaveHist">이력 저장</button>
@@ -759,7 +811,7 @@
       <div class="inventory-form-grid">
         <label>대분류 <select id="inventoryMajorCategory" required><option value="">선택</option><option value="기력">제주발전본부 1발전소 보일러자재</option><option value="내연">내연</option><option value="환경">제주발전본부 1발전소 환경자재</option></select></label>
         <label>품명 <input id="inventoryItemName" type="text" maxlength="200" required></label>
-        <label>품목코드 <input id="inventoryItemCode" type="text" maxlength="100" placeholder="선택 입력"></label>
+        <label>품목코드 <input id="inventoryItemCode" type="text" maxlength="100" placeholder="선택 입력"></label>
         <label>자재번호 <input id="inventoryMaterialNumber" type="text" maxlength="100" placeholder="원본 자료의 자재번호"></label>
         <label>분류 <select id="inventoryCategory" required><option value="">선택</option></select></label>
         <label id="inventoryCategoryOtherField" hidden>기타 분류 <input id="inventoryCategoryOther" type="text" maxlength="100" placeholder="분류명 직접 입력"></label>
@@ -798,10 +850,10 @@
     </form>
   </dialog>
 
-  <script src="./assets/js/app.js?v=20261008-equipment-3d"></script>
+  <script src="./assets/js/app.js?v=20261008-equipment-3d"></script>
   <script src="./assets/js/inventory-life.js?v=20261003-inventory-import"></script>
-  <script src="./assets/js/inventory.js?v=20261007-management-edit-delete"></script>
+  <script src="./assets/js/inventory.js?v=20261007-management-edit-delete"></script>
 </body>
 </html>
 
-
+
