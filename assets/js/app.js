@@ -2662,7 +2662,8 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     }
     table.appendChild(body); container.appendChild(table);
   }
-  function renderMaintenanceReportItems(container, items) {
+  async function renderMaintenanceReportItems(container, items, reportId) {
+    const photoHosts = [];
     container.replaceChildren();
     items.forEach((item, index) => {
       const section = document.createElement('section');
@@ -2678,7 +2679,32 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       appendHistoryDetailText(fields, '결과', item.result);
       appendHistoryDetailText(fields, '후속조치', item.followUp);
       section.appendChild(fields);
+      const photos = document.createElement('div');
+      photos.className = 'maintenance-report-photos';
+      photos.textContent = '작업 사진을 불러오는 중입니다.';
+      section.appendChild(photos);
+      photoHosts[index] = photos;
       container.appendChild(section);
+    });
+    const epoch = securityEpoch;
+    const { data, error } = await supabaseClient.from('maintenance_report_photos')
+      .select('item_index, phase, image_base64').eq('report_id', reportId).order('item_index');
+    if (!container.isConnected || epoch !== securityEpoch) return;
+    photoHosts.forEach(host => host.textContent = error ? '사진을 불러오지 못했습니다.' : '등록된 사진이 없습니다.');
+    if (error) { console.error('정비결과 사진 조회 오류:', error); return; }
+    (data || []).sort((a, b) => a.item_index - b.item_index || (a.phase === '작업 전' ? -1 : 1)).forEach(photo => {
+      const host = photoHosts[photo.item_index];
+      if (!host || !/^[A-Za-z0-9+/]+={0,2}$/.test(photo.image_base64 || '')) return;
+      if (!host.querySelector('figure')) host.replaceChildren();
+      const figure = document.createElement('figure');
+      const image = document.createElement('img');
+      image.alt = `${items[photo.item_index]?.equipment || '정비 항목'} ${photo.phase}`;
+      image.loading = 'lazy';
+      image.src = `data:image/jpeg;base64,${photo.image_base64}`;
+      const caption = document.createElement('figcaption');
+      caption.textContent = photo.phase;
+      figure.append(image, caption);
+      host.appendChild(figure);
     });
   }
 
@@ -2752,7 +2778,7 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     itemsHeading.textContent = '점검항목';
     itemsSection.appendChild(itemsHeading);
     const itemsContainer = document.createElement('div');
-    if (row.reportItems) renderMaintenanceReportItems(itemsContainer, row.items || []);
+    if (row.reportItems) renderMaintenanceReportItems(itemsContainer, row.items || [], row.record.id);
     else renderHistoryDetailItems(itemsContainer, row.items || []);
     itemsSection.appendChild(itemsContainer);
     detail.appendChild(itemsSection);
