@@ -2662,6 +2662,28 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
     }
     table.appendChild(body); container.appendChild(table);
   }
+  function openMaintenancePhotoViewer(src, label) {
+    const dialog = document.createElement('dialog');
+    dialog.className = 'maintenance-photo-dialog';
+    const header = document.createElement('div');
+    header.className = 'maintenance-photo-dialog-header';
+    const title = document.createElement('strong');
+    title.textContent = label;
+    const closeButton = document.createElement('button');
+    closeButton.type = 'button';
+    closeButton.className = 'maintenance-photo-dialog-close';
+    closeButton.textContent = '닫기';
+    closeButton.addEventListener('click', () => dialog.close());
+    header.append(title, closeButton);
+    const image = document.createElement('img');
+    image.src = src;
+    image.alt = label;
+    dialog.append(header, image);
+    dialog.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+    dialog.addEventListener('close', () => dialog.remove(), { once: true });
+    document.body.appendChild(dialog);
+    dialog.showModal();
+  }
   async function renderMaintenanceReportItems(container, items, reportId) {
     const photoHosts = [];
     container.replaceChildren();
@@ -2697,13 +2719,19 @@ const SUPABASE_URL = 'https://euohxdxddvyldtfdvpkk.supabase.co';
       if (!host || !/^[A-Za-z0-9+/]+={0,2}$/.test(photo.image_base64 || '')) return;
       if (!host.querySelector('figure')) host.replaceChildren();
       const figure = document.createElement('figure');
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'maintenance-report-photo-button';
+      button.setAttribute('aria-label', `${items[photo.item_index]?.equipment || '정비 항목'} ${photo.phase} 사진 크게 보기`);
       const image = document.createElement('img');
       image.alt = `${items[photo.item_index]?.equipment || '정비 항목'} ${photo.phase}`;
       image.loading = 'lazy';
       image.src = `data:image/jpeg;base64,${photo.image_base64}`;
+      button.appendChild(image);
+      button.addEventListener('click', () => openMaintenancePhotoViewer(image.src, image.alt));
       const caption = document.createElement('figcaption');
       caption.textContent = photo.phase;
-      figure.append(image, caption);
+      figure.append(button, caption);
       host.appendChild(figure);
     });
   }
